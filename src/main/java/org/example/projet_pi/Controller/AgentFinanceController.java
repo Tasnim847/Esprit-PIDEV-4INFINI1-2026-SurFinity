@@ -2,6 +2,7 @@ package org.example.projet_pi.Controller;
 
 import org.example.projet_pi.Service.IAgentFinanceService;
 import org.example.projet_pi.entity.AgentFinance;
+import org.example.projet_pi.entity.Role;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,9 +24,11 @@ public class AgentFinanceController {
     // Modifier un agent finance
     @PutMapping("/update")
     public AgentFinance updateAgent(@RequestBody AgentFinance agentFinance) {
+
+        agentFinance.setRole(Role.AGENT_FINANCE);
+
         return agentFinanceService.updateAgent(agentFinance);
     }
-
     // Supprimer un agent finance
     @DeleteMapping("/delete/{id}")
     public void deleteAgent(@PathVariable Long id) {
