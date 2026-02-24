@@ -2,6 +2,7 @@ package org.example.projet_pi.Service;
 
 import org.example.projet_pi.Repository.ClientRepository;
 import org.example.projet_pi.entity.Client;
+import org.example.projet_pi.entity.Role;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -18,6 +19,8 @@ public class ClientService implements IClientService {
 
     @Override
     public Client addClient(Client client) {
+
+        client.setRole(Role.CLIENT);
         return clientRepository.save(client);
     }
 

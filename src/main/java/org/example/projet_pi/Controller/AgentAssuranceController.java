@@ -2,6 +2,7 @@ package org.example.projet_pi.Controller;
 
 import org.example.projet_pi.Service.IAgentAssuranceService;
 import org.example.projet_pi.entity.AgentAssurance;
+import org.example.projet_pi.entity.Role;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +24,9 @@ public class AgentAssuranceController {
     // Modifier un agent assurance
     @PutMapping("/update")
     public AgentAssurance updateAgent(@RequestBody AgentAssurance agentAssurance) {
+
+        agentAssurance.setRole(Role.AGENT_ASSURANCE);
+
         return agentAssuranceService.updateAgent(agentAssurance);
     }
 

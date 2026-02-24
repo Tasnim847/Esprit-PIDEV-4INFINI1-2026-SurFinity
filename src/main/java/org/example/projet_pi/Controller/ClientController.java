@@ -2,6 +2,7 @@ package org.example.projet_pi.Controller;
 
 import org.example.projet_pi.Service.IClientService;
 import org.example.projet_pi.entity.Client;
+import org.example.projet_pi.entity.Role;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,9 +24,11 @@ public class ClientController {
     // Modifier un client
     @PutMapping("/update")
     public Client updateClient(@RequestBody Client client) {
+
+        client.setRole(Role.CLIENT);
+
         return clientService.updateClient(client);
     }
-
     // Supprimer un client
     @DeleteMapping("/delete/{id}")
     public void deleteClient(@PathVariable Long id) {
