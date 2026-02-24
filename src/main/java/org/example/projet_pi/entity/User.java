@@ -3,6 +3,8 @@ package org.example.projet_pi.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.Date;
+
 @Entity
 @Inheritance(strategy = InheritanceType.JOINED)
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor
@@ -59,11 +61,28 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    public String getOtp() {
+        return otp;
+    }
+
+    public void setOtp(String otp) {
+        this.otp = otp;
+    }
+
+    public Date getOtpExpiry() {
+        return otpExpiry;
+    }
+
+    public void setOtpExpiry(Date otpExpiry) {
+        this.otpExpiry = otpExpiry;
+    }
+
     private String firstName;
     private String lastName;
     private String email;
     private String password;
-
+    private String otp;
+    private Date otpExpiry;
     @Enumerated(EnumType.STRING)
     private Role role;
 }

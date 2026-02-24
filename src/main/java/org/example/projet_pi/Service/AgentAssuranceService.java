@@ -2,6 +2,7 @@ package org.example.projet_pi.Service;
 
 import org.example.projet_pi.Repository.AgentAssuranceRepository;
 import org.example.projet_pi.entity.AgentAssurance;
+import org.example.projet_pi.entity.Role;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,6 +18,8 @@ public class AgentAssuranceService implements IAgentAssuranceService {
 
     @Override
     public AgentAssurance addAgent(AgentAssurance agentAssurance) {
+
+        agentAssurance.setRole(Role.AGENT_ASSURANCE);
         return agentAssuranceRepository.save(agentAssurance);
     }
 

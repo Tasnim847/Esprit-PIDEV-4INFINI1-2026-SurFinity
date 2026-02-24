@@ -2,6 +2,7 @@ package org.example.projet_pi.Service;
 
 import org.example.projet_pi.Repository.AgentFinanceRepository;
 import org.example.projet_pi.entity.AgentFinance;
+import org.example.projet_pi.entity.Role;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,6 +18,9 @@ public class AgentFinanceService implements IAgentFinanceService {
 
     @Override
     public AgentFinance addAgent(AgentFinance agentFinance) {
+
+        agentFinance.setRole(Role.AGENT_FINANCE);
+
         return agentFinanceRepository.save(agentFinance);
     }
 
