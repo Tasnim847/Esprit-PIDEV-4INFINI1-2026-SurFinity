@@ -23,17 +23,15 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String email)
             throws UsernameNotFoundException {
 
-        // Chercher utilisateur dans base
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() ->
                         new UsernameNotFoundException("User not found with email: " + email)
                 );
 
-        // Créer liste des authorities (roles)
+        // Ajouter le préfixe "ROLE_" pour utiliser hasRole() au lieu de hasAuthority()
         List<SimpleGrantedAuthority> authorities =
-                List.of(new SimpleGrantedAuthority(user.getRole().name()));
+                List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
 
-        // Retourner user Spring Security
         return new org.springframework.security.core.userdetails.User(
                 user.getEmail(),
                 user.getPassword(),
