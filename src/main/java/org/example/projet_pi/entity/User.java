@@ -57,6 +57,14 @@ public class User {
         this.role = role;
     }
 
+    public String getTelephone() {
+        return telephone;
+    }
+
+    public void setTelephone(String telephone) {
+        this.telephone = telephone;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -83,6 +91,7 @@ public class User {
     private String password;
     private String otp;
     private Date otpExpiry;
+    private String telephone;
     @Enumerated(EnumType.STRING)
     private Role role;
 }
