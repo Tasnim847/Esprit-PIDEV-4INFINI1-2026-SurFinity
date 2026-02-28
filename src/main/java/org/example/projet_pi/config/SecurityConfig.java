@@ -61,7 +61,14 @@ public class SecurityConfig {
                         .requestMatchers("/contrats/{id}/download/pdf").hasAnyRole("CLIENT", "AGENT_ASSURANCE", "ADMIN")
                         .requestMatchers("/contrats/{id}/risk").hasAnyRole("CLIENT", "AGENT_ASSURANCE", "ADMIN")
                         .requestMatchers("/contrats/myContracts").hasRole("CLIENT")
-                        
+
+                        .requestMatchers("/contrats/activate/**").hasRole("AGENT_ASSURANCE")
+                        .requestMatchers("/contrats/reject/**").hasRole("AGENT_ASSURANCE")
+                        .requestMatchers("/contrats/pending").hasRole("AGENT_ASSURANCE")
+                        .requestMatchers("/contrats/rejected").hasAnyRole("CLIENT", "AGENT_ASSURANCE", "ADMIN")
+
+                        .requestMatchers("/api/reminders/**").hasAnyRole("ADMIN", "AGENT_ASSURANCE")
+
                         // 👤 CLIENT - Gestion des claims
                         .requestMatchers("/claims/addClaim").hasRole("CLIENT")
                         .requestMatchers("/claims/updateClaim").hasRole("CLIENT")
