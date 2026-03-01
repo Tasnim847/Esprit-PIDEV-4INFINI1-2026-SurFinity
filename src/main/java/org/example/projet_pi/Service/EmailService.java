@@ -4,10 +4,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.projet_pi.entity.Client;
-import org.example.projet_pi.entity.InsuranceContract;
-import org.example.projet_pi.entity.Payment;
-import org.example.projet_pi.entity.PaymentReminder;
+import org.example.projet_pi.entity.*;
 import org.example.projet_pi.Repository.PaymentReminderRepository;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -106,8 +103,6 @@ public class EmailService {
         return throwable;
     }
 
-    // Dans EmailService.java, modifiez la méthode getSubjectByDaysBefore :
-
     private String getSubjectByDaysBefore(int daysBefore) {
         switch (daysBefore) {
             case 3:
@@ -172,13 +167,262 @@ public class EmailService {
         for (Client client : clients) {
             try {
                 sendPaymentReminderEmail(client, contract, payment, daysBefore);
-
-                // Petit délai pour ne pas surcharger le serveur SMTP
                 Thread.sleep(100);
-
             } catch (Exception e) {
                 log.error("Erreur pour {}: {}", client.getEmail(), e.getMessage());
             }
         }
     }
+
+    /**
+     * 🎉 Envoyer un email de confirmation d'acceptation du contrat
+     */
+    @Async
+    public void sendContractAcceptedEmail(Client client, InsuranceContract contract) {
+        try {
+            if (client.getEmail() == null || client.getEmail().trim().isEmpty()) {
+                log.error("Email client manquant pour le contrat {}", contract.getContractId());
+                return;
+            }
+
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setTo(client.getEmail());
+            helper.setSubject("✅ Félicitations ! Votre contrat d'assurance a été accepté");
+
+            Context context = new Context();
+            context.setVariable("clientName", client.getFirstName() + " " + client.getLastName());
+            context.setVariable("contractId", contract.getContractId());
+            context.setVariable("startDate", new SimpleDateFormat("dd/MM/yyyy").format(contract.getStartDate()));
+            context.setVariable("endDate", new SimpleDateFormat("dd/MM/yyyy").format(contract.getEndDate()));
+            context.setVariable("premium", String.format("%.3f", contract.getPremium()));
+            context.setVariable("paymentFrequency", contract.getPaymentFrequency() != null ?
+                    contract.getPaymentFrequency().toString() : "Mensuel");
+            context.setVariable("agentName", contract.getAgentAssurance() != null ?
+                    contract.getAgentAssurance().getFirstName() + " " + contract.getAgentAssurance().getLastName() : "Votre agent");
+            context.setVariable("agentEmail", contract.getAgentAssurance() != null ?
+                    contract.getAgentAssurance().getEmail() : "");
+            context.setVariable("currentDate", new SimpleDateFormat("dd/MM/yyyy").format(new Date()));
+
+            String htmlContent = templateEngine.process("contract-accepted", context);
+            helper.setText(htmlContent, true);
+
+            mailSender.send(message);
+            log.info("✅ Email d'acceptation envoyé à {} pour le contrat {}",
+                    client.getEmail(), contract.getContractId());
+
+        } catch (MessagingException e) {
+            log.error("❌ Erreur lors de l'envoi de l'email d'acceptation à {}: {}",
+                    client.getEmail(), e.getMessage());
+        } catch (Exception e) {
+            log.error("❌ Erreur inattendue: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * 🚨 NOUVELLE MÉTHODE À AJOUTER : Envoyer un email d'annulation de contrat
+     */
+    @Async
+    public void sendContractCancelledEmail(Client client, InsuranceContract contract, int latePaymentCount) {
+        try {
+            if (client.getEmail() == null || client.getEmail().trim().isEmpty()) {
+                log.error("Email client manquant pour le contrat {}", contract.getContractId());
+                return;
+            }
+
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setTo(client.getEmail());
+            helper.setSubject("🚨 Important : Votre contrat d'assurance a été annulé");
+
+            // Préparer le contexte Thymeleaf
+            Context context = new Context();
+            context.setVariable("clientName", client.getFirstName() + " " + client.getLastName());
+            context.setVariable("contractId", contract.getContractId());
+            context.setVariable("cancellationDate", new SimpleDateFormat("dd/MM/yyyy").format(new Date()));
+            context.setVariable("latePaymentCount", latePaymentCount);
+            context.setVariable("agentName", contract.getAgentAssurance() != null ?
+                    contract.getAgentAssurance().getFirstName() + " " + contract.getAgentAssurance().getLastName() : "Votre agent");
+            context.setVariable("agentEmail", contract.getAgentAssurance() != null ?
+                    contract.getAgentAssurance().getEmail() : "");
+
+            String htmlContent = templateEngine.process("contract-cancelled", context);
+            helper.setText(htmlContent, true);
+
+            // Envoyer l'email
+            mailSender.send(message);
+
+            log.info("✅ Email d'annulation envoyé à {} pour le contrat {} ({} retards)",
+                    client.getEmail(), contract.getContractId(), latePaymentCount);
+
+        } catch (MessagingException e) {
+            log.error("❌ Erreur lors de l'envoi de l'email d'annulation à {}: {}",
+                    client.getEmail(), e.getMessage());
+        } catch (Exception e) {
+            log.error("❌ Erreur inattendue: {}", e.getMessage());
+        }
+    }
+
+
+    /**
+     * 📧 Envoyer un email de notification de rejet de contrat
+     */
+    @Async
+    public void sendContractRejectedEmail(Client client, InsuranceContract contract, String rejectionReason) {
+        try {
+            if (client.getEmail() == null || client.getEmail().trim().isEmpty()) {
+                log.error("Email client manquant pour le contrat {}", contract.getContractId());
+                return;
+            }
+
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setTo(client.getEmail());
+            helper.setSubject("❌ Information : Votre contrat d'assurance n'a pas été accepté");
+
+            // Préparer le contexte Thymeleaf
+            Context context = new Context();
+            context.setVariable("clientName", client.getFirstName() + " " + client.getLastName());
+            context.setVariable("contractId", contract.getContractId());
+            context.setVariable("rejectionDate", new SimpleDateFormat("dd/MM/yyyy").format(new Date()));
+            context.setVariable("rejectionReason", rejectionReason != null ? rejectionReason : "Non spécifiée");
+            context.setVariable("agentName", contract.getAgentAssurance() != null ?
+                    contract.getAgentAssurance().getFirstName() + " " + contract.getAgentAssurance().getLastName() : "Votre agent");
+            context.setVariable("agentEmail", contract.getAgentAssurance() != null ?
+                    contract.getAgentAssurance().getEmail() : "");
+
+            String htmlContent = templateEngine.process("contract-rejected", context);
+            helper.setText(htmlContent, true);
+
+            // Envoyer l'email
+            mailSender.send(message);
+
+            log.info("✅ Email de rejet envoyé à {} pour le contrat {} (raison: {})",
+                    client.getEmail(), contract.getContractId(), rejectionReason);
+
+        } catch (MessagingException e) {
+            log.error("❌ Erreur lors de l'envoi de l'email de rejet à {}: {}",
+                    client.getEmail(), e.getMessage());
+        } catch (Exception e) {
+            log.error("❌ Erreur inattendue: {}", e.getMessage());
+        }
+    }
+
+
+    /**
+     * 📧 Envoyer un email de confirmation d'acceptation de claim
+     */
+    @Async
+    public void sendClaimApprovedEmail(Client client, Claim claim, Compensation compensation) {
+        try {
+            if (client.getEmail() == null || client.getEmail().trim().isEmpty()) {
+                log.error("Email client manquant pour le claim {}", claim.getClaimId());
+                return;
+            }
+
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setTo(client.getEmail());
+            helper.setSubject("✅ Votre réclamation a été acceptée - Compensation en cours");
+
+            // Préparer le contexte Thymeleaf
+            Context context = new Context();
+            context.setVariable("clientName", client.getFirstName() + " " + client.getLastName());
+            context.setVariable("claimId", claim.getClaimId());
+            context.setVariable("contractId", claim.getContract() != null ? claim.getContract().getContractId() : "N/A");
+            context.setVariable("claimDate", new SimpleDateFormat("dd/MM/yyyy").format(claim.getClaimDate()));
+            context.setVariable("claimedAmount", String.format("%.3f", claim.getClaimedAmount()));
+            context.setVariable("approvedAmount", String.format("%.3f", claim.getApprovedAmount()));
+
+            // Détails de la compensation
+            if (compensation != null) {
+                context.setVariable("compensationAmount", String.format("%.3f", compensation.getAmount()));
+                context.setVariable("paymentDate", new SimpleDateFormat("dd/MM/yyyy").format(compensation.getPaymentDate()));
+            } else {
+                context.setVariable("compensationAmount", "En cours de traitement");
+                context.setVariable("paymentDate", "À déterminer");
+            }
+
+            // Calcul de la franchise
+            double franchise = claim.getContract() != null ? claim.getContract().getDeductible() : 0;
+            double insurancePayment = Math.max(0, claim.getApprovedAmount() - franchise);
+            context.setVariable("franchise", String.format("%.3f", franchise));
+            context.setVariable("insurancePayment", String.format("%.3f", insurancePayment));
+
+            context.setVariable("agentName", claim.getContract() != null && claim.getContract().getAgentAssurance() != null ?
+                    claim.getContract().getAgentAssurance().getFirstName() + " " + claim.getContract().getAgentAssurance().getLastName() : "Votre agent");
+            context.setVariable("agentEmail", claim.getContract() != null && claim.getContract().getAgentAssurance() != null ?
+                    claim.getContract().getAgentAssurance().getEmail() : "");
+            context.setVariable("currentDate", new SimpleDateFormat("dd/MM/yyyy").format(new Date()));
+
+            String htmlContent = templateEngine.process("claim-approved", context);
+            helper.setText(htmlContent, true);
+
+            // Envoyer l'email
+            mailSender.send(message);
+
+            log.info("✅ Email d'acceptation de claim envoyé à {} pour le claim {}",
+                    client.getEmail(), claim.getClaimId());
+
+        } catch (MessagingException e) {
+            log.error("❌ Erreur lors de l'envoi de l'email d'acceptation de claim à {}: {}",
+                    client.getEmail(), e.getMessage());
+        } catch (Exception e) {
+            log.error("❌ Erreur inattendue: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * 📧 Envoyer un email de rejet de claim
+     */
+    @Async
+    public void sendClaimRejectedEmail(Client client, Claim claim, String rejectionReason) {
+        try {
+            if (client.getEmail() == null || client.getEmail().trim().isEmpty()) {
+                log.error("Email client manquant pour le claim {}", claim.getClaimId());
+                return;
+            }
+
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setTo(client.getEmail());
+            helper.setSubject("❌ Information concernant votre réclamation");
+
+            // Préparer le contexte Thymeleaf
+            Context context = new Context();
+            context.setVariable("clientName", client.getFirstName() + " " + client.getLastName());
+            context.setVariable("claimId", claim.getClaimId());
+            context.setVariable("contractId", claim.getContract() != null ? claim.getContract().getContractId() : "N/A");
+            context.setVariable("claimDate", new SimpleDateFormat("dd/MM/yyyy").format(claim.getClaimDate()));
+            context.setVariable("claimedAmount", String.format("%.3f", claim.getClaimedAmount()));
+            context.setVariable("rejectionReason", rejectionReason != null ? rejectionReason : "Non spécifiée");
+            context.setVariable("rejectionDate", new SimpleDateFormat("dd/MM/yyyy").format(new Date()));
+            context.setVariable("agentName", claim.getContract() != null && claim.getContract().getAgentAssurance() != null ?
+                    claim.getContract().getAgentAssurance().getFirstName() + " " + claim.getContract().getAgentAssurance().getLastName() : "Votre agent");
+            context.setVariable("agentEmail", claim.getContract() != null && claim.getContract().getAgentAssurance() != null ?
+                    claim.getContract().getAgentAssurance().getEmail() : "");
+
+            String htmlContent = templateEngine.process("claim-rejected", context);
+            helper.setText(htmlContent, true);
+
+            // Envoyer l'email
+            mailSender.send(message);
+
+            log.info("✅ Email de rejet de claim envoyé à {} pour le claim {} (raison: {})",
+                    client.getEmail(), claim.getClaimId(), rejectionReason);
+
+        } catch (MessagingException e) {
+            log.error("❌ Erreur lors de l'envoi de l'email de rejet de claim à {}: {}",
+                    client.getEmail(), e.getMessage());
+        } catch (Exception e) {
+            log.error("❌ Erreur inattendue: {}", e.getMessage());
+        }
+    }
+
+
 }
