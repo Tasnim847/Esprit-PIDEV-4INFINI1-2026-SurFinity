@@ -126,6 +126,11 @@ public class SecurityConfig {
                         .requestMatchers("/Repayment/pay-credit/**").hasRole("CLIENT")
                         .requestMatchers("/Repayment/myPayments").hasRole("CLIENT")
                         .requestMatchers("/Repayment/remaining/**").authenticated()
+
+                        .requestMatchers("/Repayment/credits/{creditId}/amortissement/pdf").hasAnyRole("CLIENT", "ADMIN")
+
+                        // Agent Finance et Admin
+
                         .requestMatchers("/Repayment/history/**").hasAnyRole("AGENT_FINANCE", "ADMIN")
                         .requestMatchers("/Repayment/allRepayment").hasAnyRole("AGENT_FINANCE", "ADMIN")
                         .requestMatchers("/Repayment/addRepayment").hasRole("ADMIN")
