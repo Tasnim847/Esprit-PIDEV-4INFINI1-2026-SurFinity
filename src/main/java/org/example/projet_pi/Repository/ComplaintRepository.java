@@ -12,19 +12,16 @@ import java.util.List;
 @Repository
 public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
 
-    // 🔹 Recherche par statut
     List<Complaint> findByStatus(String status);
 
-    // 🔹 Recherche par client (id hérité de User)
+    long countByStatus(String status);
+
     List<Complaint> findByClient_Id(Long clientId);
 
-    // 🔹 Recherche par agent assurance
     List<Complaint> findByAgentAssurance_Id(Long agentAssuranceId);
 
-    // 🔹 Recherche par agent finance
     List<Complaint> findByAgentFinance_Id(Long agentFinanceId);
 
-    // 🔹 Recherche avancée dynamique
     @Query("""
         SELECT c FROM Complaint c
         WHERE (:status IS NULL OR c.status = :status)
@@ -32,8 +29,8 @@ public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
         AND (:clientId IS NULL OR c.client.id = :clientId)
         AND (:agentAssuranceId IS NULL OR c.agentAssurance.id = :agentAssuranceId)
         AND (:agentFinanceId IS NULL OR c.agentFinance.id = :agentFinanceId)
-        AND (:dateDebut IS NULL OR c.date >= :dateDebut)
-        AND (:dateFin IS NULL OR c.date <= :dateFin)
+        AND (:dateDebut IS NULL OR c.claimDate >= :dateDebut)
+        AND (:dateFin IS NULL OR c.claimDate <= :dateFin)
     """)
     List<Complaint> searchComplaints(
             @Param("status") String status,
