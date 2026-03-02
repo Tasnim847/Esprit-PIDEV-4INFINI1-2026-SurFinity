@@ -42,21 +42,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/otp/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 
-                        // ========== PARTIE RISQUE EVALUATE (CORRIGÉE) ==========
-                        // Pages HTML pour l'agent
-                        .requestMatchers("/agent/risk/evaluation").hasRole("AGENT_ASSURANCE")
-                        .requestMatchers("/agent/risk/evaluation/**").hasRole("AGENT_ASSURANCE")
-                        .requestMatchers("/agent/risk/").hasRole("AGENT_ASSURANCE")
-                        .requestMatchers("/agent/risk/api/**").hasRole("AGENT_ASSURANCE")
-
-                        // APIs REST pour le risque
-                        .requestMatchers("/api/risk/evaluation/**").hasAnyRole("AGENT_ASSURANCE", "ADMIN")
-                        .requestMatchers("/api/risk/decide/**").hasRole("AGENT_ASSURANCE")
-                        .requestMatchers("/api/risk/summary/**").hasAnyRole("AGENT_ASSURANCE", "ADMIN")
-
-                        // Ressources statiques
-                        .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
-
                         // 👑 ADMIN uniquement
                         .requestMatchers("/products/addProduct").hasRole("ADMIN")
                         .requestMatchers("/products/updateProduct").hasRole("ADMIN")
@@ -76,11 +61,6 @@ public class SecurityConfig {
                         .requestMatchers("/contrats/{id}/download/pdf").hasAnyRole("CLIENT", "AGENT_ASSURANCE", "ADMIN")
                         .requestMatchers("/contrats/{id}/risk").hasAnyRole("CLIENT", "AGENT_ASSURANCE", "ADMIN")
                         .requestMatchers("/contrats/myContracts").hasRole("CLIENT")
-                        .requestMatchers("/contrats/reject/**").hasRole("AGENT_ASSURANCE")
-                        .requestMatchers("/contrats/pending").hasRole("AGENT_ASSURANCE")
-                        .requestMatchers("/contrats/rejected").hasAnyRole("CLIENT", "AGENT_ASSURANCE", "ADMIN")
-
-                        .requestMatchers("/api/reminders/**").hasAnyRole("ADMIN", "AGENT_ASSURANCE")
 
                         // 👤 CLIENT - Gestion des claims
                         .requestMatchers("/claims/addClaim").hasRole("CLIENT")
@@ -106,32 +86,10 @@ public class SecurityConfig {
                         .requestMatchers("/payments/allPayments").hasAnyRole("CLIENT","AGENT_ASSURANCE","ADMIN")
                         .requestMatchers("/payments/contract/**").hasAnyRole("CLIENT", "AGENT_ASSURANCE", "ADMIN")
                         .requestMatchers("/payments/create-payment-intent/**").hasAnyRole("CLIENT", "AGENT_ASSURANCE", "ADMIN")
-                        .requestMatchers("/payments/webhook").permitAll()
+                        .requestMatchers("/payments/webhook").permitAll() // Webhook Stripe (public)
 
-                        // ⚠️ RiskClaims
+                        // ⚠️ RiskClaims (généralement gérés par le système)
                         .requestMatchers("/riskclaims/**").hasRole("ADMIN")
-
-                        // ========== CREDIT ENDPOINTS ==========
-                        .requestMatchers("/Credit/addCredit").hasRole("ADMIN")
-                        .requestMatchers("/Credit/updateCredit").hasRole("ADMIN")
-                        .requestMatchers("/Credit/deleteCredit/**").hasRole("ADMIN")
-                        .requestMatchers("/Credit/getCredit/**").hasRole("ADMIN")
-                        .requestMatchers("/Credit/approve/**").hasAnyRole("AGENT_FINANCE", "ADMIN")
-                        .requestMatchers("/Credit/reject/**").hasAnyRole("AGENT_FINANCE", "ADMIN")
-                        .requestMatchers("/Credit/allCredit").hasAnyRole("AGENT_FINANCE", "ADMIN")
-                        .requestMatchers("/Credit/closedCreditsWithAverage/**").hasAnyRole("AGENT_FINANCE", "ADMIN")
-                        .requestMatchers("/Credit/myCredits").hasRole("CLIENT")
-
-                        // ========== REPAYMENT ENDPOINTS ==========
-                        .requestMatchers("/Repayment/pay-credit/**").hasRole("CLIENT")
-                        .requestMatchers("/Repayment/myPayments").hasRole("CLIENT")
-                        .requestMatchers("/Repayment/remaining/**").authenticated()
-                        .requestMatchers("/Repayment/history/**").hasAnyRole("AGENT_FINANCE", "ADMIN")
-                        .requestMatchers("/Repayment/allRepayment").hasAnyRole("AGENT_FINANCE", "ADMIN")
-                        .requestMatchers("/Repayment/addRepayment").hasRole("ADMIN")
-                        .requestMatchers("/Repayment/updateRepayment").hasRole("ADMIN")
-                        .requestMatchers("/Repayment/deleteRepayment/**").hasRole("ADMIN")
-                        .requestMatchers("/Repayment/getRepayment/**").hasRole("ADMIN")
 
                         // Toute autre requête nécessite une authentification
                         .anyRequest().authenticated()
