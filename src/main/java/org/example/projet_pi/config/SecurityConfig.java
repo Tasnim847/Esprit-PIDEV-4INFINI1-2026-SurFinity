@@ -126,6 +126,22 @@ public class SecurityConfig {
                         .requestMatchers("/Repayment/deleteRepayment/**").hasRole("ADMIN")
                         .requestMatchers("/Repayment/getRepayment/**").hasRole("ADMIN")
 
+
+                        // ========== NEWS ENDPOINTS ==========
+                        .requestMatchers("/news/add").hasAnyRole("ADMIN")   // Admin et agent peuvent ajouter
+                        .requestMatchers("/news/update").hasAnyRole("ADMIN") // Admin et agent peuvent modifier
+                        .requestMatchers("/news/delete/**").hasRole("ADMIN")                    // Seul admin peut supprimer
+                        .requestMatchers("/news/{id}").hasAnyRole("ADMIN","AGENT_ASSURANCE","CLIENT","AGENT_FINANCE") // Tous peuvent voir une news
+                        .requestMatchers("/news/all").hasAnyRole("ADMIN","AGENT_ASSURANCE","CLIENT","AGENT_FINANCE")  // Tous peuvent voir la liste
+
+                        // ========== COMPLAINT ENDPOINTS ==========
+                        .requestMatchers("/complaints/add").hasRole("CLIENT")                 // Seul le client peut créer une plainte
+                        .requestMatchers("/complaints/update").hasAnyRole("AGENT_ASSURANCE","AGENT_FINANCE","ADMIN") // Agents et admin peuvent modifier
+                        .requestMatchers("/complaints/delete/**").hasRole("ADMIN")            // Seul admin peut supprimer
+                        .requestMatchers("/complaints/{id}").hasAnyRole("CLIENT","AGENT_ASSURANCE","AGENT_FINANCE","ADMIN") // Tous avec droits peuvent voir
+                        .requestMatchers("/complaints/all").hasAnyRole("AGENT_ASSURANCE","AGENT_FINANCE","ADMIN") // Liste accessible aux agents et admin
+                        .requestMatchers("/complaints/search").hasAnyRole("AGENT_ASSURANCE","AGENT_FINANCE","ADMIN") // Recherche avancée
+
                         // Toute autre requête nécessite une authentification
                         .anyRequest().authenticated()
                 )
