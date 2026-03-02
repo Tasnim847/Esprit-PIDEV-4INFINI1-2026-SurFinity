@@ -45,5 +45,7 @@ public class AgentFinance extends User {
     public void setComplaints(List<Complaint> complaints) {
         this.complaints = complaints;
     }
+
+
 }
 

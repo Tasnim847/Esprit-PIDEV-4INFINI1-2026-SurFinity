@@ -21,7 +21,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
 
     @Bean
-    public PasswordEncoder passwordEncoder(){
+    public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
@@ -33,9 +33,10 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
         http
+                // 🔹 Désactive CSRF pour POST/PUT/DELETE depuis Postman
                 .csrf(csrf -> csrf.disable())
+
                 .authorizeHttpRequests(auth -> auth
                         // 🔓 Endpoints publics
                         .requestMatchers("/api/auth/**").permitAll()
@@ -122,7 +123,7 @@ public class SecurityConfig {
                         // Toute autre requête nécessite une authentification
                         .anyRequest().authenticated()
                 )
-                .sessionManagement(session ->
+              .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
