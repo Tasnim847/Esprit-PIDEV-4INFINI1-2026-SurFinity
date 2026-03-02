@@ -25,12 +25,27 @@ public class ClientService implements IClientService {
     }
 
     @Override
-    public Client updateClient(Client client) {
-        // Vérifier que le client existe avant update (optionnel mais recommandé)
-        if (!clientRepository.existsById(client.getId())) {
-            throw new RuntimeException("Client not found");
+    public Client updateClientInfo(Long id, Client clientRequest){
+
+        Client existingClient = clientRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Client not found"));
+
+        if(clientRequest.getFirstName()!=null)
+            existingClient.setFirstName(clientRequest.getFirstName());
+
+        if(clientRequest.getLastName()!=null)
+            existingClient.setLastName(clientRequest.getLastName());
+
+        if(clientRequest.getEmail()!=null)
+            existingClient.setEmail(clientRequest.getEmail());
+
+        if(clientRequest.getTelephone()!=null)
+            existingClient.setTelephone(clientRequest.getTelephone());
+        if(clientRequest.getPassword()!=null){
+            throw new RuntimeException("Password update not allowed here");
         }
-        return clientRepository.save(client);
+
+        return clientRepository.save(existingClient);
     }
 
     @Override

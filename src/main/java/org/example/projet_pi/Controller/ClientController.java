@@ -4,6 +4,7 @@ import org.example.projet_pi.Service.IClientService;
 import org.example.projet_pi.entity.Client;
 import org.example.projet_pi.entity.Role;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,13 +23,14 @@ public class ClientController {
     }
 
     // Modifier un client
-    @PutMapping("/update")
-    public Client updateClient(@RequestBody Client client) {
-
-        client.setRole(Role.CLIENT);
-
-        return clientService.updateClient(client);
+    @PutMapping("/update/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','CLIENT') and (#id == authentication.principal.id or hasRole('ADMIN'))")
+    public Client updateClient(
+            @PathVariable Long id,
+            @RequestBody Client client){
+        return clientService.updateClientInfo(id, client);
     }
+
     // Supprimer un client
     @DeleteMapping("/delete/{id}")
     public void deleteClient(@PathVariable Long id) {

@@ -10,7 +10,8 @@ public interface IClientService {
     Client addClient(Client client);
 
     // Modifier un client
-    Client updateClient(Client client);
+
+    Client updateClientInfo(Long id, Client clientRequest);
 
     // Supprimer un client
     void deleteClient(Long id);
