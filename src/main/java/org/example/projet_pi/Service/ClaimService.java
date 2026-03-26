@@ -2,9 +2,7 @@ package org.example.projet_pi.Service;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.projet_pi.Dto.ClaimDTO;
-import org.example.projet_pi.Dto.CompensationDetailsDTO;
-import org.example.projet_pi.Dto.DocumentDTO;
+import org.example.projet_pi.Dto.*;
 import org.example.projet_pi.Mapper.ClaimMapper;
 import org.example.projet_pi.Repository.*;
 import org.example.projet_pi.entity.*;
@@ -16,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -30,6 +29,8 @@ public class ClaimService implements IClaimService {
     private final CompensationRepository compensationRepository;
     private final UserRepository userRepository;  // Ajout du repository User
     private final EmailService emailService;
+    private final ClientScoringService clientScoringService;
+    private final AdvancedClaimScoringService advancedClaimScoringService;
 
     @Override
     @Transactional
@@ -367,13 +368,21 @@ public class ClaimService implements IClaimService {
     /**
      * Crée automatiquement une compensation pour un claim approuvé
      */
+    // Dans ClaimService.java - MODIFIER createCompensationForApprovedClaim
+
     @Transactional
     protected Compensation createCompensationForApprovedClaim(Claim claim) {
         // Vérifier qu'il n'y a pas déjà une compensation
         if (claim.getCompensation() != null) {
-            System.out.println("⚠️ Le claim " + claim.getClaimId() + " a déjà une compensation");
+            log.info("⚠️ Le claim {} a déjà une compensation", claim.getClaimId());
             return claim.getCompensation();
         }
+
+        // 🔥 NOUVEAU: Calculer le scoring avancé AVANT de créer la compensation
+        ClaimScoreDTO claimScore = advancedClaimScoringService.calculateAdvancedClaimScore(claim.getClaimId());
+
+        log.info("📊 Scoring avancé pour claim {}: score={}, niveau={}",
+                claim.getClaimId(), claimScore.getRiskScore(), claimScore.getRiskLevel());
 
         InsuranceContract contract = claim.getContract();
         if (contract == null) {
@@ -382,17 +391,30 @@ public class ClaimService implements IClaimService {
 
         // CALCUL DES MONTANTS
         double claimedAmount = claim.getClaimedAmount();
-        double approvedAmount = claim.getApprovedAmount() > 0 ?
-                claim.getApprovedAmount() : claimedAmount;
-
+        double approvedAmount = claim.getApprovedAmount() > 0 ? claim.getApprovedAmount() : claimedAmount;
         double franchise = contract.getDeductible();
+        double coverageLimit = contract.getCoverageLimit();
 
-        // Calcul du montant payé par l'assurance
-        double insurancePayment = Math.max(0, approvedAmount - franchise);
+        // Calcul du montant pris en charge par l'assurance
+        double afterFranchise = Math.max(0, approvedAmount - franchise);
+        double baseInsurancePayment = Math.min(afterFranchise, coverageLimit);
 
-        // La compensation ne peut pas dépasser le plafond du contrat
-        if (insurancePayment > contract.getCoverageLimit()) {
-            insurancePayment = contract.getCoverageLimit();
+        // 🔥 NOUVEAU: Ajustement basé sur le scoring
+        double insurancePayment = baseInsurancePayment;
+        double clientOutOfPocket = approvedAmount - insurancePayment;
+
+        if (claimScore.getRiskScore() < 40) {
+            // Risque élevé - pénalité
+            double penalty = baseInsurancePayment * 0.15;
+            insurancePayment = Math.max(0, baseInsurancePayment - penalty);
+            clientOutOfPocket = approvedAmount - insurancePayment;
+            log.warn("⚠️ Pénalité de risque: {} DT appliquée (score: {})", penalty, claimScore.getRiskScore());
+        } else if (claimScore.getRiskScore() > 80) {
+            // Risque très faible - bonus
+            double bonus = baseInsurancePayment * 0.05;
+            insurancePayment = Math.min(coverageLimit, baseInsurancePayment + bonus);
+            clientOutOfPocket = approvedAmount - insurancePayment;
+            log.info("✅ Bonus de risque: {} DT appliqué (score: {})", bonus, claimScore.getRiskScore());
         }
 
         // Mettre à jour le montant approuvé si nécessaire
@@ -400,11 +422,39 @@ public class ClaimService implements IClaimService {
             claim.setApprovedAmount(approvedAmount);
         }
 
-        // Création de la compensation
+        // Générer message avec scoring
+        String message = generateCompensationMessageWithScoring(
+                approvedAmount, franchise, coverageLimit, insurancePayment,
+                clientOutOfPocket, claimScore
+        );
+
+        // Création de la compensation avec scoring
         Compensation compensation = new Compensation();
         compensation.setAmount(insurancePayment);
+        compensation.setAdjustedAmount(insurancePayment);
         compensation.setPaymentDate(new Date());
         compensation.setClaim(claim);
+        compensation.setClientOutOfPocket(clientOutOfPocket);
+        compensation.setCoverageLimit(coverageLimit);
+        compensation.setDeductible(franchise);
+        compensation.setOriginalClaimedAmount(claimedAmount);
+        compensation.setApprovedAmount(approvedAmount);
+        compensation.setMessage(message);
+        compensation.setStatus(CompensationStatus.CALCULATED);
+        compensation.setCalculationDate(new Date());
+
+        // 🔥 STOCKER LE SCORING
+        compensation.setRiskScore(claimScore.getRiskScore());
+        compensation.setRiskLevel(claimScore.getRiskLevel());
+        compensation.setDecisionSuggestion(claimScore.getDecisionSuggestion().toString());
+        compensation.setScoringDetails(String.format(
+                "Score: %d/100 | Niveau: %s | Décision: %s\nRecommandation: %s\nFacteurs: %s",
+                claimScore.getRiskScore(),
+                claimScore.getRiskLevel(),
+                claimScore.getDecisionSuggestion(),
+                claimScore.getRecommendation(),
+                claimScore.getDelayInfo() + ", " + claimScore.getDocumentTypeInfo() + ", " + claimScore.getFrequencyInfo()
+        ));
 
         // Sauvegarde
         compensation = compensationRepository.save(compensation);
@@ -419,9 +469,50 @@ public class ClaimService implements IClaimService {
         log.info("   - Montant réclamé: {} DT", claimedAmount);
         log.info("   - Montant approuvé: {} DT", approvedAmount);
         log.info("   - Franchise client: {} DT", franchise);
+        log.info("   - Plafond contrat: {} DT", coverageLimit);
+        log.info("   - Score risque: {} DT", claimScore.getRiskScore());
         log.info("   - Montant assurance: {} DT", insurancePayment);
+        log.info("   - Reste à charge: {} DT", clientOutOfPocket);
 
         return compensation;
+    }
+
+    private String generateCompensationMessageWithScoring(double approvedAmount, double deductible,
+                                                          double coverageLimit, double insurancePayment,
+                                                          double clientOutOfPocket, ClaimScoreDTO score) {
+        StringBuilder message = new StringBuilder();
+
+        message.append("📋 DÉTAILS DU REMBOURSEMENT AVEC SCORING AVANCÉ\n");
+        message.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n");
+
+        // Calcul standard
+        if (approvedAmount > coverageLimit) {
+            message.append(String.format(
+                    "⚠️ ATTENTION: Votre réclamation (%.2f DT) dépasse le plafond du contrat (%.2f DT).\n",
+                    approvedAmount, coverageLimit
+            ));
+        }
+
+        message.append(String.format("💰 Montant approuvé: %.2f DT\n", approvedAmount));
+        message.append(String.format("🔧 Franchise appliquée: %.2f DT\n", deductible));
+        message.append(String.format("📊 Plafond du contrat: %.2f DT\n", coverageLimit));
+        message.append(String.format("🏦 Montant pris en charge: %.2f DT\n", insurancePayment));
+        message.append(String.format("💳 Reste à votre charge: %.2f DT\n\n", clientOutOfPocket));
+
+        // Scoring
+        message.append("🎯 SCORING AVANCÉ\n");
+        message.append("━━━━━━━━━━━━━━━━━━━━\n");
+        message.append(String.format("📈 Score de risque: %d/100\n", score.getRiskScore()));
+        message.append(String.format("⚠️ Niveau de risque: %s %s\n", score.getColorCode(), score.getRiskLevel()));
+        message.append(String.format("🤖 Décision suggérée: %s\n", score.getDecisionSuggestion()));
+        message.append(String.format("💡 Recommandation: %s\n\n", score.getRecommendation()));
+
+        message.append("📋 Facteurs analysés:\n");
+        message.append(String.format("   • Délai: %s\n", score.getDelayInfo()));
+        message.append(String.format("   • Documents: %s\n", score.getDocumentTypeInfo()));
+        message.append(String.format("   • Fréquence: %s\n", score.getFrequencyInfo()));
+
+        return message.toString();
     }
 
     @Override
@@ -447,5 +538,167 @@ public class ClaimService implements IClaimService {
                 insurancePayment,
                 claim.getStatus()
         );
+    }
+
+    // ===============================
+    // 🔍 FRAUD DETECTION
+    // ===============================
+    public boolean isFraudulent(Long claimId) {
+        Claim claim = claimRepository.findById(claimId)
+                .orElseThrow(() -> new RuntimeException("Claim not found"));
+
+        boolean highAmount = claim.getClaimedAmount() > 10000;
+        boolean tooManyClaims =
+                claimRepository.findByClientId(claim.getClient().getId()).size() > 5;
+
+        return highAmount || tooManyClaims;
+    }
+
+    // ===============================
+    // 📊 STATISTICS
+    // ===============================
+    public Map<String, Object> getStats() {
+        List<Claim> claims = claimRepository.findAll();
+
+        long total = claims.size();
+        long approved = claims.stream()
+                .filter(c -> c.getStatus() == ClaimStatus.APPROVED)
+                .count();
+        long rejected = claims.stream()
+                .filter(c -> c.getStatus() == ClaimStatus.REJECTED)
+                .count();
+
+        double totalAmount = claims.stream()
+                .mapToDouble(Claim::getClaimedAmount)
+                .sum();
+
+        return Map.of(
+                "totalClaims", total,
+                "approvedClaims", approved,
+                "rejectedClaims", rejected,
+                "totalAmount", totalAmount
+        );
+    }
+
+    // ===============================
+    // 🔍 SEARCH
+    // ===============================
+    public List<ClaimDTO> search(String status, Double min, Double max) {
+        return claimRepository.findAll()
+                .stream()
+                .filter(c -> status == null || c.getStatus().name().equals(status))
+                .filter(c -> min == null || c.getClaimedAmount() >= min)
+                .filter(c -> max == null || c.getClaimedAmount() <= max)
+                .map(ClaimMapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
+
+    // ===============================
+    // 💡 RECOMMENDATION
+    // ===============================
+    public String getRecommendation(Long claimId) {
+        Claim claim = claimRepository.findById(claimId)
+                .orElseThrow(() -> new RuntimeException("Claim not found"));
+
+        if (claim.getClaimedAmount() > claim.getContract().getCoverageLimit()) {
+            return "⚠️ Montant dépasse le plafond du contrat";
+        }
+
+        if (isFraudulent(claimId)) {
+            return "⚠️ Claim suspect, vérification nécessaire";
+        }
+
+        return "✅ Claim normal";
+    }
+
+    // ===============================
+    // 📈 PREDICTION
+    // ===============================
+    public Double predictClientCost(Long clientId) {
+        List<Claim> claims = claimRepository.findByClientId(clientId);
+
+        return claims.stream()
+                .mapToDouble(Claim::getClaimedAmount)
+                .average()
+                .orElse(0);
+    }
+
+    @Transactional
+    public ClaimDTO decideClaimAutomatically(Long claimId) {
+        Claim claim = claimRepository.findById(claimId)
+                .orElseThrow(() -> new RuntimeException("Claim non trouvé"));
+
+        Client client = claim.getClient();
+
+        // 1. Calcul du score avancé
+        ClientScoreResult scoreResult = clientScoringService.calculateClientScore(client.getId());
+
+        // 2. Définir un seuil pour approuver ou rejeter automatiquement
+        double thresholdApprove = 70.0; // score >= 70 -> approuvé
+        double thresholdReject = 40.0;  // score < 40 -> rejeté
+
+        ClaimDTO claimDTO = ClaimMapper.toDTO(claim);
+
+        if (scoreResult.getGlobalScore() >= thresholdApprove) {
+            // Approuver automatiquement
+            claimDTO.setStatus(ClaimStatus.APPROVED.name());
+            claimDTO.setApprovedAmount(claim.getClaimedAmount());
+            return this.updateClaim(claimDTO, client.getEmail());
+        } else if (scoreResult.getGlobalScore() < thresholdReject) {
+            // Rejeter automatiquement
+            claimDTO.setStatus(ClaimStatus.REJECTED.name());
+            claimDTO.setDescription(claim.getDescription() + " [REJETÉ AUTOMATIQUE]");
+            return this.updateClaim(claimDTO, client.getEmail());
+        }
+
+        // Sinon, garder IN_REVIEW
+        return claimDTO;
+    }
+
+    // Dans ClaimService, ajoutez cette méthode améliorée
+
+    @Transactional
+    public ClaimDTO decideClaimAutomaticallyWithAdvancedScoring(Long claimId) {
+        Claim claim = claimRepository.findById(claimId)
+                .orElseThrow(() -> new RuntimeException("Claim non trouvé"));
+
+        Client client = claim.getClient();
+
+        // 1. Calcul du score avancé du claim
+        ClaimScoreDTO claimScore = advancedClaimScoringService.calculateAdvancedClaimScore(claimId);
+
+        log.info("📊 Scoring avancé du claim {}: score={}, décision suggérée={}",
+                claimId, claimScore.getRiskScore(), claimScore.getDecisionSuggestion());
+
+        // 2. Décision basée sur le scoring
+        ClaimDTO claimDTO = ClaimMapper.toDTO(claim);
+
+        switch (claimScore.getDecisionSuggestion()) {
+            case AUTO_APPROVE:
+                log.info("✅ Auto-approbation du claim {} (score: {})", claimId, claimScore.getRiskScore());
+                claimDTO.setStatus(ClaimStatus.APPROVED.name());
+                claimDTO.setApprovedAmount(claim.getClaimedAmount());
+                claimDTO.setMessage("✅ Claim approuvé automatiquement après scoring avancé");
+                return this.updateClaim(claimDTO, client.getEmail());
+
+            case AUTO_REJECT:
+                log.info("❌ Auto-rejet du claim {} (score: {})", claimId, claimScore.getRiskScore());
+                claimDTO.setStatus(ClaimStatus.REJECTED.name());
+                claimDTO.setDescription(claim.getDescription() +
+                        String.format("\n[REJETÉ AUTOMATIQUEMENT] Score de risque: %d/100 - %s",
+                                claimScore.getRiskScore(), claimScore.getRecommendation()));
+                return this.updateClaim(claimDTO, client.getEmail());
+
+            case MANUAL_REVIEW:
+            default:
+                log.info("⚠️ Revue manuelle requise pour le claim {} (score: {})",
+                        claimId, claimScore.getRiskScore());
+                claimDTO.setStatus(ClaimStatus.IN_REVIEW.name());
+                claimDTO.setMessage(String.format(
+                        "⚠️ Claim nécessite une revue manuelle. Score de risque: %d/100\n\n%s",
+                        claimScore.getRiskScore(), claimScore.getRecommendation()));
+                return this.updateClaim(claimDTO, client.getEmail());
+        }
     }
 }

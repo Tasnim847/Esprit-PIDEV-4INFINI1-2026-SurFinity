@@ -4,6 +4,7 @@ import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;
 import org.example.projet_pi.Dto.PaymentDTO;
 import java.util.List;
+import java.util.Map;
 
 public interface IPaymentService {
 
@@ -16,17 +17,28 @@ public interface IPaymentService {
 
     List<PaymentDTO> getPaymentsByContractId(Long contractId, String userEmail);
 
-    // Méthodes Stripe (sans sécurité)
+    // Méthodes Stripe
     PaymentIntent createStripePaymentIntent(Long contractId) throws StripeException;
-
-    //void handleSuccessfulPayment(String stripePaymentId, Long amountInCents);
 
     void handleSuccessfulPayment(String stripePaymentId, Long amountInCents, Long contractId);
 
-    // Méthode avec 2 paramètres (sans contractId) - pour compatibilité
     void handleSuccessfulPayment(String stripePaymentId, Long amountInCents);
-    // Méthodes non utilisées (gardées pour compatibilité)
-    PaymentDTO updatePayment(PaymentDTO dto);
 
+    // ✅ NOUVELLES MÉTHODES
+    PaymentDTO updatePayment(PaymentDTO dto);
     void deletePayment(Long id);
+
+    // ✅ NOUVELLES MÉTHODES UTILES
+    Map<String, Object> getRemainingBalance(Long contractId, String userEmail);
+
+    List<Map<String, Object>> getPaymentHistory(Long contractId, String userEmail);
+
+    Map<String, Object> getPaymentIntentStatus(String paymentIntentId);
+
+    boolean cancelStripePaymentIntent(String paymentIntentId);
+
+    List<Map<String, Object>> getRemainingInstallments(Long contractId, String userEmail);
+
+    PaymentDTO processManualPayment(Long contractId, double amount, String paymentMethod, String userEmail);
+
 }

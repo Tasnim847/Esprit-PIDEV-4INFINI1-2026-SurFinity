@@ -404,29 +404,71 @@ public class InsuranceContractService implements IInsuranceContractService {
         Date start = contract.getStartDate();
         Date end = contract.getEndDate();
 
-        if (start == null || end == null) return;
+        if (start == null || end == null) {
+            log.warn("Dates de contrat manquantes pour le contrat {}", contract.getContractId());
+            return;
+        }
+
+        // Calculer la durée en années
+        long durationInMillis = end.getTime() - start.getTime();
+        long durationInYears = durationInMillis / (1000L * 60 * 60 * 24 * 365);
+
+        // Éviter la division par zéro
+        if (durationInYears < 1) {
+            durationInYears = 1;
+        }
+
+        contract.setContractDurationYears((int) durationInYears);
 
         double installment = contract.calculateInstallmentAmount();
+
+        // Arrondir à 2 décimales
+        installment = Math.round(installment * 100.0) / 100.0;
 
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(start);
 
-        while (calendar.getTime().before(end) ||
-                calendar.getTime().equals(end)) {
+        int paymentCount = 0;
+        int maxPayments = getMaxPayments(contract.getPaymentFrequency(), (int) durationInYears);
+
+        log.info("📊 Génération de {} paiements de {} DT pour le contrat {} (durée: {} ans, fréquence: {})",
+                maxPayments, installment, contract.getContractId(), durationInYears, contract.getPaymentFrequency());
+
+        while (paymentCount < maxPayments) {
             Payment payment = new Payment();
             payment.setContract(contract);
-            payment.setAmount(installment);
+
+            // Pour le dernier paiement, ajuster pour éviter les erreurs d'arrondi
+            if (paymentCount == maxPayments - 1) {
+                double totalSoFar = installment * paymentCount;
+                payment.setAmount(Math.max(0, contract.getPremium() - totalSoFar));
+            } else {
+                payment.setAmount(installment);
+            }
+
             payment.setPaymentDate(calendar.getTime());
             payment.setStatus(PaymentStatus.PENDING);
             payment.setPaymentMethod(PaymentMethod.BANK_TRANSFER);
 
             contract.getPayments().add(payment);
+            paymentCount++;
 
             switch (contract.getPaymentFrequency()) {
                 case MONTHLY -> calendar.add(Calendar.MONTH, 1);
                 case SEMI_ANNUAL -> calendar.add(Calendar.MONTH, 6);
                 case ANNUAL -> calendar.add(Calendar.YEAR, 1);
             }
+        }
+
+        log.info("✅ {} paiements générés pour le contrat {}", contract.getPayments().size(), contract.getContractId());
+    }
+
+    private int getMaxPayments(PaymentFrequency frequency, int durationYears) {
+        switch (frequency) {
+            case MONTHLY: return durationYears * 12;
+            case SEMI_ANNUAL: return durationYears * 2;
+            case ANNUAL: return durationYears;
+            default: return 1;
         }
     }
 
@@ -436,7 +478,18 @@ public class InsuranceContractService implements IInsuranceContractService {
             return;
         }
 
-        contract.getPayments().removeIf(p -> p.getStatus() == PaymentStatus.PENDING);
+        // Supprimer uniquement les paiements en attente
+        List<Payment> toRemove = contract.getPayments().stream()
+                .filter(p -> p.getStatus() == PaymentStatus.PENDING)
+                .toList();
+
+        contract.getPayments().removeAll(toRemove);
+
+        // Supprimer aussi de la base de données
+        if (!toRemove.isEmpty()) {
+            paymentRepository.deleteAll(toRemove);
+        }
+
         generateScheduledPayments(contract);
     }
 

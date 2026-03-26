@@ -27,10 +27,12 @@ public class InsuranceContract {
     private Double totalPaid = 0.0;
     private Double remainingAmount;
 
+    private Integer contractDurationYears; // durée en années
+
     @Enumerated(EnumType.STRING)
     private ContractStatus status;
 
-    @OneToOne(mappedBy = "contract",  cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToOne(mappedBy = "contract", cascade = CascadeType.ALL, orphanRemoval = true)
     private RiskClaim riskClaim;
 
     @Enumerated(EnumType.STRING)
@@ -52,22 +54,33 @@ public class InsuranceContract {
     private List<Payment> payments;
 
     // ============================================================
-        // 🔥 CALCUL DES ÉCHÉANCES SELON LA FRÉQUENCE
-   // ============================================================
+    // 🔥 CALCUL DES ÉCHÉANCES SELON LA FRÉQUENCE
+    // ============================================================
     public double calculateInstallmentAmount() {
+        if (paymentFrequency == null) return premium;
 
-        if (paymentFrequency == null)
-            return premium;
+        double numberOfPayments = 0;
 
         switch (paymentFrequency) {
             case MONTHLY:
-                return premium / 12;
+                numberOfPayments = 12;
+                break;
             case SEMI_ANNUAL:
-                return premium / 2;
+                numberOfPayments = 2;
+                break;
             case ANNUAL:
+                // Calculer le nombre de paiements = durée en années
+                if (contractDurationYears != null && contractDurationYears > 0) {
+                    numberOfPayments = contractDurationYears;
+                } else {
+                    numberOfPayments = 1; // par défaut
+                }
+                break;
             default:
-                return premium;
+                numberOfPayments = 1;
         }
+
+        return premium / numberOfPayments;
     }
 
     // 🔥 INITIALISATION
@@ -78,17 +91,19 @@ public class InsuranceContract {
 
     // 🔥 LOGIQUE MÉTIER AVANCÉE
     public void applyPayment(double amount) {
-
-        if (amount <= 0)
+        if (amount <= 0) {
             throw new RuntimeException("Montant invalide");
+        }
 
-        if (amount > remainingAmount)
+        if (amount > remainingAmount) {
             throw new RuntimeException("Paiement dépasse le montant restant");
+        }
 
         this.totalPaid += amount;
         this.remainingAmount -= amount;
 
-        if (this.remainingAmount == 0) {
+        if (this.remainingAmount <= 0.01) {
+            this.remainingAmount = 0.0;
             this.status = ContractStatus.COMPLETED;
         }
     }

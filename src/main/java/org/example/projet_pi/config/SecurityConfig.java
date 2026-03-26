@@ -74,6 +74,12 @@ public class SecurityConfig {
                         .requestMatchers("/claims/approve/**").hasRole("AGENT_ASSURANCE")
                         .requestMatchers("/claims/reject/**").hasRole("AGENT_ASSURANCE")
                         .requestMatchers("/claims/calculate-compensation/**").hasAnyRole("CLIENT", "AGENT_ASSURANCE", "ADMIN")
+                        .requestMatchers("/claims/stats").hasRole("ADMIN")
+                        .requestMatchers("/claims/fraud/**").hasAnyRole("ADMIN", "AGENT_ASSURANCE")
+                        .requestMatchers("/claims/risk-score/**").hasAnyRole("ADMIN", "AGENT_ASSURANCE")
+                        .requestMatchers("/claims/recommendation/**").hasAnyRole("ADMIN", "AGENT_ASSURANCE")
+                        .requestMatchers("/claims/search").hasAnyRole("ADMIN", "AGENT_ASSURANCE")
+                        .requestMatchers("/claims/prediction/**").hasRole("ADMIN")
 
                         // 👤 CLIENT - Gestion des documents
                         .requestMatchers("/documents/addDoc").hasRole("CLIENT")
@@ -95,12 +101,18 @@ public class SecurityConfig {
                         .requestMatchers("/payments/stripe/webhook").permitAll()
 
                         // ⚠️ RiskClaims
-
-                        // ⚠️ RiskClaims (généralement gérés par le système)
-
                         .requestMatchers("/riskclaims/**").hasRole("ADMIN")
 
+                        // Scoring
+                        // ✅ CORRECTION: Scoring endpoints avec tous les rôles nécessaires
+                        .requestMatchers("/api/scoring/client/**").hasAnyRole("ADMIN", "AGENT_ASSURANCE")
+                        .requestMatchers("/api/scoring/claim/**").hasAnyRole("ADMIN", "AGENT_ASSURANCE")
+                        .requestMatchers("/api/scoring/claim/*/advanced").hasAnyRole("ADMIN", "AGENT_ASSURANCE")
+                        .requestMatchers("/api/scoring/claim/*/auto-decision-advanced").hasAnyRole("ADMIN", "AGENT_ASSURANCE")
+                        .requestMatchers("/api/scoring/claim/*/detailed-analysis").hasAnyRole("ADMIN", "AGENT_ASSURANCE")
 
+                        // Compensations endpoints
+                        .requestMatchers("/compensations/**").hasAnyRole("ADMIN", "AGENT_ASSURANCE", "CLIENT")
                         // ========== CREDIT ENDPOINTS ==========
                         .requestMatchers("/Credit/addCredit").hasRole("ADMIN")
                         .requestMatchers("/Credit/updateCredit").hasRole("ADMIN")

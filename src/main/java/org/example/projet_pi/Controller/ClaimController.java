@@ -4,10 +4,12 @@ import lombok.AllArgsConstructor;
 import org.example.projet_pi.Service.ClaimService;
 import org.example.projet_pi.Dto.ClaimDTO;
 import org.example.projet_pi.Dto.CompensationDetailsDTO;  // ← AJOUTEZ CET IMPORT
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @AllArgsConstructor
@@ -92,5 +94,57 @@ public class ClaimController {
                 details.getFranchise(),
                 details.getInsurancePayment()
         );
+    }
+
+    // ===============================
+   // 🔍 FRAUD
+   // ===============================
+    @GetMapping("/fraud/{id}")
+    public String fraud(@PathVariable Long id) {
+        return claimService.isFraudulent(id)
+                ? "⚠️ Fraud detected"
+                : "✅ No fraud";
+    }
+
+    // ===============================
+        // 📊 STATS
+    // ===============================
+    @GetMapping("/stats")
+    public Map<String, Object> stats() {
+        return claimService.getStats();
+    }
+
+    // ===============================
+    // 🔍 SEARCH
+    // ===============================
+    @GetMapping("/search")
+    public List<ClaimDTO> search(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Double min,
+            @RequestParam(required = false) Double max) {
+
+        return claimService.search(status, min, max);
+    }
+
+    // ===============================
+    // 💡 RECOMMENDATION
+    // ===============================
+    @GetMapping("/recommendation/{id}")
+    public String recommendation(@PathVariable Long id) {
+        return claimService.getRecommendation(id);
+    }
+
+    // ===============================
+    // 📈 PREDICTION
+    // ===============================
+    @GetMapping("/prediction/{clientId}")
+    public double prediction(@PathVariable Long clientId) {
+        return claimService.predictClientCost(clientId);
+    }
+
+    @PostMapping("/claim/{claimId}/auto-decision")
+    public ResponseEntity<ClaimDTO> autoDecision(@PathVariable Long claimId) {
+        ClaimDTO result = claimService.decideClaimAutomatically(claimId);
+        return ResponseEntity.ok(result);
     }
 }
