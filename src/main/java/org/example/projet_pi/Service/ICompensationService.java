@@ -15,4 +15,8 @@ public interface ICompensationService {
     CompensationDTO getCompensationById(Long id);
 
     List<CompensationDTO> getAllCompensations();
+
+    // NOUVEAUX MÉTHODES
+    CompensationDTO markAsPaid(Long compensationId);
+    CompensationDTO recalculateCompensation(Long claimId);
 }

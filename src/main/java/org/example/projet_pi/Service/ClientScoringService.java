@@ -1,6 +1,7 @@
 package org.example.projet_pi.Service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.projet_pi.Dto.ClaimScoreDTO;
 import org.example.projet_pi.Dto.ClientScoreResult;
 import org.example.projet_pi.entity.*;
 import org.example.projet_pi.Repository.*;
@@ -10,6 +11,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -375,5 +377,78 @@ public class ClientScoringService {
                 recommendations.put("payments", "Mettre en place un prélèvement automatique");
             }
         }
+    }
+
+    public List<ClaimScoreDTO> getClaimsScoreAdvanced(Long clientId) {
+
+        List<Claim> claims = claimRepository.findByClientId(clientId);
+
+        // Calcul fréquence temporelle
+        Map<Long, Long> claimsByMonth = claims.stream()
+                .collect(Collectors.groupingBy(
+                        c -> c.getClaimDate().getTime() / (1000 * 60 * 60 * 24 * 30),
+                        Collectors.counting()
+                ));
+
+        return claims.stream().map(claim -> {
+
+            int score = 0;
+            StringBuilder delayInfo = new StringBuilder();
+            StringBuilder docInfo = new StringBuilder();
+            StringBuilder freqInfo = new StringBuilder();
+
+            // 1️⃣ Montant élevé
+            if (claim.getClaimedAmount() > 10000) score += 30;
+
+            // 2️⃣ Peu de documents
+            int docCount = claim.getDocuments() != null ? claim.getDocuments().size() : 0;
+            if (docCount < 2) score += 20;
+            docInfo.append("Documents: ").append(docCount);
+
+            // 3️⃣ Délai entre contrat et claim
+            if (claim.getContract() != null && claim.getClaimDate() != null) {
+                long days = (claim.getClaimDate().getTime() - claim.getContract().getStartDate().getTime()) / (1000 * 60 * 60 * 24);
+                if (days < 30) score += 15; // très rapide = suspect
+                delayInfo.append(days).append(" jours après début contrat");
+            }
+
+            // 4️⃣ Historique client (trop de claims)
+            if (claims.size() > 5) score += 15;
+
+            // 5️⃣ Fréquence temporelle (plusieurs claims dans un mois)
+            long monthCount = claimsByMonth.getOrDefault(claim.getClaimDate().getTime() / (1000 * 60 * 60 * 24 * 30), 0L);
+            if (monthCount > 2) score += 20;
+            freqInfo.append(monthCount).append(" claim(s) ce mois");
+
+            // Niveau de risque
+            String level;
+            String color;
+            if (score >= 60) {
+                level = "HIGH"; color = "🔴";
+            } else if (score >= 30) {
+                level = "MEDIUM"; color = "🟡";
+            } else {
+                level = "LOW"; color = "🟢";
+            }
+
+            // Recommendation intelligente
+            String recommendation;
+            if (score >= 60) recommendation = "🚨 Vérification approfondie requise";
+            else if (score >= 30) recommendation = "⚠️ Examiner le claim";
+            else recommendation = "✅ Claim normal";
+
+            return ClaimScoreDTO.builder()
+                    .claimId(claim.getClaimId())
+                    .claimedAmount(claim.getClaimedAmount())
+                    .riskScore(score)
+                    .riskLevel(level)
+                    .recommendation(recommendation)
+                    .colorCode(color)
+                    .delayInfo(delayInfo.toString())
+                    .documentTypeInfo(docInfo.toString())
+                    .frequencyInfo(freqInfo.toString())
+                    .build();
+
+        }).toList();
     }
 }

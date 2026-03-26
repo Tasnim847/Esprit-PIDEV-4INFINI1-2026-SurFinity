@@ -479,4 +479,56 @@ public class EmailService {
             log.error("❌ Erreur inattendue: {}", e.getMessage());
         }
     }
+
+    /**
+     * 🎉 Envoyer un email de félicitations pour contrat complété (tous les paiements effectués)
+     */
+    @Async
+    public void sendContractCompletedEmail(Client client, InsuranceContract contract) {
+        try {
+            if (client.getEmail() == null || client.getEmail().trim().isEmpty()) {
+                log.error("Email client manquant pour le contrat {}", contract.getContractId());
+                return;
+            }
+
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setTo(client.getEmail());
+            helper.setSubject("🎉 Félicitations ! Votre contrat d'assurance est entièrement payé");
+
+            // Préparer le contexte Thymeleaf
+            Context context = new Context();
+            context.setVariable("clientName", client.getFirstName() + " " + client.getLastName());
+            context.setVariable("contractId", contract.getContractId());
+            context.setVariable("startDate", new SimpleDateFormat("dd/MM/yyyy").format(contract.getStartDate()));
+            context.setVariable("endDate", new SimpleDateFormat("dd/MM/yyyy").format(contract.getEndDate()));
+            context.setVariable("totalPaid", String.format("%.3f", contract.getTotalPaid()));
+            context.setVariable("premium", String.format("%.3f", contract.getPremium()));
+            context.setVariable("paymentFrequency", contract.getPaymentFrequency() != null ?
+                    contract.getPaymentFrequency().toString() : "Mensuel");
+            context.setVariable("agentName", contract.getAgentAssurance() != null ?
+                    contract.getAgentAssurance().getFirstName() + " " + contract.getAgentAssurance().getLastName() : "Votre agent");
+            context.setVariable("agentEmail", contract.getAgentAssurance() != null ?
+                    contract.getAgentAssurance().getEmail() : "");
+            context.setVariable("currentDate", new SimpleDateFormat("dd/MM/yyyy").format(new Date()));
+
+            // Calculer la durée du contrat
+            long durationMonths = (contract.getEndDate().getTime() - contract.getStartDate().getTime()) / (1000L * 60 * 60 * 24 * 30);
+            context.setVariable("durationMonths", durationMonths);
+
+            String htmlContent = templateEngine.process("contract-completed", context);
+            helper.setText(htmlContent, true);
+
+            mailSender.send(message);
+            log.info("✅ Email de contrat complété envoyé à {} pour le contrat {}",
+                    client.getEmail(), contract.getContractId());
+
+        } catch (MessagingException e) {
+            log.error("❌ Erreur lors de l'envoi de l'email de contrat complété à {}: {}",
+                    client.getEmail(), e.getMessage());
+        } catch (Exception e) {
+            log.error("❌ Erreur inattendue: {}", e.getMessage());
+        }
+    }
 }

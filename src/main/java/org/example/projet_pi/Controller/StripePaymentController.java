@@ -3,16 +3,23 @@ package org.example.projet_pi.Controller;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
 import com.stripe.model.PaymentIntent;
 import com.stripe.net.Webhook;
 import com.stripe.param.PaymentIntentCreateParams;
-import lombok.AllArgsConstructor;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.example.projet_pi.Repository.InsuranceContractRepository;
 import org.example.projet_pi.Service.PaymentService;
 import org.example.projet_pi.entity.InsuranceContract;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -21,124 +28,317 @@ import java.util.Map;
 @Slf4j
 @RestController
 @RequestMapping("/payments/stripe")
-@AllArgsConstructor
 public class StripePaymentController {
 
     private final PaymentService paymentService;
-    private final Gson gson = new Gson();
     private final InsuranceContractRepository contractRepository;
+    private final Gson gson = new Gson();
+
+    @Value("${stripe.webhook.secret:}")
+    private String webhookSecret;
+
+    @Value("${stripe.api.key:}")
+    private String stripeApiKey;
+
+    public StripePaymentController(PaymentService paymentService, InsuranceContractRepository contractRepository) {
+        this.paymentService = paymentService;
+        this.contractRepository = contractRepository;
+    }
+
+    @PostConstruct
+    public void init() {
+        log.info("========================================");
+        log.info("🔧 Stripe Configuration:");
+        log.info("   - API Key: {}", stripeApiKey != null && !stripeApiKey.isEmpty() ? "✓ Configurée" : "✗ NON CONFIGURÉE");
+        log.info("   - Webhook Secret: {}", webhookSecret != null && !webhookSecret.isEmpty() ? "✓ Configuré" : "✗ NON CONFIGURÉ");
+        log.info("========================================");
+    }
 
     @PostMapping("/create-payment-intent/{contractId}")
-    public Map<String, String> createPaymentIntent(@PathVariable Long contractId) throws StripeException {
-        InsuranceContract contract = contractRepository.findById(contractId)
-                .orElseThrow(() -> new RuntimeException("Contrat non trouvé"));
+    public ResponseEntity<Map<String, Object>> createPaymentIntent(
+            @PathVariable Long contractId,
+            @AuthenticationPrincipal UserDetails currentUser) throws StripeException {
 
-        // Montant de la tranche (installment)
-        double installmentAmount = contract.calculateInstallmentAmount();
-        long amountInCents = (long) (installmentAmount * 100);
+        try {
+            log.info("📝 Création d'un PaymentIntent pour le contrat {}", contractId);
 
-        // Metadata obligatoire pour le webhook
-        Map<String, String> metadata = new HashMap<>();
-        metadata.put("contractId", contractId.toString());
-        metadata.put("clientEmail", contract.getClient().getEmail());
-        metadata.put("paymentType", "INSTALLMENT");
-        metadata.put("installmentAmount", String.valueOf(installmentAmount));
-        metadata.put("remainingAmount", String.valueOf(contract.getRemainingAmount()));
+            paymentService.getPaymentsByContractId(contractId, currentUser.getUsername());
 
-        PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
-                .setAmount(amountInCents)
-                .setCurrency("usd")
-                .setAutomaticPaymentMethods(
-                        PaymentIntentCreateParams.AutomaticPaymentMethods.builder()
-                                .setEnabled(true)
-                                .build()
-                )
-                .putAllMetadata(metadata)
-                .build();
+            InsuranceContract contract = contractRepository.findById(contractId)
+                    .orElseThrow(() -> new RuntimeException("Contrat non trouvé"));
 
-        PaymentIntent intent = PaymentIntent.create(params);
+            if (contract.getStatus() == org.example.projet_pi.entity.ContractStatus.COMPLETED) {
+                throw new RuntimeException("Ce contrat est déjà complété");
+            }
 
-        // 🔹 LOG pour vérifier
-        log.info("🎯 PaymentIntent créé avec metadata: {}", intent.getMetadata());
+            if (contract.getRemainingAmount() <= 0) {
+                throw new RuntimeException("Aucun montant restant à payer pour ce contrat");
+            }
 
-        Map<String, String> response = new HashMap<>();
-        response.put("clientSecret", intent.getClientSecret());
-        response.put("contractId", contractId.toString());
-        response.put("amount", String.valueOf(installmentAmount));
-        return response;
+            double installmentAmount = contract.calculateInstallmentAmount();
+
+            if (installmentAmount > contract.getRemainingAmount()) {
+                installmentAmount = contract.getRemainingAmount();
+            }
+
+            long amountInCents = (long) (installmentAmount * 100);
+
+            Map<String, String> metadata = new HashMap<>();
+            metadata.put("contractId", contractId.toString());
+            metadata.put("clientEmail", contract.getClient().getEmail());
+            metadata.put("paymentType", "INSTALLMENT");
+            metadata.put("installmentAmount", String.valueOf(installmentAmount));
+            metadata.put("remainingAmount", String.valueOf(contract.getRemainingAmount()));
+
+            PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
+                    .setAmount(amountInCents)
+                    .setCurrency("usd")
+                    .setAutomaticPaymentMethods(
+                            PaymentIntentCreateParams.AutomaticPaymentMethods.builder()
+                                    .setEnabled(true)
+                                    .build()
+                    )
+                    .putAllMetadata(metadata)
+                    .build();
+
+            PaymentIntent intent = PaymentIntent.create(params);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("clientSecret", intent.getClientSecret());
+            response.put("paymentIntentId", intent.getId());
+            response.put("contractId", contractId);
+            response.put("amount", installmentAmount);
+            response.put("remainingAmount", contract.getRemainingAmount());
+            response.put("status", intent.getStatus());
+
+            log.info("✅ PaymentIntent créé: {} pour contrat {}: {} DT",
+                    intent.getId(), contractId, installmentAmount);
+
+            return ResponseEntity.ok(response);
+
+        } catch (AccessDeniedException e) {
+            log.error("❌ Accès refusé: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("❌ Erreur lors de la création du PaymentIntent: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
+        }
     }
 
     @PostMapping("/create-payment-intent/{contractId}/custom")
-    public Map<String, String> createCustomPaymentIntent(
+    public ResponseEntity<Map<String, Object>> createCustomPaymentIntent(
             @PathVariable Long contractId,
-            @RequestBody Map<String, Double> request) throws StripeException {
+            @RequestBody Map<String, Double> request,
+            @AuthenticationPrincipal UserDetails currentUser) throws StripeException {
 
-        Double amount = request.get("amount");
-        if (amount == null || amount <= 0) {
-            throw new IllegalArgumentException("Le montant est requis et doit être > 0");
+        try {
+            log.info("📝 Création d'un PaymentIntent personnalisé pour le contrat {}", contractId);
+
+            paymentService.getPaymentsByContractId(contractId, currentUser.getUsername());
+
+            Double amount = request.get("amount");
+            if (amount == null || amount <= 0) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Le montant est requis et doit être > 0"));
+            }
+
+            InsuranceContract contract = contractRepository.findById(contractId)
+                    .orElseThrow(() -> new RuntimeException("Contrat non trouvé"));
+
+            if (contract.getStatus() == org.example.projet_pi.entity.ContractStatus.COMPLETED) {
+                throw new RuntimeException("Ce contrat est déjà complété");
+            }
+
+            if (amount > contract.getRemainingAmount()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "Le montant dépasse le reste à payer",
+                        "remainingAmount", contract.getRemainingAmount()
+                ));
+            }
+
+            long amountInCents = (long) (amount * 100);
+
+            Map<String, String> metadata = new HashMap<>();
+            metadata.put("contractId", contractId.toString());
+            metadata.put("clientEmail", contract.getClient().getEmail());
+            metadata.put("paymentType", "CUSTOM");
+            metadata.put("requestedAmount", String.valueOf(amount));
+            metadata.put("remainingAmount", String.valueOf(contract.getRemainingAmount()));
+
+            PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
+                    .setAmount(amountInCents)
+                    .setCurrency("usd")
+                    .setAutomaticPaymentMethods(
+                            PaymentIntentCreateParams.AutomaticPaymentMethods.builder()
+                                    .setEnabled(true)
+                                    .build()
+                    )
+                    .putAllMetadata(metadata)
+                    .build();
+
+            PaymentIntent intent = PaymentIntent.create(params);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("clientSecret", intent.getClientSecret());
+            response.put("paymentIntentId", intent.getId());
+            response.put("contractId", contractId);
+            response.put("amount", amount);
+            response.put("remainingAmount", contract.getRemainingAmount());
+            response.put("status", intent.getStatus());
+
+            log.info("✅ PaymentIntent personnalisé créé: {} pour contrat {}: {} DT",
+                    intent.getId(), contractId, amount);
+
+            return ResponseEntity.ok(response);
+
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("❌ Erreur: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
         }
+    }
 
-        InsuranceContract contract = contractRepository.findById(contractId)
-                .orElseThrow(() -> new RuntimeException("Contrat non trouvé"));
+    @GetMapping("/payment-status/{paymentIntentId}")
+    public ResponseEntity<Map<String, Object>> getPaymentStatus(
+            @PathVariable String paymentIntentId,
+            @AuthenticationPrincipal UserDetails currentUser) {
 
-        if (amount > contract.getRemainingAmount()) {
-            throw new RuntimeException("Le montant dépasse le reste à payer du contrat");
+        try {
+            log.info("📊 Vérification du statut du paiement: {}", paymentIntentId);
+
+            Map<String, Object> status = paymentService.getPaymentIntentStatus(paymentIntentId);
+
+            return ResponseEntity.ok(status);
+
+        } catch (Exception e) {
+            log.error("❌ Erreur lors de la vérification du statut: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", e.getMessage()));
         }
+    }
 
-        long amountInCents = (long) (amount * 100);
+    @PostMapping("/cancel-payment/{paymentIntentId}")
+    public ResponseEntity<Map<String, Object>> cancelPaymentIntent(
+            @PathVariable String paymentIntentId,
+            @AuthenticationPrincipal UserDetails currentUser) {
 
-        Map<String, String> metadata = new HashMap<>();
-        metadata.put("contractId", contractId.toString());
-        metadata.put("clientEmail", contract.getClient().getEmail());
-        metadata.put("paymentType", "CUSTOM");
-        metadata.put("requestedAmount", String.valueOf(amount));
-        metadata.put("remainingAmount", String.valueOf(contract.getRemainingAmount()));
+        try {
+            log.info("🗑️ Annulation du PaymentIntent: {}", paymentIntentId);
 
-        PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
-                .setAmount(amountInCents)
-                .setCurrency("usd")
-                .setAutomaticPaymentMethods(
-                        PaymentIntentCreateParams.AutomaticPaymentMethods.builder()
-                                .setEnabled(true)
-                                .build()
-                )
-                .putAllMetadata(metadata)
-                .build();
+            boolean cancelled = paymentService.cancelStripePaymentIntent(paymentIntentId);
 
-        PaymentIntent intent = PaymentIntent.create(params);
+            if (cancelled) {
+                return ResponseEntity.ok(Map.of(
+                        "success", true,
+                        "message", "PaymentIntent annulé avec succès",
+                        "paymentIntentId", paymentIntentId
+                ));
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                        "success", false,
+                        "message", "Impossible d'annuler ce PaymentIntent"
+                ));
+            }
 
-        log.info("🎯 PaymentIntent personnalisé créé avec metadata: {}", intent.getMetadata());
-
-        Map<String, String> response = new HashMap<>();
-        response.put("clientSecret", intent.getClientSecret());
-        response.put("contractId", contractId.toString());
-        response.put("amount", String.valueOf(amount));
-        return response;
+        } catch (Exception e) {
+            log.error("❌ Erreur lors de l'annulation: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", e.getMessage()));
+        }
     }
 
     @PostMapping("/webhook")
-    public String handleWebhook(@RequestBody String payload,
-                                @RequestHeader("Stripe-Signature") String sigHeader) {
-        String endpointSecret = "whsec_3a6d8e127e97f4e5e1534bae05fd570a220df95e3e0efc0cfd5046db239e7f55";
+    public ResponseEntity<String> handleWebhook(
+            @RequestBody String payload,
+            @RequestHeader(value = "Stripe-Signature", required = false) String sigHeader) {
+
+        log.info("========================================");
+        log.info("🔔 WEBHOOK RECEIVED");
+        log.info("Signature header present: {}", sigHeader != null);
+        log.info("Payload length: {}", payload.length());
+        log.info("========================================");
 
         try {
-            Event event = Webhook.constructEvent(payload, sigHeader, endpointSecret);
-            log.info("📦 Événement Stripe reçu: {} [{}]", event.getType(), event.getId());
+            if (sigHeader == null || sigHeader.isEmpty()) {
+                log.warn("⚠️ No Stripe signature - TEST MODE");
+                return handleWebhookTestMode(payload);
+            }
 
-            JsonObject object = JsonParser.parseString(payload)
-                    .getAsJsonObject()
-                    .getAsJsonObject("data")
-                    .getAsJsonObject("object");
+            Event event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
+            log.info("✅ Signature verified for event: {}", event.getType());
 
-            JsonObject metadata = object.getAsJsonObject("metadata");
+            return handleEvent(event, payload);
+
+        } catch (SignatureVerificationException e) {
+            log.error("❌ Invalid signature: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid signature");
+        } catch (Exception e) {
+            log.error("❌ Error processing webhook: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error: " + e.getMessage());
+        }
+    }
+
+    private ResponseEntity<String> handleWebhookTestMode(String payload) {
+        try {
+            JsonObject jsonObject = JsonParser.parseString(payload).getAsJsonObject();
+            String eventType = jsonObject.get("type").getAsString();
+
+            log.info("Event type: {}", eventType);
+
+            if ("payment_intent.succeeded".equals(eventType)) {
+                JsonObject dataObject = jsonObject.getAsJsonObject("data");
+                JsonObject objectObject = dataObject.getAsJsonObject("object");
+
+                String paymentIntentId = objectObject.get("id").getAsString();
+                long amountInCents = objectObject.get("amount").getAsLong();
+
+                JsonObject metadata = objectObject.getAsJsonObject("metadata");
+                Long contractId = null;
+                if (metadata != null && metadata.has("contractId")) {
+                    contractId = Long.parseLong(metadata.get("contractId").getAsString());
+                }
+
+                log.info("✅ Payment succeeded (TEST MODE)!");
+                log.info("   PaymentIntent ID: {}", paymentIntentId);
+                log.info("   Amount: {} DT", amountInCents / 100.0);
+                log.info("   Contract ID: {}", contractId);
+
+                if (contractId != null) {
+                    paymentService.handleSuccessfulPayment(paymentIntentId, amountInCents, contractId);
+                    log.info("✅ Payment processed successfully!");
+                } else {
+                    log.warn("⚠️ No contractId in metadata - cannot process payment");
+                }
+            }
+
+            return ResponseEntity.ok("OK (test mode)");
+
+        } catch (Exception e) {
+            log.error("Error in test mode: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error: " + e.getMessage());
+        }
+    }
+
+    private ResponseEntity<String> handleEvent(Event event, String payload) {
+        try {
+            JsonObject jsonObject = JsonParser.parseString(payload).getAsJsonObject();
+            JsonObject dataObject = jsonObject.getAsJsonObject("data");
+            JsonObject objectObject = dataObject.getAsJsonObject("object");
+
+            JsonObject metadata = objectObject.getAsJsonObject("metadata");
             if (metadata == null || !metadata.has("contractId")) {
                 log.error("❌ contractId manquant dans metadata");
-                return "⚠️ Erreur: contractId absent";
+                return ResponseEntity.badRequest().body("Contract ID missing");
             }
 
             Long contractId = Long.parseLong(metadata.get("contractId").getAsString());
-            String paymentIntentId = object.get("id").getAsString();
-            long amountInCents = object.get("amount").getAsLong();
+            String paymentIntentId = objectObject.get("id").getAsString();
+            long amountInCents = objectObject.get("amount").getAsLong();
+
+            log.info("📊 Webhook - ContractId: {}, PaymentIntentId: {}, Amount: {} centimes",
+                    contractId, paymentIntentId, amountInCents);
 
             switch (event.getType()) {
                 case "payment_intent.succeeded":
@@ -150,91 +350,26 @@ public class StripePaymentController {
                     log.error("❌ Paiement échoué pour le contrat {}", contractId);
                     break;
 
-                case "payment_intent.created":   // <--- ajouter ce cas
-                    log.info("📌 PaymentIntent créé pour contractId={}, montant={} centimes, type={}",
-                            contractId,
-                            amountInCents,
-                            metadata.get("paymentType").getAsString());
-                    // 🔹 Ici tu peux appeler une méthode si tu veux faire autre chose
-                    // ex: paymentService.handlePaymentIntentCreated(contractId, paymentIntentId, amountInCents);
-                    break;
-
                 default:
                     log.info("ℹ️ Événement non géré: {}", event.getType());
             }
 
-            return "OK";
+            return ResponseEntity.ok("OK");
 
         } catch (Exception e) {
-            log.error("❌ Erreur webhook Stripe:", e);
-            return "⚠️ Erreur: " + e.getMessage();
+            log.error("Error handling event: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error: " + e.getMessage());
         }
     }
 
-    private void handlePaymentIntentSucceeded(String payload) {
-        try {
-            // 🔥 SOLUTION: Parser directement le payload JSON
-            JsonObject jsonObject = JsonParser.parseString(payload).getAsJsonObject();
-            JsonObject dataObject = jsonObject.getAsJsonObject("data");
-            JsonObject objectObject = dataObject.getAsJsonObject("object");
+    @GetMapping("/health")
+    public ResponseEntity<Map<String, Object>> healthCheck() {
+        Map<String, Object> health = new HashMap<>();
+        health.put("status", "UP");
+        health.put("service", "Stripe Payment Service");
+        health.put("webhookSecretConfigured", webhookSecret != null && !webhookSecret.isEmpty());
 
-            // Extraire les informations nécessaires
-            String paymentIntentId = objectObject.get("id").getAsString();
-            long amount = objectObject.get("amount").getAsLong();
-
-            // Récupérer les metadata
-            JsonObject metadataObject = objectObject.getAsJsonObject("metadata");
-
-            if (metadataObject == null || !metadataObject.has("contractId")) {
-                log.error("❌ contractId manquant dans metadata");
-                return;
-            }
-
-            String contractIdStr = metadataObject.get("contractId").getAsString();
-
-            log.info("✅ PaymentIntent réussi: {}", paymentIntentId);
-            log.info("💰 Montant: {} centimes", amount);
-            log.info("📊 ContractId: {}", contractIdStr);
-
-            if (contractIdStr == null || contractIdStr.isEmpty()) {
-                log.error("❌ Pas d'ID de contrat dans les metadata");
-                return;
-            }
-
-            Long contractId = Long.parseLong(contractIdStr);
-
-            // 🔥 Appeler le service
-            paymentService.handleSuccessfulPayment(
-                    paymentIntentId,
-                    amount,
-                    contractId
-            );
-
-            log.info("✅ Paiement enregistré avec succès pour le contrat {}", contractId);
-
-        } catch (Exception e) {
-            log.error("❌ Erreur dans handlePaymentIntentSucceeded", e);
-        }
-    }
-
-    private void handlePaymentIntentFailed(String payload) {
-        try {
-            JsonObject jsonObject = JsonParser.parseString(payload).getAsJsonObject();
-            JsonObject dataObject = jsonObject.getAsJsonObject("data");
-            JsonObject objectObject = dataObject.getAsJsonObject("object");
-
-            String paymentIntentId = objectObject.get("id").getAsString();
-
-            JsonObject metadataObject = objectObject.getAsJsonObject("metadata");
-            String contractIdStr = metadataObject != null ? metadataObject.get("contractId").getAsString() : null;
-
-            log.error("❌ PaymentIntent échoué: {}", paymentIntentId);
-
-            if (contractIdStr != null) {
-                log.error("📝 Échec de paiement pour le contrat {}", contractIdStr);
-            }
-        } catch (Exception e) {
-            log.error("❌ Erreur dans handlePaymentIntentFailed", e);
-        }
+        return ResponseEntity.ok(health);
     }
 }

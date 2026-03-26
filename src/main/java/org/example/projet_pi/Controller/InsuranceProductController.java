@@ -18,7 +18,7 @@ public class InsuranceProductController {
 
     // Seul l'ADMIN peut ajouter un produit
     @PostMapping("/addProduct")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> addProduct(@RequestBody InsuranceProductDTO dto) {
         try {
             InsuranceProductDTO result = insuranceProductService.addProduct(dto);
@@ -30,7 +30,7 @@ public class InsuranceProductController {
 
     // Seul l'ADMIN peut modifier un produit
     @PutMapping("/updateProduct")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> updateProduct(@RequestBody InsuranceProductDTO dto) {
         try {
             InsuranceProductDTO result = insuranceProductService.updateProduct(dto);
@@ -42,7 +42,7 @@ public class InsuranceProductController {
 
     // Seul l'ADMIN peut supprimer un produit
     @DeleteMapping("/deleteProduct/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
         try {
             insuranceProductService.deleteProduct(id);
