@@ -10,8 +10,8 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-@Service
 
+@Service
 public class CreditEmailService {
 
     @Autowired
@@ -37,15 +37,18 @@ public class CreditEmailService {
         message.setText(text);
 
         mailSender.send(message);
+
+        // ⚠️ COMMENTÉ - Ne s'affiche pas dans la console
+        // System.out.println("✅ Payment reminder sent to " + toEmail);
     }
 
     public void sendLatePaymentNotification(String toEmail, String clientName,
                                             Double amount, LocalDate dueDate, Long creditId) {
 
         SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom("votre-email@gmail.com");
+        message.setFrom("hamoudameriem317@gmail.com");
         message.setTo(toEmail);
-        message.setSubject("⚠️ Late Payment – Loan No.%d\"" + creditId);
+        message.setSubject("⚠️ Late Payment – Loan No." + creditId);
 
         String text = String.format(
                 "Hello %s,\n\n" +
@@ -61,7 +64,46 @@ public class CreditEmailService {
         message.setText(text);
 
         mailSender.send(message);
+
+        // ⚠️ COMMENTÉ - Ne s'affiche pas dans la console
+        // System.out.println("⚠️ Late payment notification sent to " + toEmail);
     }
+
+    public void sendAutoRejectionNotification(String toEmail, String clientName,
+                                              Double amount, Double averageLatePercentage) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom("hamoudameriem317@gmail.com");
+            helper.setTo(toEmail);
+            helper.setSubject("❌ Loan Request Rejected - Late Payment History");
+
+            String text = String.format(
+                    "Hello %s,\n\n" +
+                            "We regret to inform you that your loan request of %.2f TND " +
+                            "has been automatically rejected.\n\n" +
+                            "🔍 Reason: High late payment history (%.2f%%)\n" +
+                            "Our policy requires a late payment history below 40%% for approval.\n\n" +
+                            "We invite you to regularize your payments and submit a new request " +
+                            "in the coming months.\n\n" +
+                            "Best regards,\n" +
+                            "Your Finance Team",
+                    clientName, amount, averageLatePercentage
+            );
+
+            helper.setText(text);
+            mailSender.send(message);
+
+            // ⚠️ COMMENTÉ - Ne s'affiche pas dans la console
+            // System.out.println("❌ Auto-rejection notification sent to " + toEmail);
+
+        } catch (MessagingException e) {
+            // ⚠️ COMMENTÉ - Ne s'affiche pas dans la console
+            // System.err.println("Error sending rejection notification: " + e.getMessage());
+        }
+    }
+
     public void sendEmailWithPdf(String toEmail, String clientName,
                                  Long creditId, byte[] pdfContent) {
         try {
@@ -83,14 +125,17 @@ public class CreditEmailService {
 
             helper.setText(text);
 
-            // ✅ Ajouter la pièce jointe PDF
             ByteArrayResource attachment = new ByteArrayResource(pdfContent);
             helper.addAttachment("loan_amortization_" + creditId + ".pdf", attachment);
 
             mailSender.send(message);
 
+            // ⚠️ COMMENTÉ - Ne s'affiche pas dans la console
+            // System.out.println("📄 PDF sent to " + toEmail);
+
         } catch (MessagingException e) {
-            throw new RuntimeException("Erreur lors de l'envoi de l'email avec PDF: " + e.getMessage());
+            // ⚠️ COMMENTÉ - Ne s'affiche pas dans la console
+            // throw new RuntimeException("Erreur lors de l'envoi de l'email avec PDF: " + e.getMessage());
         }
     }
 }

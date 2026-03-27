@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import org.example.projet_pi.Dto.CreditHistoryDTO;
 import org.example.projet_pi.Repository.ClientRepository;
 import org.example.projet_pi.Repository.CreditRepository;
+import org.example.projet_pi.Service.EmailCredit.CreditEmailService;  // ✅ AJOUT
 import org.example.projet_pi.entity.*;
 import org.springframework.stereotype.Service;
 import org.example.projet_pi.Dto.CreditHistoryWithAverageDTO ;
@@ -17,11 +18,17 @@ public class CreditService implements ICreditService {
 
     private final CreditRepository creditRepository;
     private final ClientRepository clientRepository;
+    private final CreditEmailService creditEmailService;  // ✅ AJOUT
 
-    public CreditService(CreditRepository creditRepository , ClientRepository clientRepository) {
+    // ✅ MODIFIER LE CONSTRUCTEUR
+    public CreditService(CreditRepository creditRepository,
+                         ClientRepository clientRepository,
+                         CreditEmailService creditEmailService) {  // ✅ AJOUT
         this.creditRepository = creditRepository;
         this.clientRepository = clientRepository;
+        this.creditEmailService = creditEmailService;  // ✅ INITIALISER
     }
+
     public List<CreditHistoryDTO> getClosedCreditsWithLateRepaymentPercentage(Client client) {
         List<Credit> closedCredits = creditRepository.findByClientAndStatus(client, CreditStatus.CLOSED);
 
@@ -37,6 +44,7 @@ public class CreditService implements ICreditService {
             return new CreditHistoryDTO(credit, latePercentage);
         }).collect(Collectors.toList());
     }
+
     public CreditHistoryWithAverageDTO getClosedCreditsWithAverage(Client client) {
         List<CreditHistoryDTO> closedCredits = getClosedCreditsWithLateRepaymentPercentage(client);
 
@@ -50,12 +58,13 @@ public class CreditService implements ICreditService {
 
         return new CreditHistoryWithAverageDTO(closedCredits, average);
     }
+
     // ===============================
     // 1 CREATE CREDIT (Client)
     // ===============================
     @Override
     @Transactional
-    public Credit addCredit(Credit credit, Admin admin) {  // ✅ Ajout du paramètre admin
+    public Credit addCredit(Credit credit, Admin admin) {
 
         if (credit.getAmount() <= 0) {
             throw new IllegalArgumentException("Montant invalide");
@@ -74,23 +83,71 @@ public class CreditService implements ICreditService {
         Client client = clientRepository.findById(credit.getClient().getId())
                 .orElseThrow(() -> new IllegalArgumentException("Client non trouvé avec l'id: " + credit.getClient().getId()));
 
-        // ✅ Récupérer l'agent financier du client
+        // ✅ VÉRIFICATION DE L'HISTORIQUE DE RETARDS
+        List<Credit> closedCredits = creditRepository.findByClientAndStatus(client, CreditStatus.CLOSED);
+
+        if (!closedCredits.isEmpty()) {
+            double totalLatePercentage = 0;
+            int creditCount = 0;
+
+            for (Credit closedCredit : closedCredits) {
+                long totalRepayments = closedCredit.getRepayments().size();
+                long lateRepayments = closedCredit.getRepayments().stream()
+                        .filter(r -> r.getStatus() == RepaymentStatus.LATE)
+                        .count();
+
+                double latePercentage = totalRepayments > 0 ?
+                        ((double) lateRepayments / totalRepayments) * 100 : 0;
+
+                totalLatePercentage += latePercentage;
+                creditCount++;
+            }
+
+            double averageLatePercentage = totalLatePercentage / creditCount;
+
+            // 🔴 SI LA MOYENNE DÉPASSE 40% → REJET AUTOMATIQUE
+            if (averageLatePercentage > 40) {
+                // Récupérer l'agent financier du client
+                AgentFinance agentFinance = client.getAgentFinance();
+
+                // Assigner toutes les relations
+                credit.setClient(client);
+                credit.setAdmin(admin);
+                credit.setAgentFinance(agentFinance);
+                credit.setStatus(CreditStatus.REJECTED); // ✅ REJETÉ AUTOMATIQUEMENT
+
+                // Envoyer l'email de notification
+                String clientName = client.getFirstName() + " " + client.getLastName();
+                creditEmailService.sendAutoRejectionNotification(
+                        client.getEmail(),
+                        clientName,
+                        credit.getAmount(),
+                        averageLatePercentage
+                );
+
+                System.out.println("❌ Crédit automatiquement rejeté pour le client " + clientName +
+                        " - Moyenne de retards: " + averageLatePercentage + "%");
+
+                return creditRepository.save(credit);
+            }
+        }
+
+        // ✅ Si l'historique est bon, continuer normalement
         AgentFinance agentFinance = client.getAgentFinance();
         if (agentFinance == null) {
-            // Option 1: Lever une exception
             throw new IllegalArgumentException("Le client n'a pas d'agent financier assigné");
-
-            // Option 2: Assigner un agent par défaut (si vous préférez)
-            // agentFinance = agentFinanceRepository.findDefaultAgent();
         }
 
         // ✅ Assigner toutes les relations
-        credit.setClient(client);                 // Le client
-        credit.setAdmin(admin);                    // L'admin qui crée le crédit
-        credit.setAgentFinance(agentFinance);      // L'agent financier du client
+        credit.setClient(client);
+        credit.setAdmin(admin);
+        credit.setAgentFinance(agentFinance);
 
         // 🔒 Toujours PENDING à la création
         credit.setStatus(CreditStatus.PENDING);
+
+        System.out.println("✅ Crédit créé en statut PENDING pour le client " +
+                client.getFirstName() + " " + client.getLastName());
 
         return creditRepository.save(credit);
     }
@@ -115,14 +172,14 @@ public class CreditService implements ICreditService {
         // ✅ Définir le taux
         credit.setInterestRate(interestRate);
 
-// Montant et durée
+        // Montant et durée
         double amount = credit.getAmount();
         int duration = credit.getDurationInMonths();
 
-// taux mensuel en décimal
+        // taux mensuel en décimal
         double monthlyRate = (interestRate / 100.0) / 12.0;
 
-// Calcul mensualité constante
+        // Calcul mensualité constante
         float monthlyPayment;
 
         if (monthlyRate == 0) {
@@ -190,6 +247,7 @@ public class CreditService implements ICreditService {
     public List<Credit> getAllCredits() {
         return creditRepository.findAll();
     }
+
     @Override
     public List<Credit> getCreditsByClientEmail(String email) {
         return creditRepository.findByClient_Email(email);
