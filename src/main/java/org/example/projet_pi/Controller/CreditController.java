@@ -24,12 +24,18 @@ public class CreditController {
 
     private final AdminService adminService;
     private final CreditService creditService;
-    @Autowired
-    private IClientService clientService;
+    private final IClientService clientService;  // ✅ MODIFIÉ: final et sans @Autowired
+    private final CreditNotificationScheduler notificationScheduler;  // ✅ AJOUTÉ: final
 
-    public CreditController(CreditService creditService , AdminService adminService) {
+    // ✅ CONSTRUCTEUR CORRIGÉ
+    public CreditController(CreditService creditService,
+                            AdminService adminService,
+                            IClientService clientService,
+                            CreditNotificationScheduler notificationScheduler) {
         this.creditService = creditService;
         this.adminService = adminService;
+        this.clientService = clientService;
+        this.notificationScheduler = notificationScheduler;
     }
 
     // ===============================
@@ -268,9 +274,9 @@ public class CreditController {
         return null; // À implémenter selon votre code
     }
 
-    @Autowired
-    private CreditNotificationScheduler notificationScheduler;
-
+    // ===============================
+    // TEST NOTIFICATION ENDPOINT
+    // ===============================
     @PostMapping("/test-notification/{creditId}")
     public ResponseEntity<?> testNotification(@PathVariable Long creditId) {
         try {
