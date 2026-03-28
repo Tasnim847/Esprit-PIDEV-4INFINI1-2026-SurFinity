@@ -410,26 +410,36 @@ public class CompensationService implements ICompensationService {
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Aucun compte trouvé pour ce client"));
 
-        // 4. Vérifier que le compte a assez de solde
-        double amountToPay = compensation.getAmount();
-        if (account.getBalance() < amountToPay) {
+        // 🔥 CORRECTION : Le client paie le reste à charge (clientOutOfPocket)
+        double amountToPayByClient = compensation.getClientOutOfPocket(); // ← CE QUE LE CLIENT DOIT PAYER
+        double amountToReceiveByClient = compensation.getAmount(); // ← CE QUE L'ASSURANCE PAYE AU CLIENT
+
+        // 4. Vérifier que le client a assez de solde pour payer
+        if (account.getBalance() < amountToPayByClient) {
             throw new RuntimeException(String.format(
-                    "Solde insuffisant ! Solde actuel: %.2f DT, Montant à payer: %.2f DT",
-                    account.getBalance(), amountToPay
+                    "Solde insuffisant pour payer le reste à charge ! Solde: %.2f DT, Reste à payer: %.2f DT",
+                    account.getBalance(), amountToPayByClient
             ));
         }
 
-        // 5. Créer la transaction de paiement (WITHDRAW)
+        // 5. Débiter le compte du client (paiement du reste à charge)
         Transaction paymentTransaction = new Transaction();
         paymentTransaction.setAccount(account);
-        paymentTransaction.setAmount(amountToPay);
+        paymentTransaction.setAmount(amountToPayByClient);
         paymentTransaction.setType(TransactionType.WITHDRAW.name());
         paymentTransaction.setDate(LocalDate.now());
-
         transactionRepository.save(paymentTransaction);
+        account.setBalance(account.getBalance() - amountToPayByClient);
 
-        // 6. Mettre à jour le solde du compte
-        account.setBalance(account.getBalance() - amountToPay);
+        // 6. Créditer le compte du client (remboursement assurance)
+        Transaction creditTransaction = new Transaction();
+        creditTransaction.setAccount(account);
+        creditTransaction.setAmount(amountToReceiveByClient);
+        creditTransaction.setType(TransactionType.DEPOSIT.name());
+        creditTransaction.setDate(LocalDate.now());
+        transactionRepository.save(creditTransaction);
+        account.setBalance(account.getBalance() + amountToReceiveByClient);
+
         accountRepository.save(account);
 
         // 7. Marquer la compensation comme payée
@@ -437,35 +447,32 @@ public class CompensationService implements ICompensationService {
         compensation.setPaymentDate(new Date());
         compensation = compensationRepository.save(compensation);
 
-        // 8. Envoyer un email de confirmation au client
+        // 8. Envoyer un email de confirmation
         try {
             Client client = account.getClient();
             if (client != null && client.getEmail() != null) {
                 String subject = "✅ Confirmation de paiement de compensation";
                 String message = String.format(
                         "Bonjour %s,\n\n" +
-                                "Votre compensation de %.2f DT pour le claim %d a été payée avec succès.\n\n" +
-                                "Détails:\n" +
-                                "- Montant: %.2f DT\n" +
-                                "- Date: %s\n" +
-                                "- Compte: %s (%.2f DT)\n\n" +
+                                "Votre compensation a été traitée avec succès.\n\n" +
+                                "📊 Détails:\n" +
+                                "- Remboursement assurance: +%.2f DT\n" +
+                                "- Franchise payée: -%.2f DT\n" +
+                                "- Solde final: %.2f DT\n\n" +
                                 "Cordialement,\nVotre assurance",
                         client.getFirstName() + " " + client.getLastName(),
-                        amountToPay,
-                        compensation.getClaim().getClaimId(),
-                        amountToPay,
-                        new Date(),
-                        account.getType(),
+                        amountToReceiveByClient,
+                        amountToPayByClient,
                         account.getBalance()
                 );
                 emailService.sendGenericEmail(client.getEmail(), subject, message);
             }
         } catch (Exception e) {
-            log.error("❌ Erreur envoi email confirmation paiement: {}", e.getMessage());
+            log.error("❌ Erreur envoi email: {}", e.getMessage());
         }
 
-        log.info("💰 Compensation {} payée: {} DT depuis le compte {} (Client: {})",
-                compensationId, amountToPay, account.getAccountId(), clientId);
+        log.info("💰 Compensation {} traitée: Client a payé {} DT, Assurance a versé {} DT",
+                compensationId, amountToPayByClient, amountToReceiveByClient);
 
         return CompensationMapper.toDTO(compensation);
     }
