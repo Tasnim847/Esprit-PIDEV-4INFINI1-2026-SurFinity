@@ -19,23 +19,23 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // ✅ FirstName : lettres seulement
+    //  FirstName : lettres seulement
     @NotBlank(message = "First name is required")
     @Pattern(regexp = "^[a-zA-Z]+$", message = "First name must contain only letters")
     private String firstName;
 
-    // ✅ LastName : lettres seulement
+    // LastName : lettres seulement
     @NotBlank(message = "Last name is required")
     @Pattern(regexp = "^[a-zA-Z]+$", message = "Last name must contain only letters")
     private String lastName;
 
-    // ✅ Email format aa@gg.com
+
     @NotBlank(message = "Email is required")
-    @Email(message = "Email must be valid (example: aa@gg.com)")
+    @Email(message = "Email must be valid (example: exemple@exemple.com)")
     @Column(unique = true)
     private String email;
 
-    // ✅ Password sécurisé
+    // Password sécurisé
     @NotBlank(message = "Password is required")
     @Pattern(
             regexp = "^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?\":{}|<>]).{8,}$",
@@ -44,7 +44,7 @@ public class User {
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
 
-    // ✅ Téléphone tunisien +216XXXXXXXX
+
     @NotBlank(message = "Telephone is required")
     @Pattern(
             regexp = "^\\+216\\d{8}$",
@@ -58,6 +58,8 @@ public class User {
     private Integer loginAttempts = 0;
 
     private Boolean accountNonLocked = true;
+    private Date lockTime;
+    private String photo;
 
     @Enumerated(EnumType.STRING)
     private Role role;

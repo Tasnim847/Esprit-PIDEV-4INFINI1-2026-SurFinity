@@ -1,49 +1,46 @@
 package org.example.projet_pi.Service;
 
+import lombok.RequiredArgsConstructor;
 import org.example.projet_pi.Repository.AgentAssuranceRepository;
 import org.example.projet_pi.entity.AgentAssurance;
 import org.example.projet_pi.entity.Role;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
-
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class AgentAssuranceService implements IAgentAssuranceService {
 
     private final AgentAssuranceRepository agentAssuranceRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public AgentAssuranceService(AgentAssuranceRepository agentAssuranceRepository, PasswordEncoder passwordEncoder) {
-        this.agentAssuranceRepository = agentAssuranceRepository;
-        this.passwordEncoder = passwordEncoder;
-    }
-
-
     @Override
-    public AgentAssurance addAgent(AgentAssurance agentAssurance) {
-
+    public AgentAssurance addAgent(AgentAssurance agentAssurance, MultipartFile photo) {
         agentAssurance.setRole(Role.AGENT_ASSURANCE);
 
-        // Crypter password
-        if(agentAssurance.getPassword() != null){
-            agentAssurance.setPassword(
-                    passwordEncoder.encode(agentAssurance.getPassword())
-            );
+        if(agentAssurance.getPassword() != null && !agentAssurance.getPassword().isEmpty()){
+            agentAssurance.setPassword(passwordEncoder.encode(agentAssurance.getPassword()));
+        }
+
+        if(photo != null && !photo.isEmpty()){
+            String fileName = uploadPhoto(photo);
+            agentAssurance.setPhoto(fileName);
         }
 
         return agentAssuranceRepository.save(agentAssurance);
     }
 
     @Override
-    public AgentAssurance updateAgent(AgentAssurance agentAssurance) {
-
-        AgentAssurance existingAgent = agentAssuranceRepository
-                .findById(agentAssurance.getId())
+    public AgentAssurance updateAgentById(Long id, AgentAssurance agentAssurance, MultipartFile photo) {
+        AgentAssurance existingAgent = agentAssuranceRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Agent Assurance not found"));
 
-        // Update informations User
         if(agentAssurance.getFirstName() != null && !agentAssurance.getFirstName().isEmpty())
             existingAgent.setFirstName(agentAssurance.getFirstName());
 
@@ -56,20 +53,18 @@ public class AgentAssuranceService implements IAgentAssuranceService {
         if(agentAssurance.getTelephone() != null && !agentAssurance.getTelephone().isEmpty())
             existingAgent.setTelephone(agentAssurance.getTelephone());
 
-        // ✅ Password change (recrypt if modified)
-        if(agentAssurance.getPassword() != null &&
-                !agentAssurance.getPassword().isEmpty()) {
+        if(agentAssurance.getPassword() != null && !agentAssurance.getPassword().isEmpty())
+            existingAgent.setPassword(passwordEncoder.encode(agentAssurance.getPassword()));
 
-            existingAgent.setPassword(
-                    passwordEncoder.encode(agentAssurance.getPassword())
-            );
+        if(photo != null && !photo.isEmpty()){
+            String fileName = uploadPhoto(photo);
+            existingAgent.setPhoto(fileName);
         }
 
-        // Role reste fixe (sécurité)
         existingAgent.setRole(Role.AGENT_ASSURANCE);
-
         return agentAssuranceRepository.save(existingAgent);
     }
+
     @Override
     public void deleteAgent(Long id) {
         agentAssuranceRepository.deleteById(id);
@@ -87,21 +82,30 @@ public class AgentAssuranceService implements IAgentAssuranceService {
     }
 
     @Override
-    public void changePassword(Long agentId,
-                               String oldPassword,
-                               String newPassword) {
-
+    public void changePassword(Long agentId, String oldPassword, String newPassword) {
         AgentAssurance agent = agentAssuranceRepository.findById(agentId)
                 .orElseThrow(() -> new RuntimeException("Agent not found"));
 
-        // Vérifier ancien password
         if(!passwordEncoder.matches(oldPassword, agent.getPassword())){
             throw new RuntimeException("Old password incorrect");
         }
 
-        // Encoder nouveau password
         agent.setPassword(passwordEncoder.encode(newPassword));
-
         agentAssuranceRepository.save(agent);
+    }
+
+    private String uploadPhoto(MultipartFile file) {
+        try {
+            String uploadDir = "uploads/";
+            String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+
+            Path path = Paths.get(uploadDir + fileName);
+            Files.createDirectories(path.getParent());
+            Files.write(path, file.getBytes());
+
+            return fileName;
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur upload photo");
+        }
     }
 }
