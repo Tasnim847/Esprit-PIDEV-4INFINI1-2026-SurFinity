@@ -26,13 +26,22 @@ public class Complaint {
 
     @ManyToOne
     @JoinColumn(name = "client_id")
-    private Client client;
+    private User client;
 
     @ManyToOne
     @JoinColumn(name = "agent_assurance_id")
-    private AgentAssurance agentAssurance;
+    private User agentAssurance;
 
     @ManyToOne
     @JoinColumn(name = "agent_finance_id")
-    private AgentFinance agentFinance;
+    private User agentFinance;
+    private String phone;
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
 }

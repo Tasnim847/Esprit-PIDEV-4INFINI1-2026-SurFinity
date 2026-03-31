@@ -3,6 +3,7 @@ package org.example.projet_pi.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -154,11 +155,17 @@ public class SecurityConfig {
 
 
                         // ========== NEWS ENDPOINTS ==========
-                        .requestMatchers("/news/add").hasAnyRole("ADMIN")   // Admin et agent peuvent ajouter
-                        .requestMatchers("/news/update").hasAnyRole("ADMIN") // Admin et agent peuvent modifier
-                        .requestMatchers("/news/delete/**").hasRole("ADMIN")                    // Seul admin peut supprimer
-                        .requestMatchers("/news/{id}").hasAnyRole("ADMIN","AGENT_ASSURANCE","CLIENT","AGENT_FINANCE") // Tous peuvent voir une news
-                        .requestMatchers("/news/all").hasAnyRole("ADMIN","AGENT_ASSURANCE","CLIENT","AGENT_FINANCE")  // Tous peuvent voir la liste
+                        // CRUD - Admin uniquement
+                        .requestMatchers(HttpMethod.POST, "/api/v1/news").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/news/update/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/news/delete/**").hasRole("ADMIN")
+
+                        // ✅ Upload image - Admin uniquement (CORRIGÉ)
+                        .requestMatchers(HttpMethod.POST, "/api/v1/news/*/upload-image")
+                        .hasAnyRole("ADMIN", "AGENT_ASSURANCE")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/news/*/image")
+                        .hasRole("ADMIN")
+
 
                         // ========== COMPLAINT ENDPOINTS ==========
                                 // ========== COMPLAINT ENDPOINTS ==========
