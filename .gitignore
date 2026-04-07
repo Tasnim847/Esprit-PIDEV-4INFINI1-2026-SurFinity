@@ -32,3 +32,5 @@ build/
 ### VS Code ###
 .vscode/
 .idea/
+backend/target/
+frontend/node_modules/
