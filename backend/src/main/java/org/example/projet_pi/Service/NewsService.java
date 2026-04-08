@@ -3,7 +3,6 @@ package org.example.projet_pi.Service;
 import org.example.projet_pi.Repository.NewsRepository;
 import org.example.projet_pi.entity.News;
 import org.example.projet_pi.entity.NewsStatus;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

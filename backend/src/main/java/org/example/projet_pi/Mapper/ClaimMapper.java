@@ -1,6 +1,7 @@
 package org.example.projet_pi.Mapper;
 
-import org.example.projet_pi.Dto.*;
+import org.example.projet_pi.Dto.ClaimDTO;
+import org.example.projet_pi.Dto.DocumentDTO;
 import org.example.projet_pi.entity.*;
 
 import java.util.ArrayList;

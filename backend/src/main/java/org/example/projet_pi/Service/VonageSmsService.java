@@ -2,7 +2,6 @@ package org.example.projet_pi.Service;
 
 import com.vonage.client.VonageClient;
 import com.vonage.client.sms.SmsSubmissionResponse;
-import com.vonage.client.sms.SmsSubmissionResponseMessage;
 import com.vonage.client.sms.messages.TextMessage;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;

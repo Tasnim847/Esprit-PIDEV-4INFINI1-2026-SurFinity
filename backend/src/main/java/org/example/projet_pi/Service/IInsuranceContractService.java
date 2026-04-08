@@ -1,6 +1,7 @@
 package org.example.projet_pi.Service;
 
 import org.example.projet_pi.Dto.InsuranceContractDTO;
+
 import java.util.List;
 
 public interface IInsuranceContractService {

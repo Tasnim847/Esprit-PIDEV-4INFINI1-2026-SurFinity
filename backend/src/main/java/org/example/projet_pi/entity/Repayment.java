@@ -31,6 +31,10 @@ public class Repayment {
     @JoinColumn(name = "credit_id")
     private Credit credit;
 
+    @ManyToOne
+    @JoinColumn(name = "client_id")
+    private Client client;
+
     // Getters/Setters
 
     public Long getRepaymentId() {
@@ -92,6 +96,8 @@ public class Repayment {
     public void setClient(Client client) {
     }
 
-
-    ////////////////////////////////////////////////////////////////////////////
+    public Client getClient() {
+        return client;
+    }
+////////////////////////////////////////////////////////////////////////////
 }

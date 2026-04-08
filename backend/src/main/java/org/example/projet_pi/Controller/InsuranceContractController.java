@@ -1,13 +1,13 @@
 package org.example.projet_pi.Controller;
 
-import  lombok.AllArgsConstructor;
-import org.example.projet_pi.Mapper.InsuranceContractMapper;
-import org.example.projet_pi.Repository.UserRepository;
-import org.example.projet_pi.Service.IInsuranceContractService;
+import lombok.AllArgsConstructor;
 import org.example.projet_pi.Dto.InsuranceContractDTO;
 import org.example.projet_pi.Dto.RiskClaimDTO;
+import org.example.projet_pi.Mapper.InsuranceContractMapper;
 import org.example.projet_pi.Mapper.RiskClaimMapper;
 import org.example.projet_pi.Repository.InsuranceContractRepository;
+import org.example.projet_pi.Repository.UserRepository;
+import org.example.projet_pi.Service.IInsuranceContractService;
 import org.example.projet_pi.Service.PdfGenerationService;
 import org.example.projet_pi.entity.*;
 import org.springframework.core.io.InputStreamResource;

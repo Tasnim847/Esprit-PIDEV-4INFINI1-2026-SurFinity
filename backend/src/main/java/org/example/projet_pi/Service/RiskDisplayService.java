@@ -1,12 +1,20 @@
 package org.example.projet_pi.Service;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.projet_pi.Dto.*;
-import org.example.projet_pi.entity.*;
-import org.example.projet_pi.Repository.*;
+import org.example.projet_pi.Dto.CategoryRiskDTO;
+import org.example.projet_pi.Dto.ClientScoreResult;
+import org.example.projet_pi.Dto.RiskEvaluationDTO;
+import org.example.projet_pi.Dto.RiskFactorDTO;
+import org.example.projet_pi.Repository.ClaimRepository;
+import org.example.projet_pi.Repository.InsuranceContractRepository;
+import org.example.projet_pi.Repository.PaymentRepository;
+import org.example.projet_pi.entity.Client;
+import org.example.projet_pi.entity.InsuranceContract;
+import org.example.projet_pi.entity.ProductType;
+import org.example.projet_pi.entity.RiskClaim;
 import org.springframework.stereotype.Service;
+
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service

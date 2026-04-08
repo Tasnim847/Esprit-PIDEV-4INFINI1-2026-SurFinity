@@ -6,5 +6,5 @@ public enum PaymentMethod {
     BANK_TRANSFER,  // Virement bancaire
     CREDIT_CARD,
     CARD,
-   STRIPE
-    }
+    STRIPE
+}

@@ -1,16 +1,16 @@
 package org.example.projet_pi.Controller;
 
 import org.example.projet_pi.Dto.ComplaintSearchDTO;
-import org.example.projet_pi.Service.SmsService;
-import org.example.projet_pi.entity.Complaint;
-import org.example.projet_pi.entity.User;
-import org.example.projet_pi.entity.Role;
 import org.example.projet_pi.Repository.ComplaintRepository;
 import org.example.projet_pi.Repository.UserRepository;
+import org.example.projet_pi.Service.SmsService3;
+import org.example.projet_pi.entity.Complaint;
+import org.example.projet_pi.entity.Role;
+import org.example.projet_pi.entity.User;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpStatus;
 
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
@@ -22,13 +22,13 @@ public class ComplaintController {
 
     private final ComplaintRepository complaintRepository;
     private final UserRepository userRepository;
-    private final SmsService smsService;
+    private final SmsService3 smsService3;
 
     public ComplaintController(ComplaintRepository complaintRepository, UserRepository userRepository ,
-                               SmsService smsService) {
+                               SmsService3 smsService3) {
         this.complaintRepository = complaintRepository;
         this.userRepository = userRepository;
-        this.smsService = smsService;
+        this.smsService3 = smsService3;
     }
 
     // ========== CRUD ==========
@@ -55,7 +55,7 @@ public class ComplaintController {
 
             // ✅ SMS ICI
             if (saved.getPhone() != null) {
-                smsService.sendSms(
+                smsService3.sendSms(
                         saved.getPhone(),
                         "Votre réclamation est bien envoyée. Elle sera traitée."
                 );

@@ -3,13 +3,13 @@ package org.example.projet_pi.Service;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.projet_pi.Dto.ClaimScoreDTO;
-import org.example.projet_pi.Repository.AccountRepository;
-import org.example.projet_pi.Repository.CompensationRepository;
-import org.example.projet_pi.Repository.ClaimRepository;
 import org.example.projet_pi.Dto.CompensationDTO;
+import org.example.projet_pi.Mapper.CompensationMapper;
+import org.example.projet_pi.Repository.AccountRepository;
+import org.example.projet_pi.Repository.ClaimRepository;
+import org.example.projet_pi.Repository.CompensationRepository;
 import org.example.projet_pi.Repository.TransactionRepository;
 import org.example.projet_pi.entity.*;
-import org.example.projet_pi.Mapper.CompensationMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
