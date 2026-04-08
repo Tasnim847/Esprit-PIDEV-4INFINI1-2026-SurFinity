@@ -2,7 +2,6 @@ package org.example.projet_pi.Controller;
 
 import org.example.projet_pi.Service.INewsService;
 import org.example.projet_pi.entity.News;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

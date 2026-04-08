@@ -1,8 +1,5 @@
 package org.example.projet_pi.Service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.util.UUID;
 import lombok.AllArgsConstructor;
 import org.example.projet_pi.Dto.InsuranceProductDTO;
 import org.example.projet_pi.Mapper.InsuranceProductMapper;
@@ -10,6 +7,8 @@ import org.example.projet_pi.Repository.InsuranceProductRepository;
 import org.example.projet_pi.entity.InsuranceProduct;
 import org.example.projet_pi.entity.ProductStatus;
 import org.example.projet_pi.entity.ProductType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @AllArgsConstructor

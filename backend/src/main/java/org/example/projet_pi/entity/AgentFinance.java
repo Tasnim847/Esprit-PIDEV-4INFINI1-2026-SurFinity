@@ -1,8 +1,9 @@
 package org.example.projet_pi.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.Entity;
 import jakarta.persistence.OneToMany;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 import java.util.List;
 
 @Entity
@@ -45,7 +46,5 @@ public class AgentFinance extends User {
     public void setComplaints(List<Complaint> complaints) {
         this.complaints = complaints;
     }
-
-
 }
 

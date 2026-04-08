@@ -7,6 +7,7 @@ import org.example.projet_pi.entity.Client;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/clients")
@@ -16,14 +17,50 @@ public class ClientController {
     private final IClientService clientService;
 
     // =============================
-    // ADMIN + CLIENT update info
+    // ADMIN add client (multipart/form-data)
     // =============================
-    @PutMapping("/update/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping(value = "/add", consumes = "multipart/form-data")
+    public Client addClient(
+            @RequestParam("firstName") String firstName,
+            @RequestParam("lastName") String lastName,
+            @RequestParam("email") String email,
+            @RequestParam("password") String password,
+            @RequestParam("telephone") String telephone,
+            @RequestParam(value = "photo", required = false) MultipartFile photo
+    ) {
+        Client client = new Client();
+        client.setFirstName(firstName);
+        client.setLastName(lastName);
+        client.setEmail(email);
+        client.setPassword(password);
+        client.setTelephone(telephone);
+
+        return clientService.addClient(client, photo);
+    }
+
+    // =============================
+    // ADMIN + CLIENT update client info (multipart/form-data)
+    // =============================
     @PreAuthorize("hasAnyRole('ADMIN','CLIENT') and (#id == authentication.principal.id or hasRole('ADMIN'))")
+    @PutMapping(value = "/update/{id}", consumes = "multipart/form-data")
     public Client updateClient(
             @PathVariable Long id,
-            @RequestBody Client client){
-        return clientService.updateClientInfo(id, client);
+            @RequestParam(required = false) String firstName,
+            @RequestParam(required = false) String lastName,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String password,
+            @RequestParam(required = false) String telephone,
+            @RequestParam(value = "photo", required = false) MultipartFile photo
+    ) {
+        Client client = new Client();
+        client.setFirstName(firstName);
+        client.setLastName(lastName);
+        client.setEmail(email);
+        client.setPassword(password);
+        client.setTelephone(telephone);
+
+        return clientService.updateClientById(id, client, photo);
     }
 
     // =============================
@@ -31,42 +68,23 @@ public class ClientController {
     // =============================
     @PutMapping("/change-password")
     @PreAuthorize("hasRole('CLIENT')")
-    public ResponseEntity<?> changePassword(
-            @RequestBody ChangePasswordRequest request){
-
+    public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequest request){
         clientService.changePassword(
                 request.getId(),
                 request.getOldPassword(),
                 request.getNewPassword()
         );
-
         return ResponseEntity.ok("Password changed successfully");
     }
 
-    // =============================
-    // ADMIN add client
-    // =============================
-    @PostMapping("/add")
     @PreAuthorize("hasRole('ADMIN')")
-    public Client addClient(@RequestBody Client client){
-        return clientService.addClient(client);
-    }
-
-    // =============================
-    // Supprimer un client
-    // =============================
     @DeleteMapping("/delete/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     public void deleteClient(@PathVariable Long id){
         clientService.deleteClient(id);
     }
 
-    // =============================
-    // Obtenir un client par ID
-    // ADMIN / AGENT_ASSURANCE / AGENT_FINANCE
-    // =============================
-    @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','AGENT_ASSURANCE','AGENT_FINANCE')")
+    @GetMapping("/{id}")
     public Client getClientById(@PathVariable Long id){
         return clientService.getClientById(id);
     }

@@ -44,6 +44,4 @@ public class AgentAssurance extends User {
     @OneToMany(mappedBy = "agentAssurance")
     @JsonIgnore
     private List<Complaint> complaints;
-
-
 }

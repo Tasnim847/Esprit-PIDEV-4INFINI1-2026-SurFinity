@@ -1,7 +1,9 @@
 package org.example.projet_pi.Service;
 
 import com.itextpdf.text.*;
-import com.itextpdf.text.pdf.*;
+import com.itextpdf.text.pdf.PdfPCell;
+import com.itextpdf.text.pdf.PdfPTable;
+import com.itextpdf.text.pdf.PdfWriter;
 import org.example.projet_pi.entity.Account;
 import org.example.projet_pi.entity.Transaction;
 import org.springframework.stereotype.Service;

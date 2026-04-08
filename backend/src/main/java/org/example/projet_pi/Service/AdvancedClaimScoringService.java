@@ -4,16 +4,16 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.projet_pi.Dto.ClaimScoreDTO;
 import org.example.projet_pi.Dto.ClientScoreResult;
-import org.example.projet_pi.entity.*;
-import org.example.projet_pi.Repository.*;
+import org.example.projet_pi.Repository.ClaimRepository;
+import org.example.projet_pi.entity.Claim;
+import org.example.projet_pi.entity.ClaimStatus;
+import org.example.projet_pi.entity.Client;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service

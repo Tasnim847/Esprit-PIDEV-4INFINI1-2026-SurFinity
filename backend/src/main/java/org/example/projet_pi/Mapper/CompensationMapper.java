@@ -1,8 +1,8 @@
 package org.example.projet_pi.Mapper;
 
 import org.example.projet_pi.Dto.CompensationDTO;
-import org.example.projet_pi.entity.Compensation;
 import org.example.projet_pi.entity.Claim;
+import org.example.projet_pi.entity.Compensation;
 
 public class CompensationMapper {
 

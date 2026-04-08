@@ -1,13 +1,12 @@
 package org.example.projet_pi.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
 import java.time.LocalDate;
 import java.util.Date;
-import java.util.List; // ✅ AJOUT
-
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonManagedReference; // ✅ AJOUT
+import java.util.List;
 
 
 @Entity
@@ -23,10 +22,10 @@ public class Credit {
     private int durationInMonths;
 
     @Temporal(TemporalType.DATE)
-    private java.util.Date startDate;
+    private Date startDate;
 
     @Temporal(TemporalType.DATE)
-    private java.util.Date endDate;
+    private Date endDate;
 
     @Enumerated(EnumType.STRING)
     private CreditStatus status;

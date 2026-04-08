@@ -1,7 +1,5 @@
 package org.example.projet_pi.Dto;
 
-import org.example.projet_pi.Dto.CreditHistoryDTO;
-
 import java.util.List;
 
 public class CreditHistoryWithAverageDTO {

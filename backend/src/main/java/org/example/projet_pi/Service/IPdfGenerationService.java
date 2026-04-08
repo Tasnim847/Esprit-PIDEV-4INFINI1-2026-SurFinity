@@ -1,6 +1,9 @@
 package org.example.projet_pi.Service;
 
-import org.example.projet_pi.entity.*;
+import org.example.projet_pi.entity.AgentAssurance;
+import org.example.projet_pi.entity.Client;
+import org.example.projet_pi.entity.InsuranceContract;
+import org.example.projet_pi.entity.Payment;
 
 import java.io.OutputStream;
 import java.util.List;

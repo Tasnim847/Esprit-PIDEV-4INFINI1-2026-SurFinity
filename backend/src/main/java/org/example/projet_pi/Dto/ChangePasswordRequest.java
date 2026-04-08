@@ -1,7 +1,5 @@
 package org.example.projet_pi.Dto;
 
-import lombok.Data;
-
 public class ChangePasswordRequest {
 
     private Long id;

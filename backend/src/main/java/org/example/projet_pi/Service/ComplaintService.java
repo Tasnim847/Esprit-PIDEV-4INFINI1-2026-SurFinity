@@ -2,23 +2,25 @@ package org.example.projet_pi.Service;
 
 import org.example.projet_pi.Dto.ComplaintDTO;
 import org.example.projet_pi.Dto.ComplaintSearchDTO;
-import org.example.projet_pi.entity.Complaint;
 import org.example.projet_pi.Repository.ComplaintRepository;
+import org.example.projet_pi.entity.Complaint;
 import org.springframework.stereotype.Service;
 
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class ComplaintService implements IComplaintService {
 
     private final ComplaintRepository complaintRepository;
-    private final SmsService smsService;
+    private final SmsService3 smsService3;
 
-    public ComplaintService(ComplaintRepository complaintRepository, SmsService smsService) {
+    public ComplaintService(ComplaintRepository complaintRepository, SmsService3 smsService3) {
         this.complaintRepository = complaintRepository;
-        this.smsService = smsService;
+        this.smsService3 = smsService3;
     }
 
     // ================= DTO -> ENTITY =================
@@ -72,7 +74,7 @@ public class ComplaintService implements IComplaintService {
         Complaint saved = complaintRepository.save(complaint);
 
         if (saved.getPhone() != null) {
-            smsService.sendSms(
+            smsService3.sendSms(
                     saved.getPhone(),
                     "Votre réclamation est bien envoyée."
             );

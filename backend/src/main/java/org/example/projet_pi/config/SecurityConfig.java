@@ -18,14 +18,15 @@ import org.springframework.web.multipart.support.MultipartFilter;
 
 @RequiredArgsConstructor
 @Configuration
-@EnableMethodSecurity
 @EnableWebSecurity
+@EnableMethodSecurity
+
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
+    public PasswordEncoder passwordEncoder(){
         return new BCryptPasswordEncoder();
     }
 
@@ -44,18 +45,20 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
         http
-                // 🔹 Désactive CSRF pour POST/PUT/DELETE depuis Postman
                 .csrf(csrf -> csrf.disable())
 
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(multipartFilter(), JwtAuthenticationFilter.class)
 
+
                 .authorizeHttpRequests(auth -> auth
-                        // 🔓 Endpoints publics
+                        //  Endpoints publics
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/otp/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
 
                         // 👑 ADMIN uniquement
                         .requestMatchers("/products/addProduct").hasRole("ADMIN")
@@ -181,7 +184,7 @@ public class SecurityConfig {
 
 
                         // ========== COMPLAINT ENDPOINTS ==========
-                                // ========== COMPLAINT ENDPOINTS ==========
+                        // ========== COMPLAINT ENDPOINTS ==========
 
                         .requestMatchers("/complaints/addComplaint").hasRole("CLIENT")
                         .requestMatchers("/complaints/updateComplaint/**").hasAnyRole("AGENT_ASSURANCE","AGENT_FINANCE","ADMIN")
@@ -193,7 +196,7 @@ public class SecurityConfig {
                         // Toute autre requête nécessite une authentification
                         .anyRequest().authenticated()
                 )
-              .sessionManagement(session ->
+                .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

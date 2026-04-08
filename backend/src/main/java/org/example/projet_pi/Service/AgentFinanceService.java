@@ -1,66 +1,64 @@
 package org.example.projet_pi.Service;
 
+import lombok.RequiredArgsConstructor;
 import org.example.projet_pi.Repository.AgentFinanceRepository;
 import org.example.projet_pi.entity.AgentFinance;
 import org.example.projet_pi.entity.Role;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class AgentFinanceService implements IAgentFinanceService {
 
     private final AgentFinanceRepository agentFinanceRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public AgentFinanceService(AgentFinanceRepository agentFinanceRepository,PasswordEncoder passwordEncoder) {
-        this.agentFinanceRepository = agentFinanceRepository;
-        this.passwordEncoder = passwordEncoder;
-    }
-
     @Override
-    public AgentFinance addAgent(AgentFinance agentFinance) {
-
+    public AgentFinance addAgent(AgentFinance agentFinance, MultipartFile photo) {
         agentFinance.setRole(Role.AGENT_FINANCE);
 
-        if(agentFinance.getPassword() != null &&
-                !agentFinance.getPassword().isEmpty()){
+        if(agentFinance.getPassword() != null && !agentFinance.getPassword().isEmpty()){
+            agentFinance.setPassword(passwordEncoder.encode(agentFinance.getPassword()));
+        }
 
-            agentFinance.setPassword(
-                    passwordEncoder.encode(agentFinance.getPassword())
-            );
+        if(photo != null && !photo.isEmpty()){
+            String fileName = uploadPhoto(photo);
+            agentFinance.setPhoto(fileName);
         }
 
         return agentFinanceRepository.save(agentFinance);
     }
 
     @Override
-    public AgentFinance updateAgent(AgentFinance agentFinance) {
-
-        AgentFinance existingAgent = agentFinanceRepository
-                .findById(agentFinance.getId())
+    public AgentFinance updateAgentById(Long id, AgentFinance agentFinance, MultipartFile photo) {
+        AgentFinance existingAgent = agentFinanceRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Agent Finance not found"));
 
-        if(agentFinance.getFirstName()!=null && !agentFinance.getFirstName().isEmpty())
+        if(agentFinance.getFirstName() != null && !agentFinance.getFirstName().isEmpty())
             existingAgent.setFirstName(agentFinance.getFirstName());
 
-        if(agentFinance.getLastName()!=null && !agentFinance.getLastName().isEmpty())
+        if(agentFinance.getLastName() != null && !agentFinance.getLastName().isEmpty())
             existingAgent.setLastName(agentFinance.getLastName());
 
-        if(agentFinance.getEmail()!=null && !agentFinance.getEmail().isEmpty())
+        if(agentFinance.getEmail() != null && !agentFinance.getEmail().isEmpty())
             existingAgent.setEmail(agentFinance.getEmail());
 
-        if(agentFinance.getTelephone()!=null && !agentFinance.getTelephone().isEmpty())
+        if(agentFinance.getTelephone() != null && !agentFinance.getTelephone().isEmpty())
             existingAgent.setTelephone(agentFinance.getTelephone());
 
-        // Password update (crypt only if changed)
-        if(agentFinance.getPassword()!=null &&
-                !agentFinance.getPassword().isEmpty()){
+        if(agentFinance.getPassword() != null && !agentFinance.getPassword().isEmpty())
+            existingAgent.setPassword(passwordEncoder.encode(agentFinance.getPassword()));
 
-            existingAgent.setPassword(
-                    passwordEncoder.encode(agentFinance.getPassword())
-            );
+        if(photo != null && !photo.isEmpty()){
+            String fileName = uploadPhoto(photo);
+            existingAgent.setPhoto(fileName);
         }
 
         existingAgent.setRole(Role.AGENT_FINANCE);
@@ -76,7 +74,7 @@ public class AgentFinanceService implements IAgentFinanceService {
     @Override
     public AgentFinance getAgentById(Long id) {
         return agentFinanceRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Agent not found"));
+                .orElseThrow(() -> new RuntimeException("Agent Finance not found"));
     }
 
     @Override
@@ -85,10 +83,7 @@ public class AgentFinanceService implements IAgentFinanceService {
     }
 
     @Override
-    public void changePassword(Long agentId,
-                               String oldPassword,
-                               String newPassword) {
-
+    public void changePassword(Long agentId, String oldPassword, String newPassword) {
         AgentFinance agent = agentFinanceRepository.findById(agentId)
                 .orElseThrow(() -> new RuntimeException("Agent not found"));
 
@@ -97,7 +92,21 @@ public class AgentFinanceService implements IAgentFinanceService {
         }
 
         agent.setPassword(passwordEncoder.encode(newPassword));
-
         agentFinanceRepository.save(agent);
+    }
+
+    private String uploadPhoto(MultipartFile file) {
+        try {
+            String uploadDir = "uploads/";
+            String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+
+            Path path = Paths.get(uploadDir + fileName);
+            Files.createDirectories(path.getParent());
+            Files.write(path, file.getBytes());
+
+            return fileName;
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur upload photo");
+        }
     }
 }

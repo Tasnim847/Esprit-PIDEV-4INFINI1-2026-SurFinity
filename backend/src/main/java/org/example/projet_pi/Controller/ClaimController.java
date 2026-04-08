@@ -1,13 +1,14 @@
 package org.example.projet_pi.Controller;
 
 import lombok.AllArgsConstructor;
-import org.example.projet_pi.Service.ClaimService;
 import org.example.projet_pi.Dto.ClaimDTO;
-import org.example.projet_pi.Dto.CompensationDetailsDTO;  // ← AJOUTEZ CET IMPORT
+import org.example.projet_pi.Dto.CompensationDetailsDTO;
+import org.example.projet_pi.Service.ClaimService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 import java.util.Map;
 
@@ -97,8 +98,8 @@ public class ClaimController {
     }
 
     // ===============================
-   // 🔍 FRAUD
-   // ===============================
+    // 🔍 FRAUD
+    // ===============================
     @GetMapping("/fraud/{id}")
     public String fraud(@PathVariable Long id) {
         return claimService.isFraudulent(id)
@@ -107,7 +108,7 @@ public class ClaimController {
     }
 
     // ===============================
-        // 📊 STATS
+    // 📊 STATS
     // ===============================
     @GetMapping("/stats")
     public Map<String, Object> stats() {
