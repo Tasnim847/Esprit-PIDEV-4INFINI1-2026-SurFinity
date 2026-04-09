@@ -1,0 +1,14 @@
+<div [class.collapsed]="isCollapsed" class="sidebar">
+  <div class="sidebar-header">
+    <img src="assets/images/logo.png" alt="SurFinity" class="logo">
+    <button class="toggle-btn" (click)="toggleSidebar()">☰</button>
+  </div>
+  <ul class="sidebar-menu">
+    <li *ngFor="let item of menuItems">
+      <a [routerLink]="item.link">
+        <span class="icon">{{ item.icon }}</span>
+        <span class="label">{{ item.label }}</span>
+      </a>
+    </li>
+  </ul>
+</div>

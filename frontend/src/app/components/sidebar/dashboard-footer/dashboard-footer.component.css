@@ -1,0 +1,35 @@
+.dashboard-footer {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  height: 40px;
+  background-color: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+  z-index: 999;
+  left: 220px; /* Utiliser left au lieu de margin-left */
+  transition: left 0.3s ease;
+}
+
+/* Quand la sidebar est réduite */
+.dashboard-footer.sidebar-collapsed {
+  left: 60px;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+.footer-content p {
+  margin: 0;
+  font-size: 12px;
+  color: #6c757d;
+}
+
+@media (max-width: 768px) {
+  .dashboard-footer {
+    left: 0;
+  }
+}

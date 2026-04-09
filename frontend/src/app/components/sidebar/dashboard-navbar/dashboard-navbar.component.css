@@ -1,0 +1,66 @@
+.dashboard-navbar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 60px;
+  background-color: white;
+  border-bottom: 1px solid #dee2e6;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  z-index: 999;
+  left: 220px; /* Utiliser left au lieu de margin-left */
+  transition: left 0.3s ease;
+}
+
+/* Quand la sidebar est réduite */
+.dashboard-navbar.sidebar-collapsed {
+  left: 60px;
+}
+
+.navbar-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 100%;
+  padding: 0 20px;
+}
+
+.navbar-left h5 {
+  margin: 0;
+  color: #333;
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.avatar {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-name {
+  margin-left: 10px;
+  color: #333;
+  font-weight: 500;
+}
+
+.btn-link {
+  text-decoration: none;
+  color: #333;
+  display: flex;
+  align-items: center;
+}
+
+.btn-link:hover {
+  color: #1a5ac3;
+}
+
+@media (max-width: 768px) {
+  .dashboard-navbar {
+    left: 0;
+  }
+}

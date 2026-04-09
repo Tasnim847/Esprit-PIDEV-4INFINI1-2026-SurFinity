@@ -1,0 +1,16 @@
+.layout-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+  margin-top: 70px; /* Ajustez selon la hauteur de votre navbar */
+  margin-bottom: 0;
+}
+
+/* Pour que le footer reste en bas même si le contenu est court */
+app-footer {
+  margin-top: auto;
+}
