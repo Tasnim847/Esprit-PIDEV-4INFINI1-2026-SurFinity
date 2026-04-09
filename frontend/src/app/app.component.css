@@ -1,0 +1,22 @@
+/* Navbar fixe */
+app-navbar {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1030; /* Bootstrap navbar z-index */
+}
+
+/* Footer fixe */
+app-footer {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+}
+
+/* Wrapper pour le contenu, pour ne pas passer sous le navbar/footer */
+.content-wrapper {
+  margin-top: 70px; /* ajuster selon la hauteur de la navbar */
+  margin-bottom: 250px; /* ajuster selon la hauteur du footer */
+  padding: 20px;
+  min-height: calc(100vh - 70px - 250px);
+}

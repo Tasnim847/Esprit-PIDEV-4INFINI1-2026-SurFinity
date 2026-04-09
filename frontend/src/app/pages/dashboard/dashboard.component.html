@@ -1,0 +1,23 @@
+<div class="dashboard-container">
+
+  <h1>Dashboard</h1>
+  <p>Bienvenue sur votre espace d’administration</p>
+
+  <div class="stats-grid">
+    <div class="stat-card" *ngFor="let stat of stats">
+      <div class="icon">{{ stat.icon }}</div>
+      <h3>{{ stat.title }}</h3>
+      <p>{{ stat.value }}</p>
+    </div>
+  </div>
+
+  <div class="activity-section">
+    <h2>Activités récentes</h2>
+    <ul>
+      <li *ngFor="let activity of recentActivities">
+        {{ activity }}
+      </li>
+    </ul>
+  </div>
+
+</div>
