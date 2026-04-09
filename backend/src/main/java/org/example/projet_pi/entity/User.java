@@ -2,7 +2,7 @@ package org.example.projet_pi.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
-<<<<<<< HEAD
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -10,10 +10,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-=======
-import jakarta.validation.constraints.*;
-import lombok.*;
->>>>>>> f0c4e72 (url de front)
 
 import java.util.Date;
 
