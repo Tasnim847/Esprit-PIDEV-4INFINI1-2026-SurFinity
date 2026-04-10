@@ -7,7 +7,7 @@ import { AuthService } from '../../../services/auth.service';
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule],  // Ajout de CommonModule
+  imports: [CommonModule, FormsModule],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css']
 })
@@ -38,11 +38,24 @@ export class LoginComponent {
       password: this.password
     }).subscribe({
       next: (res) => {
+        console.log('Réponse du backend:', res);
         this.isLoading = false;
 
-        // Sauvegarder la session
-        this.auth.saveSession(res.token, res.role);
+        // Sauvegarder la session avec les infos utilisateur
+        // Supposons que votre backend retourne aussi firstName, lastName et email
+        const token = res.token;
         const role = res.role;
+        const firstName = res.firstName || '';  // À adapter selon votre réponse backend
+        const lastName = res.lastName || '';    // À adapter selon votre réponse backend
+        const userEmail = res.email || this.email;
+
+        // Stocker dans localStorage
+        localStorage.setItem('token', token);
+        localStorage.setItem('role', role);
+        localStorage.setItem('firstName', firstName);
+        localStorage.setItem('lastName', lastName);
+        localStorage.setItem('userEmail', userEmail);
+
         // Redirection selon le rôle
         if (role === 'ADMIN') {
           this.router.navigate(['/backoffice']);

@@ -15,6 +15,7 @@ import { LoginComponent } from './Features/auth/login/login.component';
 import { RegisterComponent } from './Features/auth/register/register.component';
 import {authGuard} from './guards/auth.guard';
 import { roleGuard } from './guards/role.guard';
+import {ProfileComponent} from './pages/profile/profile.component';
 export const routes: Routes = [
   // Landing page ouverte par défaut
   { path: '', component: LandingPageComponent },
@@ -33,7 +34,8 @@ export const routes: Routes = [
       { path: 'news', component: NewsPageComponent },
       { path: 'products', component: ProductListComponent },
       { path: 'login', component: LoginComponent },
-      { path: 'register', component: RegisterComponent }
+      { path: 'register', component: RegisterComponent },
+      {path: 'profile', component: ProfileComponent}
     ]
   },
 

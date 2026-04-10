@@ -3,45 +3,63 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 @Injectable({
-  providedIn: 'root'  // ça rend le service accessible partout
+  providedIn: 'root'
 })
 export class AuthService {
 
-  // URL de ton backend
   private API = 'http://localhost:8083/api/auth';
 
   constructor(private http: HttpClient) { }
 
-  // --- LOGIN ---
   login(data: { email: string, password: string }): Observable<any> {
     return this.http.post<any>(`${this.API}/login`, data);
   }
 
-  // --- REGISTER avec FormData pour photo ---
   register(formData: FormData): Observable<any> {
     return this.http.post(`${this.API}/register`, formData, {
       responseType: 'text' as 'json'
     });
   }
+  getMe(): Observable<any> {
+    return this.http.get(`${this.API}/me`);
+  }
 
-  // --- STOCKER TOKEN + ROLE ---
+  updateMe(data: any) {
+    return this.http.put(
+      'http://localhost:8083/api/auth/update-me',
+      data,
+      { responseType: 'text' }
+    );
+  }
+  // Vérifier si on est dans le navigateur
+  private isBrowser(): boolean {
+    return typeof window !== 'undefined' && typeof localStorage !== 'undefined';
+  }
+
   saveSession(token: string, role: string) {
-    localStorage.setItem('token', token);
-    localStorage.setItem('role', role);
+    if (this.isBrowser()) {
+      localStorage.setItem('token', token);
+      localStorage.setItem('role', role);
+    }
   }
 
-  // --- RECUPERER ROLE ---
   getRole(): string | null {
-    return localStorage.getItem('role');
+    if (this.isBrowser()) {
+      return localStorage.getItem('role');
+    }
+    return null;
   }
 
-  // --- CHECK LOGIN ---
   isLoggedIn(): boolean {
-    return !!localStorage.getItem('token');
+    if (this.isBrowser()) {
+      return !!localStorage.getItem('token');
+    }
+    return false;
   }
 
-  // --- LOGOUT ---
   logout(): void {
-    localStorage.clear();
+    if (this.isBrowser()) {
+      localStorage.clear();
+    }
   }
 }
