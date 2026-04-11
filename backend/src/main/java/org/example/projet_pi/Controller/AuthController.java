@@ -12,7 +12,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
@@ -43,16 +45,15 @@ public class AuthController {
     //localisation
     public String getClientIP(HttpServletRequest request) {
         String xfHeader = request.getHeader("X-FORWARDED-FOR");
-        if (xfHeader == null){
+        if (xfHeader == null) {
             return request.getRemoteAddr();
         }
         return xfHeader.split(",")[0];
     }
 
 
-
     // --- Méthode pour récupérer la localisation à partir de l'IP ---
-    private Map<String, Object> getLocation(String ip){
+    private Map<String, Object> getLocation(String ip) {
         RestTemplate restTemplate = new RestTemplate();
         String url = "http://ip-api.com/json/" + ip;
         return restTemplate.getForObject(url, Map.class);
@@ -127,7 +128,6 @@ public class AuthController {
     }
 
 
-
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody User userRequest, HttpServletRequest request) {
         String ip = getClientIP(request);
@@ -184,10 +184,7 @@ public class AuthController {
             loginHistoryRepository.save(history);
 
             // 🎟 Token
-            String token = jwtUtils.generateToken(
-                    user.getEmail(),
-                    user.getRole().name()
-            );
+            String token = jwtUtils.generateToken(user);
 
             Map<String, Object> response = new HashMap<>();
             response.put("token", token);
@@ -221,8 +218,9 @@ public class AuthController {
                     .body("Mot de passe incorrect");
         }
     }
+
     @PostMapping("/unlock-user/{id}")
-    public ResponseEntity<?> unlockUser(@PathVariable Long id){
+    public ResponseEntity<?> unlockUser(@PathVariable Long id) {
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -235,11 +233,13 @@ public class AuthController {
 
         return ResponseEntity.ok("User unlocked");
     }
+
     @GetMapping("/login-history/{userId}")
-    public ResponseEntity<List<LoginHistory>> getHistory(@PathVariable Long userId){
+    public ResponseEntity<List<LoginHistory>> getHistory(@PathVariable Long userId) {
         List<LoginHistory> history = loginHistoryRepository.findByUserId(userId);
         return ResponseEntity.ok(history);
     }
+
     private String uploadPhoto(MultipartFile file) {
         try {
             String uploadDir = "uploads/";
@@ -251,5 +251,56 @@ public class AuthController {
         } catch (Exception e) {
             throw new RuntimeException("Erreur lors de l'upload de la photo");
         }
+
+    }
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser(Authentication authentication) {
+
+        if (authentication == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        String email = authentication.getName();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("id", user.getId());
+        response.put("firstName", user.getFirstName());
+        response.put("lastName", user.getLastName());
+        response.put("email", user.getEmail());
+        response.put("telephone", user.getTelephone());
+        response.put("role", user.getRole().name());
+        response.put("photo", user.getPhoto());
+
+        return ResponseEntity.ok(response);
+    }
+    @PutMapping("/update-me")
+    public ResponseEntity<?> updateMyProfile(
+            Authentication authentication,
+            @RequestBody Map<String, String> request
+    ) {
+        if (authentication == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        String email = authentication.getName();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (request.get("firstName") != null)
+            user.setFirstName(request.get("firstName"));
+
+        if (request.get("lastName") != null)
+            user.setLastName(request.get("lastName"));
+
+        if (request.get("telephone") != null)
+            user.setTelephone(request.get("telephone"));
+
+        userRepository.save(user);
+
+        return ResponseEntity.ok("Profile updated successfully");
     }
 }
