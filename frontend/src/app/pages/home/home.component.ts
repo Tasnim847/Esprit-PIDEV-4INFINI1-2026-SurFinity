@@ -1,18 +1,19 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import {Router, RouterLink, RouterLinkActive} from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink, RouterLinkActive],
   templateUrl: './home.component.html',
-  styleUrls: ['./home.component.css']  // Correction: styleUrls au lieu de styleUrl
+  styleUrls: ['./home.component.css']
 })
 export class HomeComponent implements OnInit {
 
-  userName: string = '';
+  firstName: string = '';
+  lastName: string = '';
   userEmail: string = '';
 
   constructor(
@@ -34,21 +35,40 @@ export class HomeComponent implements OnInit {
       return;
     }
 
-    // Récupérer les infos de l'utilisateur depuis le token ou localStorage
+    // Récupérer les infos de l'utilisateur
     this.loadUserInfo();
   }
 
   loadUserInfo() {
-    // Vous pouvez décoder le token JWT pour récupérer email et nom
-    const token = localStorage.getItem('token');
-    if (token) {
-      // Option 1: Décoder le token (si vous voulez extraire les infos)
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        this.userEmail = payload.email || '';
-        this.userName = payload.name || payload.email || '';
-      } catch(e) {
-        console.error('Error decoding token', e);
+    const firstName = localStorage.getItem('firstName');
+    const lastName = localStorage.getItem('lastName');
+
+    this.firstName = firstName ?? '';
+    this.lastName = lastName ?? '';
+
+    // Si localStorage vide → fallback token
+    if (!this.firstName && !this.lastName) {
+      const token = localStorage.getItem('token');
+
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          console.log('localStorage firstName:', firstName);
+          console.log('localStorage lastName:', lastName);
+          console.log('JWT payload:', payload);
+
+          this.firstName = payload.firstName;
+          this.lastName = payload.lastName;
+
+
+        } catch (e) {
+          console.error('Token error', e);
+          this.firstName = 'Client';
+          this.lastName = '';
+        }
+      } else {
+        this.firstName = 'Client';
+        this.lastName = '';
       }
     }
   }

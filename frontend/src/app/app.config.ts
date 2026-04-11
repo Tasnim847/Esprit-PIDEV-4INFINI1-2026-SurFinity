@@ -1,25 +1,55 @@
-// app.config.ts
 import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
 import { provideClientHydration } from '@angular/platform-browser';
-import { provideHttpClient, withFetch } from '@angular/common/http';
-import { provideAnimations } from '@angular/platform-browser/animations'; // Ajouter
-import { provideToastr } from 'ngx-toastr'; // Ajouter
+import {
+  provideHttpClient,
+  withFetch,
+  withInterceptors,
+  HttpInterceptorFn
+} from '@angular/common/http';
+
+import { provideAnimations } from '@angular/platform-browser/animations';
+import { provideToastr } from 'ngx-toastr';
+
+export const authInterceptor: HttpInterceptorFn = (req, next) => {
+
+  let token: string | null = null;
+
+  // ✅ SSR safe
+  if (typeof window !== 'undefined') {
+    token = localStorage.getItem('token');
+  }
+
+  if (token) {
+    req = req.clone({
+      setHeaders: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+  }
+
+  return next(req);
+};
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideZoneChangeDetection({ eventCoalescing: true }), 
-    provideRouter(routes), 
+    provideZoneChangeDetection({ eventCoalescing: true }),
+    provideRouter(routes),
     provideClientHydration(),
-    provideHttpClient(withFetch()),
-    provideAnimations(), // Important pour toastr
-    provideToastr({ // Configuration toastr
+
+    // ✅ HTTP + interceptor
+    provideHttpClient(
+      withFetch(),
+      withInterceptors([authInterceptor])
+    ),
+
+    // ✅ REQUIRED FOR TOASTR (fix ton erreur)
+    provideAnimations(),
+    provideToastr({
       timeOut: 3000,
       positionClass: 'toast-top-right',
-      preventDuplicates: true,
-      progressBar: true,
-      closeButton: true
+      preventDuplicates: true
     })
   ]
 };
