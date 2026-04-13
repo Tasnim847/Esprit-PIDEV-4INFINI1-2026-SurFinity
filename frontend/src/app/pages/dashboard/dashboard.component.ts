@@ -1,26 +1,69 @@
-import { Component } from '@angular/core';
+// dashboard.component.ts (avec logs améliorés)
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
+import { StatisticsService } from '../../services/statistics.service';
+
+interface DashboardStats {
+  totalUsers: number;
+  totalClients: number;
+  totalAgentsAssurance: number;
+  totalAgentsFinance: number;
+  totalAdmins: number;
+  recentActivities: string[];
+}
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterModule],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })
-export class DashboardComponent {
+export class DashboardComponent implements OnInit {
+  stats: DashboardStats = {
+    totalUsers: 0,
+    totalClients: 0,
+    totalAgentsAssurance: 0,
+    totalAgentsFinance: 0,
+    totalAdmins: 0,
+    recentActivities: []
+  };
 
-  stats = [
-    { title: 'Produits', value: 24, icon: '📦' },
-    { title: 'Clients', value: 152, icon: '👥' },
-    { title: 'Commandes', value: 89, icon: '🛒' },
-    { title: 'Revenus', value: '12 500 TND', icon: '💰' }
-  ];
+  loading = true;
+  error: string | null = null;
 
-  recentActivities = [
-    'Nouveau produit ajouté',
-    'Client inscrit aujourd’hui',
-    'Paiement validé',
-    'Réclamation traitée'
-  ];
+  constructor(private statsService: StatisticsService) {}
+
+  ngOnInit() {
+    this.loadDashboardStats();
+  }
+
+  loadDashboardStats() {
+    console.log('🔄 Chargement des stats...');
+    this.loading = true;
+    this.error = null;
+
+    this.statsService.getDashboardStats().subscribe({
+      next: (data: DashboardStats) => {
+        console.log('✅ Stats reçues:', data);
+        this.stats = data;
+        this.loading = false;
+      },
+      error: (err: Error) => {
+        console.error('❌ Erreur:', err);
+        this.error = err.message;
+        this.loading = false;
+      }
+    });
+  }
+
+  getRolePercentage(roleCount: number): number {
+    if (this.stats.totalUsers === 0) return 0;
+    return (roleCount / this.stats.totalUsers) * 100;
+  }
+
+  retry() {
+    this.loadDashboardStats();
+  }
 }

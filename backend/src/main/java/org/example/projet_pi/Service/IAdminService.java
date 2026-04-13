@@ -16,4 +16,5 @@ public interface IAdminService {
     Admin getAdminById(Long id);
 
     List<Admin> getAllAdmins();
+    void changePassword(Long adminId, String oldPassword, String newPassword);
 }

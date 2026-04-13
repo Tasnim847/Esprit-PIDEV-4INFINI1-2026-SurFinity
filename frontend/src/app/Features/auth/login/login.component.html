@@ -48,12 +48,21 @@
       </div>
 
       <div class="forgot-link">
-        <a href="#">Forgot password?</a>
+        <a (click)="goForgotPassword()" class="forgot-link">
+          Forgot password?
+        </a>
       </div>
 
       <button type="submit" class="btn-login">
         Login
       </button>
+      <!-- Sign up link -->
+      <div class="signup-link">
+        <p>
+          Don't have an account ?
+          <a (click)="goRegister()">Sign up</a>
+        </p>
+      </div>
     </form>
   </div>
 </div>

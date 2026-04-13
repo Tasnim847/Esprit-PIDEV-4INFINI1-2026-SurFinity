@@ -221,39 +221,39 @@
     left: -220px;
     transition: left 0.3s ease;
   }
-  
+
   .sidebar.collapsed {
     left: 0;
     width: 220px;
   }
-  
+
   .sidebar.collapsed .logo {
     opacity: 1;
     width: 140px;
     display: block;
   }
-  
+
   .sidebar.collapsed .label {
     display: inline;
   }
-  
+
   .sidebar.collapsed .icon {
     margin-right: 12px;
   }
-  
+
   .main-content {
     margin-left: 0;
     width: 100%;
   }
-  
+
   .dashboard-navbar {
     margin-left: 0;
   }
-  
+
   .dashboard-footer {
     margin-left: 0;
   }
-  
+
   .toggle-btn {
     display: block;
   }
@@ -266,11 +266,11 @@
     margin-top: 60px;
     margin-bottom: 40px;
   }
-  
+
   .dashboard-navbar {
     height: 50px;
   }
-  
+
   .content-wrapper {
     margin-top: 50px;
   }

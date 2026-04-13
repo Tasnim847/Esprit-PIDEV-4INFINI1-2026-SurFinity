@@ -85,6 +85,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/products/images/**").permitAll()
+                        .requestMatchers("/api/auth/me").authenticated()
+                        .requestMatchers("/agents/**").hasRole("AGENT_FINANCE")
 
 
                         // 👑 ADMIN uniquement

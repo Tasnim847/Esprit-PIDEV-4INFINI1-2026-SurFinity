@@ -22,17 +22,24 @@ import { ListAllCompensationsComponent } from './Features/Compensation/admin/lis
 import { ListMyClaimsComponent } from './Features/Claims/client/list-my-claims/list-my-claims.component';
 import { ListMyCompensationsComponent } from './Features/Compensation/client/list-my-compensations/list-my-compensations.component';
 import { AddClaimComponent } from './Features/Claims/client/add-claim/add-claim.component';
+import {ForgotPasswordComponent} from './Features/auth/forgot-password/forgot-password.component';
+import { UserManagementComponent } from './pages/dashboard/user-management/user-management.component';
+import {DashboardProfileComponent} from './pages/dashboard-profile/dashboard-profile.component';
 export const routes: Routes = [
   // Landing page ouverte par défaut
   { path: '', component: LandingPageComponent },
 
   // Routes pour login et register (DOIVENT ÊTRE DÉCOMMENTÉES)
-  { 
-    path: 'login', 
+  {
+    path: 'login',
     component: LandingPageComponent
   },
-  { 
-    path: 'register', 
+  {
+    path: 'register',
+    component: LandingPageComponent
+  },
+  {
+    path: 'forgot-password',
     component: LandingPageComponent
   },
 
@@ -50,13 +57,13 @@ export const routes: Routes = [
       { path: 'news', component: NewsPageComponent },
       { path: 'products', component: ProductListComponent },
       {path: 'profile', component: ProfileComponent},
-      { 
-        path: 'insurance/add-contract', 
+      {
+        path: 'insurance/add-contract',
         component: AddContractComponent,
         canActivate: [authGuard]
       },
-      { 
-        path: 'insurance/my-contracts', 
+      {
+        path: 'insurance/my-contracts',
         component: MyContractsComponent,
         canActivate: [authGuard]
       },
@@ -65,33 +72,33 @@ export const routes: Routes = [
         component: ListMyClaimsComponent,
         canActivate: [authGuard]
       },
-      { 
-        path: 'claims/new', 
+      {
+        path: 'claims/new',
         component: AddClaimComponent,
         canActivate: [authGuard]
       },
-      { 
-        path: 'compensations', 
+      {
+        path: 'compensations',
         component: ListMyCompensationsComponent,
         canActivate: [authGuard]
       },
- 
+
     ]
   },
 
-  /*     
-  { 
-    path: 'login', 
+  /*
+  {
+    path: 'login',
     component: LandingPageComponent,
     children: []
   },
-  { 
-    path: 'register', 
-    component: LandingPageComponent, 
+  {
+    path: 'register',
+    component: LandingPageComponent,
     children: []
   },
   */
-      
+
 
   // Pages protégées sous SidebarLayout (dashboard)
   {
@@ -101,6 +108,11 @@ export const routes: Routes = [
     data: { roles: ['ADMIN'] },
     children: [
       { path: '', component: DashboardComponent },
+      { path: 'clients', component: UserManagementComponent, data: { type: 'clients' } },
+      { path: 'agents-assurance', component: UserManagementComponent, data: { type: 'agents-assurance' } },
+      { path: 'agents-finance', component: UserManagementComponent, data: { type: 'agents-finance' } },
+      { path: 'admins', component: UserManagementComponent, data: { type: 'admins' } },
+      { path: 'profile', component: DashboardProfileComponent },
       { path: 'products', component: AdminProductListComponent },
       { path: 'credit', component: CreditPageComponent },
       { path: 'insurance', component: ContractListComponent },

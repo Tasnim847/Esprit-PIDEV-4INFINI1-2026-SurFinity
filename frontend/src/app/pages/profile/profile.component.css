@@ -1,16 +1,24 @@
-/* Styles pour la page profil */
+/* profile.component.css - Version harmonisée SurFinity */
+
+/* =========================
+   PAGE PROFIL - STYLE SURFINITY
+========================= */
 .profile-dashboard {
   background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
   min-height: calc(100vh - 76px);
+  font-family: 'Inter', 'Segoe UI', sans-serif;
 }
 
-/* Welcome Banner */
+/* =========================
+   WELCOME BANNER
+========================= */
 .welcome-banner {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1a5ac3 0%, #36c165 100%);
   border-radius: 20px;
   padding: 2rem;
   color: white;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 30px rgba(26, 90, 195, 0.2);
+  animation: fadeInUp 0.5s ease-out;
 }
 
 .date-badge {
@@ -22,17 +30,20 @@
   font-size: 0.9rem;
 }
 
-/* Profile Card */
+/* =========================
+   PROFILE CARD
+========================= */
 .profile-card {
   background: white;
   border-radius: 20px;
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  animation: fadeInUp 0.5s ease-out 0.1s both;
 }
 
 .profile-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 10px 30px rgba(26, 90, 195, 0.12);
 }
 
 .profile-photo-container {
@@ -45,15 +56,20 @@
   height: 150px;
   border-radius: 50%;
   object-fit: cover;
-  border: 4px solid #667eea;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  border: 4px solid #1a5ac3;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+  transition: transform 0.3s ease;
+}
+
+.profile-photo:hover {
+  transform: scale(1.02);
 }
 
 .photo-upload-btn {
   position: absolute;
   bottom: 5px;
   right: 5px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1a5ac3 0%, #36c165 100%);
   color: white;
   width: 40px;
   height: 40px;
@@ -68,19 +84,22 @@
 
 .photo-upload-btn:hover {
   transform: scale(1.1);
+  background: linear-gradient(135deg, #36c165 0%, #1a5ac3 100%);
 }
 
-/* Role Badge */
+/* =========================
+   ROLE BADGES
+========================= */
 .role-badge {
   display: inline-block;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 1.2rem;
   border-radius: 50px;
   font-size: 0.85rem;
   font-weight: 600;
 }
 
 .badge-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1a5ac3 0%, #36c165 100%);
   color: white;
 }
 
@@ -90,103 +109,131 @@
 }
 
 .badge-warning {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, #f093fb 0%, #dfa94c 100%);
   color: white;
 }
 
 .badge-danger {
-  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  background: linear-gradient(135deg, #fa709a 0%, #dc3545 100%);
   color: white;
 }
 
-/* Info Card */
+/* =========================
+   INFO CARDS
+========================= */
 .info-card, .password-card {
   background: white;
   border-radius: 20px;
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
   overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  animation: fadeInUp 0.5s ease-out 0.2s both;
+}
+
+.info-card:hover, .password-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(26, 90, 195, 0.1);
 }
 
 .card-header-custom {
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   padding: 1rem 1.5rem;
-  border-bottom: 1px solid #dee2e6;
+  border-bottom: 2px solid #e2e8f0;
 }
 
 .card-header-custom h5 {
-  color: #495057;
-  font-weight: 600;
+  color: #1a5ac3;
+  font-weight: 700;
+  margin: 0;
 }
 
-/* Form Styles */
+.card-header-custom h5 i {
+  color: #36c165;
+}
+
+/* =========================
+   FORM STYLES
+========================= */
 .form-label {
   font-weight: 600;
-  color: #495057;
+  color: #2d3748;
   margin-bottom: 0.5rem;
+  font-size: 0.9rem;
 }
 
 .input-group-text {
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  color: #667eea;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 1px solid #e2e8f0;
+  color: #1a5ac3;
+  border-radius: 12px 0 0 12px;
 }
 
 .form-control {
-  border-radius: 10px;
-  border: 1px solid #dee2e6;
-  padding: 0.75rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 0.75rem 1rem;
   transition: all 0.3s ease;
+  font-size: 0.95rem;
 }
 
 .form-control:focus {
-  border-color: #667eea;
-  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+  border-color: #1a5ac3;
+  box-shadow: 0 0 0 3px rgba(26, 90, 195, 0.1);
+  outline: none;
 }
 
 .form-control:disabled {
   background: #f8f9fa;
   color: #6c757d;
+  cursor: not-allowed;
 }
 
-/* Buttons */
+/* =========================
+   BUTTONS - STYLE SURFINITY
+========================= */
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1a5ac3 0%, #36c165 100%);
   border: none;
   padding: 0.75rem 1.5rem;
-  border-radius: 10px;
+  border-radius: 12px;
+  font-weight: 600;
   transition: all 0.3s ease;
+  color: white;
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 5px 15px rgba(26, 90, 195, 0.4);
 }
 
 .btn-success {
-  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  background: linear-gradient(135deg, #36c165 0%, #28a745 100%);
   border: none;
   padding: 0.75rem 1.5rem;
-  border-radius: 10px;
+  border-radius: 12px;
+  font-weight: 600;
   transition: all 0.3s ease;
+  color: white;
 }
 
 .btn-success:hover {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(17, 153, 142, 0.4);
+  box-shadow: 0 5px 15px rgba(54, 193, 101, 0.4);
 }
 
 .btn-warning {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, #dfa94c 0%, #f0b35e 100%);
   border: none;
   color: white;
   padding: 0.75rem 1.5rem;
-  border-radius: 10px;
+  border-radius: 12px;
+  font-weight: 600;
   transition: all 0.3s ease;
 }
 
 .btn-warning:hover {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(240, 147, 251, 0.4);
+  box-shadow: 0 5px 15px rgba(223, 169, 76, 0.4);
   color: white;
 }
 
@@ -194,16 +241,42 @@
   background: #6c757d;
   border: none;
   padding: 0.75rem 1.5rem;
-  border-radius: 10px;
+  border-radius: 12px;
+  font-weight: 600;
   transition: all 0.3s ease;
+  color: white;
 }
 
 .btn-secondary:hover {
   transform: translateY(-2px);
   background: #5a6268;
+  box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
 }
 
-/* Animations */
+/* =========================
+   ALERT & MESSAGE STYLES
+========================= */
+.alert-success {
+  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+  color: #155724;
+  border: none;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.alert-danger {
+  background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+  color: #721c24;
+  border: none;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* =========================
+   ANIMATIONS
+========================= */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -215,14 +288,20 @@
   }
 }
 
-.profile-card, .info-card, .password-card {
-  animation: fadeInUp 0.5s ease-out;
-}
+/* =========================
+   RESPONSIVE DESIGN
+========================= */
+@media (max-width: 991.98px) {
+  .profile-dashboard {
+    min-height: calc(100vh - 60px);
+  }
 
-/* Responsive */
-@media (max-width: 768px) {
   .welcome-banner {
     padding: 1.5rem;
+  }
+
+  .welcome-banner h1 {
+    font-size: 1.5rem;
   }
 
   .profile-photo {
@@ -230,8 +309,67 @@
     height: 120px;
   }
 
+  .photo-upload-btn {
+    width: 35px;
+    height: 35px;
+  }
+}
+
+@media (max-width: 768px) {
+  .profile-dashboard {
+    margin-top: 60px;
+  }
+
+  .welcome-banner h1 {
+    font-size: 1.3rem;
+  }
+
+  .welcome-banner .lead {
+    font-size: 0.9rem;
+  }
+
   .btn-primary, .btn-success, .btn-secondary, .btn-warning {
     padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  .card-header-custom h5 {
+    font-size: 1rem;
+  }
+
+  .form-label {
+    font-size: 0.85rem;
+  }
+
+  .form-control {
+    padding: 0.6rem 0.8rem;
     font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .welcome-banner {
+    text-align: center;
+  }
+
+  .text-md-end {
+    text-align: center !important;
+    margin-top: 1rem;
+  }
+
+  .profile-card {
+    text-align: center;
+  }
+
+  .d-flex.gap-2 {
+    flex-direction: column;
+  }
+
+  .d-flex.gap-2 button {
+    width: 100%;
+  }
+
+  .card-header-custom {
+    text-align: center;
   }
 }

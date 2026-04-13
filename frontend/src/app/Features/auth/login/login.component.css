@@ -145,6 +145,8 @@ label {
   text-decoration: none;
   font-weight: 600;
   transition: all 0.2s;
+  cursor: pointer;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
 }
 
 .forgot-link a:hover {
@@ -203,6 +205,39 @@ label {
 }
 
 /* =========================
+   SIGNUP LINK
+========================= */
+.signup-link {
+  width: 100%;
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+.signup-link p {
+  font-size: 0.85rem;
+  color: #0e3d5c;
+  font-weight: 600;
+  margin: 0;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+
+.signup-link a {
+  color: #0e3d5c;
+  font-size: 0.85rem;
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: 5px;
+  transition: 0.2s;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+
+.signup-link a:hover {
+  color: #0a2d45;
+  text-decoration: underline;
+}
+
+/* =========================
    ANIMATION
 ========================= */
 @keyframes fadeInUp {
@@ -255,6 +290,14 @@ label {
   }
 
   .welcome-message p:last-child {
+    font-size: 0.8rem;
+  }
+
+  .signup-link p {
+    font-size: 0.8rem;
+  }
+
+  .signup-link a {
     font-size: 0.8rem;
   }
 }

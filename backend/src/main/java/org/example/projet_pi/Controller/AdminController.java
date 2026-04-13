@@ -76,4 +76,15 @@ public class AdminController {
     public List<Admin> getAllAdmins() {
         return adminService.getAllAdmins();
     }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/change-password")
+    public void changePassword(
+            @PathVariable Long id,
+            @RequestParam String oldPassword,
+            @RequestParam String newPassword
+    ) {
+        adminService.changePassword(id, oldPassword, newPassword);
+    }
+
 }

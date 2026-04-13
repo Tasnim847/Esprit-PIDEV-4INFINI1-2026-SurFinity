@@ -106,5 +106,17 @@ public class AdminService implements IAdminService {
             throw new RuntimeException("Erreur upload photo");
         }
     }
+    @Override
+    public void changePassword(Long adminId, String oldPassword, String newPassword) {
+        Admin admin = adminRepository.findById(adminId)
+                .orElseThrow(() -> new RuntimeException("Admin not found"));
+
+        if (!passwordEncoder.matches(oldPassword, admin.getPassword())) {
+            throw new RuntimeException("Old password incorrect");
+        }
+
+        admin.setPassword(passwordEncoder.encode(newPassword));
+        adminRepository.save(admin);
+    }
 
 }
