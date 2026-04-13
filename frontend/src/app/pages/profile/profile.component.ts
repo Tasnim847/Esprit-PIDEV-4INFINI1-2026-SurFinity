@@ -91,28 +91,33 @@ export class ProfileComponent implements OnInit {
 
 
   changePassword() {
+
     if (this.newPassword !== this.confirmPassword) {
       alert('❌ Les mots de passe ne correspondent pas');
       return;
     }
 
-    if (this.newPassword.length < 6) {
-      alert('❌ Le mot de passe doit contenir au moins 6 caractères');
-      return;
-    }
+    const role = this.auth.getRole();
+    const userId = this.auth.getUserId();
 
-    // Simuler l'envoi au backend
-    console.log('Changement de mot de passe:', {
-      currentPassword: this.currentPassword,
+    const request = {
+      id: userId,
+      oldPassword: this.currentPassword,
       newPassword: this.newPassword
+    };
+
+    this.auth.changePassword(role, request).subscribe({
+      next: () => {
+        alert('✅ Mot de passe modifié avec succès');
+
+        this.currentPassword = '';
+        this.newPassword = '';
+        this.confirmPassword = '';
+      },
+      error: () => {
+        alert('❌ erreur ou ancien mot de passe incorrect');
+      }
     });
-
-    alert('✅ Mot de passe modifié avec succès !');
-
-    // Reset form
-    this.currentPassword = '';
-    this.newPassword = '';
-    this.confirmPassword = '';
   }
 
   onPhotoSelected(event: any) {
@@ -155,4 +160,5 @@ export class ProfileComponent implements OnInit {
       }
     });
   }
+
 }

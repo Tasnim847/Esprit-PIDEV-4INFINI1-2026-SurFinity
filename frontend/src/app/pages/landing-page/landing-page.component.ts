@@ -7,16 +7,18 @@ import { filter } from 'rxjs/operators';
 import { Subscription } from 'rxjs';
 import { RegisterComponent } from '../../Features/auth/register/register.component';
 import { LoginComponent } from '../../Features/auth/login/login.component';
+import { ForgotPasswordComponent } from '../../Features/auth/forgot-password/forgot-password.component';
 
 @Component({
   selector: 'app-landing-page',
   standalone: true,
   imports: [
-    CommonModule, 
-    FormsModule, 
+    CommonModule,
+    FormsModule,
     RouterModule,
     LoginComponent,
-    RegisterComponent
+    RegisterComponent,
+    ForgotPasswordComponent
   ],
   templateUrl: './landing-page.component.html',
   styleUrls: ['./landing-page.component.css']
@@ -25,6 +27,7 @@ export class LandingPageComponent implements OnDestroy {
   isScrolled = false;
   showLoginPopup = false;
   showRegisterPopup = false;
+  showForgotPasswordPopup = false;
   private routerSubscription: Subscription | null = null; // Initialisé à null
   private isBrowser: boolean;
 
@@ -82,25 +85,38 @@ export class LandingPageComponent implements OnDestroy {
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
     this.isBrowser = isPlatformBrowser(this.platformId);
-    
+
     // S'abonner aux changements de route uniquement dans le navigateur
     if (this.isBrowser) {
       this.routerSubscription = this.router.events.pipe(
         filter(event => event instanceof NavigationEnd)
       ).subscribe((event: NavigationEnd) => {
-        // Afficher le popup selon la route
+
         if (event.url === '/login') {
           this.showLoginPopup = true;
           this.showRegisterPopup = false;
-          // Empêcher le scroll du body
+          this.showForgotPasswordPopup = false;
           document.body.style.overflow = 'hidden';
-        } else if (event.url === '/register') {
+        }
+
+        else if (event.url === '/register') {
           this.showRegisterPopup = true;
           this.showLoginPopup = false;
+          this.showForgotPasswordPopup = false;
           document.body.style.overflow = 'hidden';
-        } else {
+        }
+
+        else if (event.url === '/forgot-password') {
+          this.showForgotPasswordPopup = true;
           this.showLoginPopup = false;
           this.showRegisterPopup = false;
+          document.body.style.overflow = 'hidden';
+        }
+
+        else {
+          this.showLoginPopup = false;
+          this.showRegisterPopup = false;
+          this.showForgotPasswordPopup = false;
           document.body.style.overflow = '';
         }
       });
@@ -139,9 +155,14 @@ export class LandingPageComponent implements OnDestroy {
   closePopup() {
     if (this.isBrowser) {
       this.router.navigate(['/']);
+
+      this.showLoginPopup = false;
+      this.showRegisterPopup = false;
+      this.showForgotPasswordPopup = false;
+
+      document.body.style.overflow = '';
     }
   }
-
   scrollToServices() {
     if (this.isBrowser) {
       document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' });

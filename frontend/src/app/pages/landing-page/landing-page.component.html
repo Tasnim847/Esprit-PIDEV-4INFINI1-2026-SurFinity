@@ -232,3 +232,10 @@
     <app-register></app-register>
   </div>
 </div>
+<!-- Popup Forgot Password -->
+<div class="popup-overlay" *ngIf="showForgotPasswordPopup" (click)="closePopup()">
+  <div class="popup-container" (click)="$event.stopPropagation()">
+    <button class="popup-close" (click)="closePopup()">&times;</button>
+    <app-forgot-password></app-forgot-password>
+  </div>
+</div>

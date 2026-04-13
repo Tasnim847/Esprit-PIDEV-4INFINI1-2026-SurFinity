@@ -1,16 +1,17 @@
-/* Styles pour le dashboard bancaire */
+/* Styles pour le dashboard bancaire - Version SurFinity */
 .bank-dashboard {
   background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
   min-height: calc(100vh - 76px);
+  font-family: 'Inter', 'Segoe UI', sans-serif;
 }
 
-/* Welcome Banner */
+/* Welcome Banner - Couleurs SurFinity */
 .welcome-banner {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1a5ac3 0%, #36c165 100%);
   border-radius: 20px;
   padding: 2rem;
   color: white;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 30px rgba(26, 90, 195, 0.2);
 }
 
 .date-badge {
@@ -33,7 +34,7 @@
 
 .balance-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 10px 30px rgba(26, 90, 195, 0.12);
 }
 
 /* Stat Cards */
@@ -51,7 +52,7 @@
 
 .stat-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 5px 20px rgba(26, 90, 195, 0.1);
 }
 
 .stat-icon {
@@ -94,9 +95,9 @@
 
 .action-btn:hover {
   transform: translateY(-3px);
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1a5ac3 0%, #36c165 100%);
   color: white;
-  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 5px 15px rgba(26, 90, 195, 0.4);
 }
 
 .action-btn i {
@@ -134,8 +135,8 @@
 }
 
 .transaction-icon.credit {
-  background: rgba(40, 167, 69, 0.1);
-  color: #28a745;
+  background: rgba(54, 193, 101, 0.1);
+  color: #36c165;
 }
 
 .transaction-icon.debit {
@@ -160,7 +161,7 @@
 
 .goal-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 5px 15px rgba(26, 90, 195, 0.1);
 }
 
 .progress {
@@ -170,7 +171,7 @@
 }
 
 .progress-bar {
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(90deg, #1a5ac3 0%, #36c165 100%);
   border-radius: 10px;
   transition: width 0.6s ease;
 }
@@ -194,29 +195,45 @@
   z-index: 1050;
 }
 
-/* Boutons personnalisés */
+/* Boutons personnalisés - Couleurs SurFinity */
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1a5ac3 0%, #36c165 100%);
   border: none;
   transition: all 0.3s ease;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  font-weight: 500;
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 5px 15px rgba(26, 90, 195, 0.4);
 }
 
 .btn-outline-primary {
-  border: 1px solid #667eea;
-  color: #667eea;
+  border: 2px solid #1a5ac3;
+  color: #1a5ac3;
+  background: transparent;
   transition: all 0.3s ease;
+  border-radius: 10px;
+  font-weight: 500;
 }
 
 .btn-outline-primary:hover {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1a5ac3 0%, #36c165 100%);
   border-color: transparent;
   transform: translateY(-2px);
   color: white;
+}
+
+/* Link styles */
+.text-decoration-none {
+  color: #1a5ac3;
+  font-weight: 500;
+}
+
+.text-decoration-none:hover {
+  color: #36c165;
 }
 
 /* Responsive */

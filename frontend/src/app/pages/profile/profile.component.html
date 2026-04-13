@@ -6,14 +6,14 @@
       <div class="row align-items-center">
         <div class="col-md-8">
           <h1 class="display-6 fw-bold mb-2">
-            <i class="fas fa-user-circle me-3"></i>Mon Profil
+            <i class="fas fa-user-circle me-3"></i>My Profile
           </h1>
-          <p class="lead mb-0">Gérez vos informations personnelles et votre mot de passe</p>
+          <p class="lead mb-0">Manage your personal information and password</p>
         </div>
         <div class="col-md-4 text-md-end">
           <div class="date-badge">
             <i class="fas fa-calendar-alt me-2"></i>
-            {{ currentDate | date:'EEEE d MMMM yyyy' }}
+            {{ currentDate | date:'EEEE, MMMM d, yyyy' }}
           </div>
         </div>
       </div>
@@ -28,7 +28,7 @@
               <img
                 *ngIf="profilePhoto"
                 [src]="profilePhoto"
-                alt="Photo de profil"
+                alt="Profile photo"
                 class="profile-photo"
               />
               <label for="photoUpload" class="photo-upload-btn">
@@ -58,24 +58,24 @@
         </div>
       </div>
 
-      <!-- Informations Personnelles -->
+      <!-- Personal Information -->
       <div class="col-lg-8 mb-4">
         <div class="info-card">
           <div class="card-header-custom">
-            <h5 class="mb-0"><i class="fas fa-user-edit me-2"></i>Informations personnelles</h5>
+            <h5 class="mb-0"><i class="fas fa-user-edit me-2"></i>Personal Information</h5>
           </div>
           <div class="card-body p-4">
             <form #infoForm="ngForm">
               <div class="row mb-3">
                 <div class="col-md-6">
-                  <label class="form-label">Prénom</label>
+                  <label class="form-label">First Name</label>
                   <div class="input-group">
                     <span class="input-group-text"><i class="fas fa-user"></i></span>
                     <input type="text" class="form-control" [(ngModel)]="firstName" name="firstName" [disabled]="!isEditing" required>
                   </div>
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Nom</label>
+                  <label class="form-label">Last Name</label>
                   <div class="input-group">
                     <span class="input-group-text"><i class="fas fa-user"></i></span>
                     <input type="text" class="form-control" [(ngModel)]="lastName" name="lastName" [disabled]="!isEditing" required>
@@ -91,7 +91,7 @@
                   </div>
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Téléphone</label>
+                  <label class="form-label">Phone</label>
                   <div class="input-group">
                     <span class="input-group-text"><i class="fas fa-phone"></i></span>
                     <input type="tel" class="form-control" [(ngModel)]="telephone" name="telephone" [disabled]="!isEditing">
@@ -100,7 +100,7 @@
               </div>
               <div class="row mb-4">
                 <div class="col-12">
-                  <label class="form-label">Rôle</label>
+                  <label class="form-label">Role</label>
                   <div class="input-group">
                     <span class="input-group-text"><i class="fas fa-briefcase"></i></span>
                     <input type="text" class="form-control" [value]="getRoleName()" disabled>
@@ -109,53 +109,53 @@
               </div>
               <div class="d-flex gap-2">
                 <button *ngIf="!isEditing" type="button" class="btn btn-primary" (click)="enableEditing()">
-                  <i class="fas fa-edit me-2"></i>Modifier
+                  <i class="fas fa-edit me-2"></i>Edit
                 </button>
                 <button *ngIf="isEditing" type="button" class="btn btn-success" (click)="updateProfile()" [disabled]="infoForm.invalid">
-                  <i class="fas fa-save me-2"></i>Enregistrer
+                  <i class="fas fa-save me-2"></i>Save
                 </button>
                 <button *ngIf="isEditing" type="button" class="btn btn-secondary" (click)="cancelEditing()">
-                  <i class="fas fa-times me-2"></i>Annuler
+                  <i class="fas fa-times me-2"></i>Cancel
                 </button>
               </div>
             </form>
           </div>
         </div>
 
-        <!-- Changement de mot de passe -->
+        <!-- Change Password -->
         <div class="password-card mt-4">
           <div class="card-header-custom">
-            <h5 class="mb-0"><i class="fas fa-lock me-2"></i>Modifier le mot de passe</h5>
+            <h5 class="mb-0"><i class="fas fa-lock me-2"></i>Change Password</h5>
           </div>
           <div class="card-body p-4">
             <form #passwordForm="ngForm" (ngSubmit)="changePassword()">
               <div class="mb-3">
-                <label class="form-label">Mot de passe actuel</label>
+                <label class="form-label">Current Password</label>
                 <div class="input-group">
                   <span class="input-group-text"><i class="fas fa-key"></i></span>
                   <input type="password" class="form-control" [(ngModel)]="currentPassword" name="currentPassword" required>
                 </div>
               </div>
               <div class="mb-3">
-                <label class="form-label">Nouveau mot de passe</label>
+                <label class="form-label">New Password</label>
                 <div class="input-group">
                   <span class="input-group-text"><i class="fas fa-lock"></i></span>
                   <input type="password" class="form-control" [(ngModel)]="newPassword" name="newPassword" required minlength="6">
                 </div>
-                <small class="text-muted">Minimum 6 caractères</small>
+                <small class="text-muted">Minimum 6 characters</small>
               </div>
               <div class="mb-3">
-                <label class="form-label">Confirmer le mot de passe</label>
+                <label class="form-label">Confirm Password</label>
                 <div class="input-group">
                   <span class="input-group-text"><i class="fas fa-check-circle"></i></span>
                   <input type="password" class="form-control" [(ngModel)]="confirmPassword" name="confirmPassword" required>
                 </div>
                 <div *ngIf="newPassword !== confirmPassword && confirmPassword" class="text-danger small mt-1">
-                  Les mots de passe ne correspondent pas
+                  Passwords do not match
                 </div>
               </div>
               <button type="submit" class="btn btn-warning" [disabled]="passwordForm.invalid || newPassword !== confirmPassword">
-                <i class="fas fa-sync-alt me-2"></i>Changer le mot de passe
+                <i class="fas fa-sync-alt me-2"></i>Change Password
               </button>
             </form>
           </div>

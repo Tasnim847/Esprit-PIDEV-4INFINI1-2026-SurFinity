@@ -28,12 +28,7 @@ export class HomeComponent implements OnInit {
       return;
     }
 
-    // Vérifier le rôle (optionnel)
-    const role = this.auth.getRole();
-    if (role !== 'CLIENT') {
-      this.router.navigate(['/public/home']);
-      return;
-    }
+
 
     // Récupérer les infos de l'utilisateur
     this.loadUserInfo();
