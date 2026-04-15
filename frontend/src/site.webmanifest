@@ -1,0 +1,17 @@
+{
+  "name": "SurFinity",
+  "short_name": "SurFinity",
+
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#1a5ac3",
+  "background_color": "#ffffff",
+  "icons": [
+    {
+      "src": "assets/images/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

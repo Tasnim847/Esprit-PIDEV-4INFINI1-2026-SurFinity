@@ -1,13 +1,14 @@
 package org.example.projet_pi.Controller;
 
-import  lombok.AllArgsConstructor;
-import org.example.projet_pi.Mapper.InsuranceContractMapper;
-import org.example.projet_pi.Repository.UserRepository;
-import org.example.projet_pi.Service.IInsuranceContractService;
+import lombok.AllArgsConstructor;
+import org.example.projet_pi.Dto.ClientDTO;
 import org.example.projet_pi.Dto.InsuranceContractDTO;
 import org.example.projet_pi.Dto.RiskClaimDTO;
+import org.example.projet_pi.Mapper.InsuranceContractMapper;
 import org.example.projet_pi.Mapper.RiskClaimMapper;
 import org.example.projet_pi.Repository.InsuranceContractRepository;
+import org.example.projet_pi.Repository.UserRepository;
+import org.example.projet_pi.Service.IInsuranceContractService;
 import org.example.projet_pi.Service.PdfGenerationService;
 import org.example.projet_pi.entity.*;
 import org.springframework.core.io.InputStreamResource;
@@ -53,7 +54,14 @@ public class InsuranceContractController {
         }
 
         // Assigner automatiquement le client connecté
-        dto.setClientId(client.getId());
+        ClientDTO clientDTO = new ClientDTO();
+        clientDTO.setId(client.getId());
+        clientDTO.setFirstName(client.getFirstName());
+        clientDTO.setLastName(client.getLastName());
+        clientDTO.setEmail(client.getEmail());
+        clientDTO.setTelephone(client.getTelephone());
+
+        dto.setClient(clientDTO);
 
         // Appeler le service pour créer le contrat
         return contractService.addContract(dto, currentUser.getUsername());

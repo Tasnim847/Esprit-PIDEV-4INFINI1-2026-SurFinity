@@ -1,14 +1,14 @@
+
 package org.example.projet_pi.Service;
 
 import org.example.projet_pi.entity.User;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 public interface IUserService {
 
-    User addUser(User user);
-
-    User updateUser(User user);
+    User addUser(User user, MultipartFile photo);
 
     void deleteUser(Long id);
 
@@ -16,5 +16,8 @@ public interface IUserService {
 
     List<User> getAllUsers();
 
-    User updateUserById(Long id, User user);
+    User updateUserById(Long id, User user, MultipartFile photo);
+
+    List<User> searchUsers(String keyword);
+
 }

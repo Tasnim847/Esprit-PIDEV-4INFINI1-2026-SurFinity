@@ -1,0 +1,443 @@
+/* =========================
+   NAVBAR PRINCIPALE
+========================= */
+.dashboard-navbar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 70px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  z-index: 999;
+  left: 220px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dashboard-navbar.sidebar-collapsed {
+  left: 60px;
+}
+
+/* =========================
+   CONTENU DE LA NAVBAR
+========================= */
+.navbar-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 100%;
+  padding: 0 30px;
+}
+
+/* =========================
+   TITRE DE LA PAGE
+========================= */
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-title i {
+  font-size: 1.8rem;
+  background: linear-gradient(135deg, #1a5ac3, #36c165);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.page-title h4 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #2d3748;
+  letter-spacing: -0.3px;
+}
+
+/* =========================
+   SECTION DROITE
+========================= */
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* =========================
+   BARRE DE RECHERCHE
+========================= */
+.search-bar {
+  display: flex;
+  align-items: center;
+  background: #f1f3f5;
+  border-radius: 30px;
+  padding: 8px 16px;
+  transition: all 0.3s ease;
+}
+
+.search-bar:hover {
+  background: #e9ecef;
+  transform: translateY(-1px);
+}
+
+.search-bar i {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.search-bar input {
+  border: none;
+  background: none;
+  outline: none;
+  padding: 0 10px;
+  font-size: 0.9rem;
+  width: 200px;
+  transition: width 0.3s ease;
+}
+
+.search-bar input:focus {
+  width: 250px;
+}
+
+.search-bar input::placeholder {
+  color: #adb5bd;
+}
+
+/* =========================
+   BOUTON ICÔNE (Notifications)
+========================= */
+.icon-btn {
+  position: relative;
+  background: none;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #495057;
+}
+
+.icon-btn:hover {
+  background: linear-gradient(135deg, #f1f3f5, #e9ecef);
+  transform: translateY(-2px);
+}
+
+.icon-btn i {
+  font-size: 1.2rem;
+}
+
+.notification-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: linear-gradient(135deg, #dc3545, #ff6b6b);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: bold;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* =========================
+   MENU UTILISATEUR
+========================= */
+.user-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: none;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.user-btn:hover {
+  background: linear-gradient(135deg, #f1f3f5, #e9ecef);
+  transform: translateY(-2px);
+}
+
+.user-avatar {
+  position: relative;
+  width: 42px;
+  height: 42px;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.user-btn:hover .avatar-img {
+  transform: scale(1.05);
+}
+
+.user-status {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.user-status.online {
+  background: #28a745;
+  animation: statusPulse 2s infinite;
+}
+
+@keyframes statusPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 4px rgba(40, 167, 69, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+  }
+}
+
+.user-status.offline {
+  background: #6c757d;
+}
+
+.user-status.away {
+  background: #ffc107;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.user-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.user-role {
+  font-size: 0.7rem;
+  color: #6c757d;
+}
+
+.dropdown-arrow {
+  font-size: 0.8rem;
+  color: #6c757d;
+  transition: transform 0.3s ease;
+}
+
+.user-btn[aria-expanded="true"] .dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+/* =========================
+   DROPDOWN MENU
+========================= */
+.dropdown-menu {
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+  padding: 8px;
+  margin-top: 12px;
+  min-width: 260px;
+  animation: fadeInDown 0.3s ease;
+  backdrop-filter: blur(0px);
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-header {
+  padding: 12px 16px;
+  text-align: center;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+
+.dropdown-header strong {
+  color: #1a5ac3;
+  font-size: 0.95rem;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.dropdown-header small {
+  font-size: 0.75rem;
+  color: #6c757d;
+  word-break: break-all;
+}
+
+.dropdown-item {
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  color: #495057;
+  cursor: pointer;
+}
+
+.dropdown-item i {
+  width: 20px;
+  color: #1a5ac3;
+  transition: transform 0.2s ease;
+}
+
+.dropdown-item:hover {
+  background: linear-gradient(135deg, rgba(26, 90, 195, 0.05), rgba(54, 193, 101, 0.05));
+  transform: translateX(4px);
+}
+
+.dropdown-item:hover i {
+  transform: scale(1.1);
+}
+
+.dropdown-item.text-danger {
+  color: #dc3545;
+}
+
+.dropdown-item.text-danger i {
+  color: #dc3545;
+}
+
+.dropdown-item.text-danger:hover {
+  background: rgba(220, 53, 69, 0.1);
+}
+
+.dropdown-divider {
+  margin: 8px 0;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+@media (max-width: 768px) {
+  .dashboard-navbar {
+    left: 0;
+    height: 60px;
+  }
+
+  .dashboard-navbar.sidebar-collapsed {
+    left: 0;
+  }
+
+  .navbar-content {
+    padding: 0 15px;
+  }
+
+  .page-title h4 {
+    font-size: 1.1rem;
+  }
+
+  .page-title i {
+    font-size: 1.4rem;
+  }
+
+  .search-bar {
+    display: none;
+  }
+
+  .user-info {
+    display: none;
+  }
+
+  .user-btn {
+    padding: 0;
+  }
+
+  .user-avatar {
+    width: 38px;
+    height: 38px;
+  }
+
+  .dropdown-arrow {
+    display: none;
+  }
+}
+
+@media (max-width: 576px) {
+  .dashboard-navbar {
+    height: 55px;
+  }
+
+  .navbar-content {
+    padding: 0 12px;
+  }
+
+  .page-title h4 {
+    font-size: 1rem;
+  }
+
+  .icon-btn {
+    width: 35px;
+    height: 35px;
+  }
+
+  .notification-badge {
+    width: 16px;
+    height: 16px;
+    font-size: 0.6rem;
+  }
+}
+
+/* =========================
+   SCROLLBAR PERSONNALISÉE
+========================= */
+.dropdown-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dropdown-menu::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.dropdown-menu::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 10px;
+}
+
+.dropdown-menu::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

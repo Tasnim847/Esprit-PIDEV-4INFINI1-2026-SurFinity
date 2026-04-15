@@ -1,11 +1,11 @@
 package org.example.projet_pi.Controller;
 
 import lombok.RequiredArgsConstructor;
+import org.example.projet_pi.Repository.InsuranceContractRepository;
 import org.example.projet_pi.Service.EmailService;
 import org.example.projet_pi.Service.PaymentService;
 import org.example.projet_pi.entity.InsuranceContract;
 import org.example.projet_pi.entity.Payment;
-import org.example.projet_pi.Repository.InsuranceContractRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;

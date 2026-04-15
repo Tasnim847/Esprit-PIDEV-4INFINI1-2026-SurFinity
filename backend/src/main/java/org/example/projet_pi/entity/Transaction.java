@@ -1,9 +1,9 @@
 package org.example.projet_pi.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import java.time.LocalDate;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 public class Transaction {

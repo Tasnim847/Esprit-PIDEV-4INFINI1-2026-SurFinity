@@ -15,17 +15,23 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.multipart.support.MultipartFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
 
 @RequiredArgsConstructor
 @Configuration
-@EnableMethodSecurity
 @EnableWebSecurity
+@EnableMethodSecurity
+
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
+    public PasswordEncoder passwordEncoder(){
         return new BCryptPasswordEncoder();
     }
 
@@ -42,20 +48,49 @@ public class SecurityConfig {
         return multipartFilter;
     }
 
+    // AJOUTEZ CETTE METHODE pour la configuration CORS
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:4200"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
         http
-                // 🔹 Désactive CSRF pour POST/PUT/DELETE depuis Postman
+                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // AJOUTEZ CETTE LIGNE
                 .csrf(csrf -> csrf.disable())
 
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(multipartFilter(), JwtAuthenticationFilter.class)
 
+
                 .authorizeHttpRequests(auth -> auth
-                        // 🔓 Endpoints publics
-                        .requestMatchers("/api/auth/**").permitAll()
+
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        //  Endpoints publics
+                        .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
                         .requestMatchers("/api/otp/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
+                        .requestMatchers("/uploads/**").permitAll()
+                        .requestMatchers("/products/images/**").permitAll()
+                        .requestMatchers("/api/auth/me").authenticated()
+                        .requestMatchers("/agents/**").hasRole("AGENT_FINANCE")
+
+                        .requestMatchers("/api/clients/**").hasAnyRole("ADMIN", "AGENT_ASSURANCE", "AGENT_FINANCE")
+                        .requestMatchers("/api/clients/{id}").hasAnyRole("ADMIN", "AGENT_ASSURANCE", "AGENT_FINANCE")
+                        .requestMatchers("/api/clients/email/{email}").hasAnyRole("ADMIN", "AGENT_ASSURANCE", "AGENT_FINANCE")
 
                         // 👑 ADMIN uniquement
                         .requestMatchers("/products/addProduct").hasRole("ADMIN")
@@ -181,7 +216,7 @@ public class SecurityConfig {
 
 
                         // ========== COMPLAINT ENDPOINTS ==========
-                                // ========== COMPLAINT ENDPOINTS ==========
+                        // ========== COMPLAINT ENDPOINTS ==========
 
                         .requestMatchers("/complaints/addComplaint").hasRole("CLIENT")
                         .requestMatchers("/complaints/updateComplaint/**").hasAnyRole("AGENT_ASSURANCE","AGENT_FINANCE","ADMIN")
@@ -193,11 +228,10 @@ public class SecurityConfig {
                         // Toute autre requête nécessite une authentification
                         .anyRequest().authenticated()
                 )
-              .sessionManagement(session ->
+                .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
-    }
-}
+    }}

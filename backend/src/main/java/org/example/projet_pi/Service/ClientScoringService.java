@@ -3,10 +3,14 @@ package org.example.projet_pi.Service;
 import lombok.extern.slf4j.Slf4j;
 import org.example.projet_pi.Dto.ClaimScoreDTO;
 import org.example.projet_pi.Dto.ClientScoreResult;
+import org.example.projet_pi.Repository.ClaimRepository;
+import org.example.projet_pi.Repository.ClientRepository;
+import org.example.projet_pi.Repository.InsuranceContractRepository;
+import org.example.projet_pi.Repository.PaymentRepository;
 import org.example.projet_pi.entity.*;
-import org.example.projet_pi.Repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;

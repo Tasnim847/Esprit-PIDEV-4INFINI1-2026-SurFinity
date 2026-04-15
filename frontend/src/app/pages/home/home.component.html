@@ -1,0 +1,306 @@
+<!-- Main Content -->
+<div class="bank-dashboard" style="margin-top: 76px;">
+  <div class="container-fluid px-4 py-4">
+    <!-- Welcome Banner -->
+    <div class="welcome-banner mb-4">
+      <div class="row align-items-center">
+        <div class="col-md-8">
+          <h1 class="display-6 fw-bold mb-2">
+            Hello, {{ firstName }} {{ lastName }}!
+          </h1>
+          <p class="lead mb-0">Welcome to your SurFinity banking space</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+          <div class="date-badge">
+            <i class="fas fa-calendar-alt me-2"></i>
+            Thursday, April 10, 2026
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Balance Card -->
+    <div class="row mb-4">
+      <div class="col-lg-4 col-md-6 mb-3">
+        <div class="balance-card">
+          <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+              <div>
+                <p class="text-muted mb-1">💰 Account Balance</p>
+                <h2 class="display-5 fw-bold mb-0">20,680.50 €</h2>
+              </div>
+              <button class="btn btn-link text-dark" onclick="alert('Feature: Hide/Show balance')">
+                <i class="fas fa-eye-slash"></i>
+              </button>
+            </div>
+            <div class="row mt-3">
+              <div class="col-6">
+                <small class="text-muted">Current Account</small>
+                <p class="fw-bold mb-0">12,450.00 €</p>
+              </div>
+              <div class="col-6">
+                <small class="text-muted">Savings Account</small>
+                <p class="fw-bold mb-0">8,230.50 €</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="col-lg-8 col-md-6">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <div class="stat-card">
+              <div class="stat-icon bg-primary bg-opacity-10">
+                <i class="fas fa-exchange-alt text-primary"></i>
+              </div>
+              <div class="stat-info">
+                <h3 class="mb-0">12</h3>
+                <p class="text-muted mb-0">Transactions this month</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stat-card">
+              <div class="stat-icon bg-success bg-opacity-10">
+                <i class="fas fa-chart-line text-success"></i>
+              </div>
+              <div class="stat-info">
+                <h3 class="mb-0">+15.5%</h3>
+                <p class="text-muted mb-0">Savings Growth</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stat-card">
+              <div class="stat-icon bg-info bg-opacity-10">
+                <i class="fas fa-piggy-bank text-info"></i>
+              </div>
+              <div class="stat-info">
+                <h3 class="mb-0">3</h3>
+                <p class="text-muted mb-0">Savings Goals</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="actions-card">
+          <div class="card-body p-4">
+            <h5 class="mb-3">Quick Actions</h5>
+            <div class="row g-3">
+              <div class="col-md-3 col-6">
+                <button class="action-btn w-100" onclick="alert('📤 Feature: Send money')">
+                  <i class="fas fa-paper-plane fa-2x mb-2"></i>
+                  <span>📤 Send</span>
+                </button>
+              </div>
+              <div class="col-md-3 col-6">
+                <button class="action-btn w-100" onclick="alert('📥 Feature: Top up account')">
+                  <i class="fas fa-plus-circle fa-2x mb-2"></i>
+                  <span>📥 Top Up</span>
+                </button>
+              </div>
+              <div class="col-md-3 col-6">
+                <button class="action-btn w-100" onclick="alert('📑 Feature: Bank statement')">
+                  <i class="fas fa-file-invoice fa-2x mb-2"></i>
+                  <span>📑 Statement</span>
+                </button>
+              </div>
+              <div class="col-md-3 col-6">
+                <button class="action-btn w-100" onclick="document.getElementById('savingsGoals').scrollIntoView({ behavior: 'smooth' })">
+                  <i class="fas fa-bullseye fa-2x mb-2"></i>
+                  <span>🎯 Goals</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="transactions-card">
+          <div class="card-body p-0">
+            <div class="d-flex justify-content-between align-items-center p-4 border-bottom">
+              <h5 class="mb-0">📊 Transaction History</h5>
+              <a href="#" class="text-decoration-none" data-bs-toggle="collapse" data-bs-target="#transactionsList">
+                View all <i class="fas fa-chevron-down ms-1"></i>
+              </a>
+            </div>
+            <div id="transactionsList" class="collapse show">
+              <div class="transaction-item">
+                <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+                  <div class="d-flex align-items-center">
+                    <div class="transaction-icon debit me-3">
+                      <i class="fas fa-tv"></i>
+                    </div>
+                    <div>
+                      <h6 class="mb-0">Netflix</h6>
+                      <small class="text-muted">Today, 2:30 PM</small>
+                    </div>
+                  </div>
+                  <div class="fw-bold text-danger">
+                    -15.99 €
+                  </div>
+                </div>
+              </div>
+              <div class="transaction-item">
+                <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+                  <div class="d-flex align-items-center">
+                    <div class="transaction-icon credit me-3">
+                      <i class="fas fa-exchange-alt"></i>
+                    </div>
+                    <div>
+                      <h6 class="mb-0">Transfer from Jean Dupont</h6>
+                      <small class="text-muted">Yesterday, 9:15 AM</small>
+                    </div>
+                  </div>
+                  <div class="fw-bold text-success">
+                    +250.00 €
+                  </div>
+                </div>
+              </div>
+              <div class="transaction-item">
+                <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+                  <div class="d-flex align-items-center">
+                    <div class="transaction-icon debit me-3">
+                      <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <div>
+                      <h6 class="mb-0">Carrefour Market</h6>
+                      <small class="text-muted">Dec 25, 2024</small>
+                    </div>
+                  </div>
+                  <div class="fw-bold text-danger">
+                    -85.40 €
+                  </div>
+                </div>
+              </div>
+              <div class="transaction-item">
+                <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+                  <div class="d-flex align-items-center">
+                    <div class="transaction-icon credit me-3">
+                      <i class="fas fa-briefcase"></i>
+                    </div>
+                    <div>
+                      <h6 class="mb-0">Salary</h6>
+                      <small class="text-muted">Dec 20, 2024</small>
+                    </div>
+                  </div>
+                  <div class="fw-bold text-success">
+                    +2,450.00 €
+                  </div>
+                </div>
+              </div>
+              <div class="transaction-item">
+                <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+                  <div class="d-flex align-items-center">
+                    <div class="transaction-icon debit me-3">
+                      <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <div>
+                      <h6 class="mb-0">Free Mobile</h6>
+                      <small class="text-muted">Dec 15, 2024</small>
+                    </div>
+                  </div>
+                  <div class="fw-bold text-danger">
+                    -19.99 €
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Savings Goals -->
+    <div class="row" id="savingsGoals">
+      <div class="col-12">
+        <div class="savings-card">
+          <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <h5 class="mb-0">🎯 Savings Goals</h5>
+              <button class="btn btn-sm btn-outline-primary" onclick="alert('🎯 Feature: New savings goal')">
+                <i class="fas fa-plus me-1"></i> New Goal
+              </button>
+            </div>
+            <div class="row g-3">
+              <div class="col-md-4">
+                <div class="goal-card">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                      <i class="fas fa-plane fa-2x text-primary mb-2"></i>
+                      <h6 class="mb-1">Trip to Japan</h6>
+                    </div>
+                    <span class="badge bg-light text-dark">41.67%</span>
+                  </div>
+                  <div class="mb-2">
+                    <div class="d-flex justify-content-between small mb-1">
+                      <span>€1,250</span>
+                      <span>€3,000</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                      <div class="progress-bar bg-primary" style="width: 41.67%"></div>
+                    </div>
+                  </div>
+                  <small class="text-muted">Goal: June 2025</small>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="goal-card">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                      <i class="fas fa-car fa-2x text-primary mb-2"></i>
+                      <h6 class="mb-1">New Car</h6>
+                    </div>
+                    <span class="badge bg-light text-dark">25%</span>
+                  </div>
+                  <div class="mb-2">
+                    <div class="d-flex justify-content-between small mb-1">
+                      <span>€5,000</span>
+                      <span>€20,000</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                      <div class="progress-bar bg-primary" style="width: 25%"></div>
+                    </div>
+                  </div>
+                  <small class="text-muted">Goal: December 2025</small>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="goal-card">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                      <i class="fas fa-shield-alt fa-2x text-primary mb-2"></i>
+                      <h6 class="mb-1">Emergency Fund</h6>
+                    </div>
+                    <span class="badge bg-light text-dark">35%</span>
+                  </div>
+                  <div class="mb-2">
+                    <div class="d-flex justify-content-between small mb-1">
+                      <span>€3,500</span>
+                      <span>€10,000</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                      <div class="progress-bar bg-primary" style="width: 35%"></div>
+                    </div>
+                  </div>
+                  <small class="text-muted">Goal: March 2026</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

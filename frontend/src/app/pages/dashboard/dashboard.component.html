@@ -1,0 +1,118 @@
+<div class="dashboard-container">
+  <div class="dashboard-header">
+    <h1>Administrator Dashboard</h1>
+    <p>Welcome to your administration space</p>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">👥</div>
+      <div class="stat-info">
+        <h3>Total Users</h3>
+        <p class="stat-value">{{ stats.totalUsers }}</p>
+        <small>All roles combined</small>
+      </div>
+    </div>
+
+    <div class="stat-card client">
+      <div class="stat-icon">👤</div>
+      <div class="stat-info">
+        <h3>Clients</h3>
+        <p class="stat-value">{{ stats.totalClients }}</p>
+        <a routerLink="/backoffice/clients" class="stat-link">Manage →</a>
+      </div>
+    </div>
+
+    <div class="stat-card agent-assurance">
+      <div class="stat-icon">🛡️</div>
+      <div class="stat-info">
+        <h3>Insurance Agents</h3>
+        <p class="stat-value">{{ stats.totalAgentsAssurance }}</p>
+        <a routerLink="/backoffice/agents-assurance" class="stat-link">Manage →</a>
+      </div>
+    </div>
+
+    <div class="stat-card agent-finance">
+      <div class="stat-icon">💰</div>
+      <div class="stat-info">
+        <h3>Finance Agents</h3>
+        <p class="stat-value">{{ stats.totalAgentsFinance }}</p>
+        <a routerLink="/backoffice/agents-finance" class="stat-link">Manage →</a>
+      </div>
+    </div>
+
+    <div class="stat-card admin">
+      <div class="stat-icon">👨‍💼</div>
+      <div class="stat-info">
+        <h3>Administrators</h3>
+        <p class="stat-value">{{ stats.totalAdmins }}</p>
+        <a routerLink="/backoffice/admins" class="stat-link">Manage →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Role Distribution Chart -->
+  <div class="charts-row">
+    <div class="chart-card">
+      <h3>User Distribution by Role</h3>
+      <div class="progress-bars">
+        <div class="progress-item">
+          <span>Clients</span>
+          <div class="progress-bar">
+            <div class="progress-fill client-fill"
+                 [style.width.%]="(stats.totalClients / stats.totalUsers) * 100">
+              {{ (stats.totalClients / stats.totalUsers * 100).toFixed(1) }}%
+            </div>
+          </div>
+        </div>
+        <div class="progress-item">
+          <span>Insurance Agents</span>
+          <div class="progress-bar">
+            <div class="progress-fill assurance-fill"
+                 [style.width.%]="(stats.totalAgentsAssurance / stats.totalUsers) * 100">
+              {{ (stats.totalAgentsAssurance / stats.totalUsers * 100).toFixed(1) }}%
+            </div>
+          </div>
+        </div>
+        <div class="progress-item">
+          <span>Finance Agents</span>
+          <div class="progress-bar">
+            <div class="progress-fill finance-fill"
+                 [style.width.%]="(stats.totalAgentsFinance / stats.totalUsers) * 100">
+              {{ (stats.totalAgentsFinance / stats.totalUsers * 100).toFixed(1) }}%
+            </div>
+          </div>
+        </div>
+        <div class="progress-item">
+          <span>Administrators</span>
+          <div class="progress-bar">
+            <div class="progress-fill admin-fill"
+                 [style.width.%]="(stats.totalAdmins / stats.totalUsers) * 100">
+              {{ (stats.totalAdmins / stats.totalUsers * 100).toFixed(1) }}%
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions-card">
+      <h3>Quick Actions</h3>
+      <div class="actions-grid">
+        <button class="action-btn" routerLink="/backoffice/clients/add">
+          ➕ New Client
+        </button>
+        <button class="action-btn" routerLink="/backoffice/agents-assurance/add">
+          🛡️ New Insurance Agent
+        </button>
+        <button class="action-btn" routerLink="/backoffice/agents-finance/add">
+          💰 New Finance Agent
+        </button>
+        <button class="action-btn" routerLink="/backoffice/admins/add">
+          👨‍💼 New Admin
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

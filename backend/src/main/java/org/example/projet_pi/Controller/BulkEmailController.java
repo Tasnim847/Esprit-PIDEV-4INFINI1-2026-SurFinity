@@ -1,11 +1,11 @@
 package org.example.projet_pi.Controller;
 
 import lombok.RequiredArgsConstructor;
+import org.example.projet_pi.Repository.ClientRepository;
 import org.example.projet_pi.Repository.InsuranceContractRepository;
 import org.example.projet_pi.Service.BulkEmailService;
 import org.example.projet_pi.Service.EmailService;
 import org.example.projet_pi.entity.*;
-import org.example.projet_pi.Repository.ClientRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

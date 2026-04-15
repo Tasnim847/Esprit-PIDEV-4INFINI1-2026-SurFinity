@@ -1,0 +1,241 @@
+<!-- Navbar -->
+<nav class="navbar" [class.scrolled]="isScrolled">
+  <div class="container">
+    <a class="logo" href="#">
+      <img src="assets/images/logo.png" alt="SurFinity" />
+      <span class="logo-text">SurFinity</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#home" class="nav-link">Home</a></li>
+      <li><a href="#services" class="nav-link">Services</a></li>
+      <li><a href="#about" class="nav-link">About Us</a></li>
+      <li><a href="#contact" class="nav-link">Contact</a></li>
+    </ul>
+    <div class="auth-buttons">
+      <a (click)="navigateToLogin()" class="login-btn" style="cursor: pointer;">
+        <i class="fas fa-user"></i> Login
+      </a>
+
+      <a (click)="navigateToRegister()" class="signup-btn" style="cursor: pointer;">
+        <i class="fas fa-user-plus"></i> Sign Up
+      </a>
+    </div>
+    <div class="mobile-menu-btn" (click)="toggleMobileMenu()">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero section avec image de fond -->
+<section class="hero" id="home">
+  <img src="assets/images/hero-background.jpg" alt="Background" class="hero-bg-image">
+  <div class="hero-overlay"></div>
+  <div class="hero-content">
+    <div class="container">
+      <div class="hero-text">
+        <h1 class="animate-text">Welcome to <span class="highlight">SurFinity</span></h1>
+        <p class="animate-text-delay">Your intelligent platform for finance and insurance.</p>
+        <div class="hero-buttons">
+          <button class="btn-primary" (click)="navigateToLogin()">
+            Get Started <i class="fas fa-arrow-right"></i>
+          </button>
+          <button class="btn-secondary" (click)="scrollToServices()">
+            Discover <i class="fas fa-chevron-down"></i>
+          </button>
+        </div>
+      </div>
+      <div class="hero-stats">
+        <div class="stat">
+          <h3>1000+</h3>
+          <p>Happy Clients</p>
+        </div>
+        <div class="stat">
+          <h3>50M+</h3>
+          <p>Transactions</p>
+        </div>
+        <div class="stat">
+          <h3>99.9%</h3>
+          <p>Satisfaction</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Services Section -->
+<section class="services" id="services">
+  <div class="container">
+    <div class="section-header">
+      <h2>Our Services</h2>
+      <p>Innovative solutions for your financial needs</p>
+    </div>
+    <div class="service-cards">
+      <div class="card" *ngFor="let service of services">
+        <div class="card-icon">
+          <i [class]="service.icon"></i>
+        </div>
+        <h3>{{ service.title }}</h3>
+        <p>{{ service.description }}</p>
+        <a href="#" class="card-link">Learn more <i class="fas fa-arrow-right"></i></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features Section -->
+<section class="features">
+  <div class="container">
+    <div class="features-grid">
+      <div class="features-content">
+        <h2>Why Choose SurFinity?</h2>
+        <p>We're revolutionizing the way you manage your finances</p>
+        <div class="feature-item" *ngFor="let feature of features">
+          <div class="feature-icon">
+            <i [class]="feature.icon"></i>
+          </div>
+          <div class="feature-text">
+            <h4>{{ feature.title }}</h4>
+            <p>{{ feature.description }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="features-image">
+        <img src="assets/images/dashboard-preview.png" alt="Dashboard Preview">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- About Us Section -->
+<section class="about" id="about">
+  <div class="container">
+    <div class="about-content">
+      <div class="about-text">
+        <h2>About Us</h2>
+        <p>We are a team dedicated to simplifying your financial operations.</p>
+        <p>SurFinity was born from the desire to make financial services accessible to everyone. With a team of passionate experts, we develop innovative solutions to manage credits, insurance, and accounts with ease.</p>
+        <div class="about-stats">
+          <div class="about-stat">
+            <h3>2019</h3>
+            <p>Year Founded</p>
+          </div>
+          <div class="about-stat">
+            <h3>15+</h3>
+            <p>Experts</p>
+          </div>
+          <div class="about-stat">
+            <h3>4.8</h3>
+            <p>Average Rating</p>
+          </div>
+        </div>
+      </div>
+      <div class="about-image">
+        <img src="assets/images/about-us.png" alt="About Us">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Contact Section -->
+<section class="contact" id="contact">
+  <div class="container">
+    <div class="contact-content">
+      <div class="contact-info">
+        <h2>Contact Us</h2>
+        <p>Our team is here to answer your questions</p>
+        <div class="contact-details">
+          <div class="contact-item">
+            <i class="fas fa-map-marker-alt"></i>
+            <span>Tunis, Tunisia</span>
+          </div>
+          <div class="contact-item">
+            <i class="fas fa-phone"></i>
+            <span>+216 12 345 678</span>
+          </div>
+          <div class="contact-item">
+            <i class="fas fa-envelope"></i>
+            <span>info&#64;surfinity.com</span>
+          </div>
+        </div>
+      </div>
+      <form class="contact-form" (ngSubmit)="submitContactForm()">
+        <input type="text" placeholder="Your name" [(ngModel)]="contactData.name" name="name" required>
+        <input type="email" placeholder="Your email" [(ngModel)]="contactData.email" name="email" required>
+        <textarea placeholder="Your message" [(ngModel)]="contactData.message" name="message" rows="4" required></textarea>
+        <button type="submit" class="btn-primary">Send <i class="fas fa-paper-plane"></i></button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-content">
+      <div class="footer-section">
+        <h3>SurFinity</h3>
+        <p>Your trusted financial partner</p>
+        <div class="social-links">
+          <a href="#"><i class="fab fa-facebook-f"></i></a>
+          <a href="#"><i class="fab fa-twitter"></i></a>
+          <a href="#"><i class="fab fa-linkedin-in"></i></a>
+          <a href="#"><i class="fab fa-instagram"></i></a>
+        </div>
+      </div>
+      <div class="footer-section">
+        <h4>Quick Links</h4>
+        <ul>
+          <li><a href="#home">Home</a></li>
+          <li><a href="#services">Services</a></li>
+          <li><a href="#about">About Us</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </div>
+      <div class="footer-section">
+        <h4>Our Services</h4>
+        <ul>
+          <li><a href="#">Credits</a></li>
+          <li><a href="#">Insurance</a></li>
+          <li><a href="#">Accounts</a></li>
+          <li><a href="#">Support</a></li>
+        </ul>
+      </div>
+      <div class="footer-section">
+        <h4>Newsletter</h4>
+        <p>Receive our news</p>
+        <div class="newsletter">
+          <input type="email" placeholder="Your email" [(ngModel)]="newsletterEmail">
+          <button (click)="subscribeNewsletter()">Subscribe</button>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 SurFinity. All rights reserved.</p>
+    </div>
+  </div>
+</footer>
+
+<!-- Popup Login -->
+<div class="popup-overlay" *ngIf="showLoginPopup" (click)="closePopup()">
+  <div class="popup-container" (click)="$event.stopPropagation()">
+    <button class="popup-close" (click)="closePopup()">&times;</button>
+    <app-login></app-login>
+  </div>
+</div>
+
+<!-- Popup Register -->
+<div class="popup-overlay" *ngIf="showRegisterPopup" (click)="closePopup()">
+  <div class="popup-container register-popup" (click)="$event.stopPropagation()">
+    <button class="popup-close" (click)="closePopup()">&times;</button>
+    <app-register></app-register>
+  </div>
+</div>
+<!-- Popup Forgot Password -->
+<div class="popup-overlay" *ngIf="showForgotPasswordPopup" (click)="closePopup()">
+  <div class="popup-container" (click)="$event.stopPropagation()">
+    <button class="popup-close" (click)="closePopup()">&times;</button>
+    <app-forgot-password></app-forgot-password>
+  </div>
+</div>

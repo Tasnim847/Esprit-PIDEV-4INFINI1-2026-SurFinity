@@ -2,12 +2,12 @@ package org.example.projet_pi.Controller;
 
 import lombok.AllArgsConstructor;
 import org.example.projet_pi.Dto.ClaimScoreDTO;
+import org.example.projet_pi.Dto.CompensationDTO;
 import org.example.projet_pi.Repository.AccountRepository;
 import org.example.projet_pi.Repository.ClaimRepository;
 import org.example.projet_pi.Repository.ClientRepository;
 import org.example.projet_pi.Service.AdvancedClaimScoringService;
 import org.example.projet_pi.Service.CompensationService;
-import org.example.projet_pi.Dto.CompensationDTO;
 import org.example.projet_pi.entity.Account;
 import org.example.projet_pi.entity.Claim;
 import org.example.projet_pi.entity.Client;

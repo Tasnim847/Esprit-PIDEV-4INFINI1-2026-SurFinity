@@ -2,13 +2,13 @@ package org.example.projet_pi.Service;
 
 import jakarta.transaction.Transactional;
 import org.example.projet_pi.Dto.CreditHistoryDTO;
+import org.example.projet_pi.Dto.CreditHistoryWithAverageDTO;
 import org.example.projet_pi.Repository.AccountRepository;
 import org.example.projet_pi.Repository.ClientRepository;
 import org.example.projet_pi.Repository.CreditRepository;
-import org.example.projet_pi.Service.EmailCredit.CreditEmailService;  // ✅ AJOUT
+import org.example.projet_pi.Service.EmailCredit.CreditEmailService;
 import org.example.projet_pi.entity.*;
 import org.springframework.stereotype.Service;
-import org.example.projet_pi.Dto.CreditHistoryWithAverageDTO ;
 
 import java.util.Date;
 import java.util.List;

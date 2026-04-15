@@ -3,7 +3,6 @@ package org.example.projet_pi.Controller;
 import lombok.AllArgsConstructor;
 import org.example.projet_pi.Dto.RiskClaimDTO;
 import org.example.projet_pi.Service.IRiskClaimService;
-import org.example.projet_pi.entity.RiskClaim;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
