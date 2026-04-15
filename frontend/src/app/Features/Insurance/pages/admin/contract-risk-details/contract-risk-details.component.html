@@ -1,1 +1,271 @@
-<p>contract-risk-details works!</p>
+<div class="risk-dashboard-container">
+  <!-- Header -->
+  <div class="dashboard-header">
+    <div class="header-left">
+      <button class="back-btn" (click)="goBack()">
+        <i class="bi bi-arrow-left"></i>
+        Back
+      </button>
+      <div class="header-info">
+        <h1>Risk Dashboard</h1>
+        <p class="contract-ref">Contract #{{ contractId }} - {{ getContractReference() }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading risk data...</p>
+  </div>
+
+  <!-- Error Message -->
+  <div *ngIf="errorMessage && !isLoading" class="error-message">
+    <i class="bi bi-exclamation-triangle"></i>
+    <p>{{ errorMessage }}</p>
+  </div>
+
+  <!-- Dashboard Content -->
+  <div *ngIf="!isLoading && riskEvaluation" class="dashboard-content">
+    
+    <!-- First Row: Score and Gauge -->
+    <div class="dashboard-row">
+      <!-- Score Card -->
+      <div class="score-card" [class]="getRiskLevelClass()">
+        <div class="score-header">
+          <h3>Global Risk Score</h3>
+          <i class="bi bi-shield-check"></i>
+        </div>
+        <div class="score-value">
+          <span class="score-number">{{ getRiskScore() }}</span>
+          <span class="score-max">/100</span>
+        </div>
+        <div class="score-level">
+          <span class="level-badge" [class]="getRiskLevelClass()">
+            {{ getRiskLevelLabel() }}
+          </span>
+        </div>
+        <div class="evaluation-note" *ngIf="getRecommendation()">
+          <i class="bi bi-chat-text"></i>
+          <p>{{ getRecommendation() }}</p>
+        </div>
+      </div>
+
+      <!-- Risk Gauge -->
+      <div class="gauge-card">
+        <h3>Risk Indicator</h3>
+        <div class="gauge-container">
+          <canvas #riskGaugeCanvas width="200" height="200"></canvas>
+          <div class="gauge-center">
+            <span class="gauge-score">{{ getRiskScore() }}<small>/100</small></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- General Information -->
+      <div class="info-card">
+        <h3>General Information</h3>
+        <div class="info-list">
+          <div class="info-row">
+            <label>Client:</label>
+            <span>{{ riskEvaluation.clientName || 'Not specified' }}</span>
+          </div>
+          <div class="info-row">
+            <label>Agent:</label>
+            <span>{{ getAgentName() || 'Not specified' }}</span>
+          </div>
+          <div class="info-row">
+            <label>Evaluation Date:</label>
+            <span>{{ getEvaluationDate() || 'Not specified' }}</span>
+          </div>
+          <div class="info-row" *ngIf="getGlobalRiskClass()">
+            <label>Risk Class:</label>
+            <span class="risk-class-badge" [class]="'class-' + (getGlobalRiskClass() | lowercase)">
+              {{ getGlobalRiskClass() }}
+            </span>
+          </div>
+        </div>
+        <div class="auto-reject-warning" *ngIf="isAutoReject()">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          <span>⚠️ Contract automatically rejected</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Second Row: Categories Chart -->
+    <div class="dashboard-row">
+      <div class="chart-card full-width">
+        <h3><i class="bi bi-grid"></i> Scores by Category</h3>
+        <div class="chart-container">
+          <canvas #categoriesChartCanvas></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Third Row: Secondary Charts -->
+    <div class="dashboard-row">
+      <div class="chart-card">
+        <h3><i class="bi bi-exclamation-triangle"></i> Risk Factors Distribution</h3>
+        <div class="chart-container small">
+          <canvas #riskFactorsChartCanvas></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3><i class="bi bi-graph-up"></i> Risk Indicators</h3>
+        <div class="chart-container">
+          <canvas #indicatorsRadarCanvas></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fourth Row: Category Details -->
+    <div class="categories-section" *ngIf="getCategoriesArray().length > 0">
+      <h3><i class="bi bi-list-ul"></i> Category Details</h3>
+      <div class="categories-grid">
+        <div *ngFor="let category of getCategoriesArray()" class="category-card">
+          <div class="category-header">
+            <strong>{{ category.categoryName }}</strong>
+            <div class="category-badge-group">
+              <span class="category-score-badge">Score: {{ category.score }}%</span>
+              <span class="category-risk" [class]="'risk-' + (category.riskLevel | lowercase)">
+                {{ category.riskLevel }}
+              </span>
+            </div>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-bar-fill" 
+                 [style.width.%]="category.score"
+                 [class]="getIndicatorClass(category.score)">
+            </div>
+          </div>
+          <div class="category-weight">Weight: {{ category.weight }}%</div>
+          <p class="category-description">{{ category.description }}</p>
+          <ul class="category-details" *ngIf="category.details && category.details.length > 0">
+            <li *ngFor="let detail of category.details">
+              <i class="bi bi-dot"></i> {{ detail }}
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fifth Row: Detailed Risk Factors -->
+    <div class="risk-factors-section" *ngIf="getRiskFactors().length > 0">
+      <h3><i class="bi bi-exclamation-triangle"></i> Detailed Risk Factors</h3>
+      <div class="risk-factors-grid">
+        <div *ngFor="let factor of getRiskFactors()" class="risk-factor-card">
+          <div class="factor-header">
+            <strong>{{ factor.factor }}</strong>
+            <span class="factor-impact" [class]="'impact-' + (factor.impact | lowercase)">
+              {{ factor.impact }}
+            </span>
+          </div>
+          <div class="factor-points">Impact Points: {{ factor.points }}</div>
+          <p class="factor-description">{{ factor.description }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sixth Row: Positive Points and Actions -->
+    <div class="two-columns">
+      <div class="positive-points-section" *ngIf="getPositivePoints().length > 0">
+        <h3><i class="bi bi-check-circle"></i> Positive Points</h3>
+        <ul class="points-list">
+          <li *ngFor="let point of getPositivePoints()">
+            <i class="bi bi-check-lg"></i> {{ point }}
+          </li>
+        </ul>
+      </div>
+      <div class="recommended-actions-section" *ngIf="getRecommendedActions().length > 0">
+        <h3><i class="bi bi-list-check"></i> Recommended Actions</h3>
+        <ul class="points-list">
+          <li *ngFor="let action of getRecommendedActions()">
+            <i class="bi bi-arrow-right-circle"></i> {{ action }}
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Seventh Row: Detailed Report Dashboard -->
+    <div class="detailed-report-dashboard" *ngIf="getDetailedReport()">
+      <h3><i class="bi bi-file-text-fill"></i> Detailed Risk Analysis</h3>
+      
+      <!-- Summary Cards -->
+      <div class="report-stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon" [class]="getRiskLevelClass()">
+            <i class="bi bi-shield-shaded"></i>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Risk Level</span>
+            <span class="stat-value" [class]="getRiskLevelClass()">{{ getRiskLevelLabel() }}</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="bi bi-graph-up"></i>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Global Score</span>
+            <span class="stat-value">{{ getRiskScore() }}<small>/100</small></span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="bi bi-pie-chart"></i>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Categories Analyzed</span>
+            <span class="stat-value">{{ getCategoriesArray().length }}</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="bi bi-exclamation-diamond"></i>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Risk Factors</span>
+            <span class="stat-value">{{ getRiskFactors().length }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Analysis Cards -->
+      <div class="analysis-grid">
+        <div *ngFor="let section of getAnalysisSections()" class="analysis-card">
+          <div class="analysis-header" [style.background]="section.color">
+            <i [class]="section.icon"></i>
+            <h4>{{ section.title }}</h4>
+          </div>
+          <div class="analysis-body">
+            <div *ngFor="let point of section.points" class="analysis-point">
+              <i [class]="point.icon || 'bi bi-check-circle-fill'" class="point-icon"></i>
+              <span class="point-label" *ngIf="point.label">{{ point.label }}:</span>
+              <span class="point-value">{{ point.value }}</span>
+            </div>
+            <div class="section-score" *ngIf="getSectionScore(section) > 0">
+              <div class="score-circle" [style.background]="getCardBackground(getSectionScore(section))">
+                <span>{{ getSectionScore(section) }}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Timeline -->
+      <div class="action-timeline" *ngIf="getRecommendedActions().length > 0">
+        <h4><i class="bi bi-clock-history"></i> Recommended Action Plan</h4>
+        <div class="timeline">
+          <div *ngFor="let action of getRecommendedActions(); let i = index" class="timeline-item">
+            <div class="timeline-marker" [class]="getRiskLevelClass()">
+              <span>{{ i + 1 }}</span>
+            </div>
+            <div class="timeline-content">
+              <p>{{ action }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

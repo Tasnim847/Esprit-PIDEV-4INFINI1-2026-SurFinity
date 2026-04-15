@@ -28,6 +28,8 @@ import { AgentClaimsComponent } from './Features/Claims/agent/agent-claims/agent
 import { AgentContractsComponent } from './Features/Insurance/pages/agent/agent-contracts/agent-contracts.component';
 import { ListMyCompensationsComponent } from './Features/Compensation/client/list-my-compensations/list-my-compensations.component';
 import { ListAllCompensationsComponent } from './Features/Compensation/admin/list-all-compensations/list-all-compensations.component';
+import { ContractRiskDetailsComponent } from './Features/Insurance/pages/admin/contract-risk-details/contract-risk-details.component';
+import { AdminDashboardComponent } from './Features/Insurance/pages/admin/admin-dashboard/admin-dashboard.component';
 export const routes: Routes = [
   // Landing page ouverte par défaut
   { path: '', component: LandingPageComponent },
@@ -136,6 +138,8 @@ export const routes: Routes = [
       { path: 'products', component: AdminProductListComponent },
       { path: 'credit', component: CreditPageComponent },
       { path: 'insurance', component: ContractListComponent },
+      { path: 'insurance/contract-risk/:id', component: ContractRiskDetailsComponent }, // ✅ Ajoutez cette ligne
+      { path: 'insurance/admin-dashboard', component: AdminDashboardComponent }, // ✅ Route dashboard
       { path: 'account', component: AccountPageComponent },
       { path: 'complaint', component: ComplaintPageComponent },
       { path: 'news', component: NewsPageComponent },

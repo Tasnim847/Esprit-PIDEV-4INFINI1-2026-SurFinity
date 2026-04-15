@@ -1,18 +1,26 @@
 <!-- contract-list.component.html -->
 <div class="contract-management-container">
   <!-- Header Section -->
+  <!-- Header Section -->
   <div class="page-header">
     <div class="header-content">
       <div>
         <h1 class="page-title">Contract Management</h1>
         <p class="page-subtitle">Manage and monitor all insurance contracts</p>
       </div>
-      <button class="btn-primary" (click)="runSystemCheck()">
-        <i class="bi bi-gear-fill"></i>
-        <span>Check Delays</span>
-      </button>
+      <div class="header-buttons">
+        <button class="btn-primary" (click)="runSystemCheck()">
+          <i class="bi bi-gear-fill"></i>
+          <span>Check Delays</span>
+        </button>
+        <button class="btn-dashboard" (click)="goToDashboard()">
+          <i class="bi bi-speedometer2"></i>
+          <span>Dashboard Admin</span>
+        </button>
+      </div>
     </div>
   </div>
+
 
   <!-- Main Card -->
   <div class="contract-card">

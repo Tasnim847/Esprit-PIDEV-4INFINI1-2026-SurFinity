@@ -4,6 +4,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
 import { ContractService } from '../../../services/contract.service';
+import { Router } from '@angular/router';
+
 
 @Component({
   selector: 'app-contract-list',
@@ -36,7 +38,8 @@ export class ContractListComponent implements OnInit {
 
   constructor(
     private contractService: ContractService,
-    private toastr: ToastrService
+    private toastr: ToastrService,
+    private router: Router 
   ) {}
 
   ngOnInit(): void {
@@ -131,16 +134,8 @@ export class ContractListComponent implements OnInit {
   }
 
   viewRisk(contract: any): void {
-    this.selectedContract = contract;
-    this.contractService.getContractRisk(contract.contractId).subscribe({
-      next: (riskData) => {
-        contract.riskClaim = riskData.riskEvaluation;
-        this.showRiskModal = true;
-      },
-      error: (err) => {
-        this.toastr.error('Erreur lors du chargement du risque');
-      }
-    });
+      // Navigation vers la page de détails du risque dans le backoffice
+    this.router.navigate(['/backoffice/insurance/contract-risk', contract.contractId]); 
   }
 
   activateContract(contract: any): void {
@@ -217,5 +212,10 @@ export class ContractListComponent implements OnInit {
     this.showSimulateModal = false;
     this.selectedContract = null;
     this.simulateMonths = 1;
+  }
+
+  goToDashboard(): void {
+    this.router.navigate(['/backoffice/insurance/admin-dashboard']);
+    // Ou selon votre route: this.router.navigate(['/admin/dashboard']);
   }
 }
