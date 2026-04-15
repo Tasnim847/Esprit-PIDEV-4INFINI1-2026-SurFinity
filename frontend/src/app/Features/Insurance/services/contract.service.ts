@@ -1,14 +1,17 @@
-// contract.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, map } from 'rxjs/operators';
+import { RiskEvaluationDTO } from '../../../shared/dto/risk-evaluation.dto';
+import { RiskFactorDTO } from '../../../shared/dto/risk-factor.dto';
+import { CategoryRiskDTO } from '../../../shared/dto/category-risk.dto';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ContractService {
   private apiUrl = 'http://localhost:8081/contrats';
+  private agentApiUrl = 'http://localhost:8081/agent';
 
   constructor(private http: HttpClient) {}
 
@@ -143,6 +146,292 @@ export class ContractService {
   checkEndOfMonth(): Observable<string> {
     return this.http.post<string>(`${this.apiUrl}/check-end-of-month`, {}, { headers: this.getHeaders() })
       .pipe(catchError(this.handleError));
+  }
+
+  // ========== AGENT RISK EVALUATION ENDPOINT (HTML Parser) ==========
+  
+  getRiskEvaluationFromAgent(contractId: number): Observable<RiskEvaluationDTO> {
+    const token = localStorage.getItem('token');
+    let headers = new HttpHeaders();
+    
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
+    }
+    
+    return this.http.get(`${this.agentApiUrl}/risk/evaluation/${contractId}`, {
+      headers: headers,
+      responseType: 'text'
+    }).pipe(
+      map(html => this.parseHtmlToRiskEvaluation(html, contractId)),
+      catchError(this.handleError)
+    );
+  }
+
+  // ========== API REST JSON ENDPOINT (Recommandé) ==========
+  
+  getRiskEvaluationFromApi(contractId: number): Observable<RiskEvaluationDTO> {
+    const token = localStorage.getItem('token');
+    let headers = new HttpHeaders();
+  
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
+    }
+  
+    return this.http.get<{ success: boolean; evaluation: RiskEvaluationDTO }>(
+      `http://localhost:8081/api/risk/evaluation/${contractId}`, 
+      { headers: headers }
+    ).pipe(
+      map(response => response.evaluation),
+      catchError(this.handleError)
+    );
+  }
+
+  private parseHtmlToRiskEvaluation(html: string, contractId: number): RiskEvaluationDTO {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const body = doc.body;
+    
+    const evaluation: RiskEvaluationDTO = {
+      contractId: contractId
+    };
+    
+    const findElementByText = (container: Element, textContains: string): Element | null => {
+      const elements = container.querySelectorAll('p, h1, h2, div, span');
+      for (let i = 0; i < elements.length; i++) {
+        if (elements[i].textContent?.includes(textContains)) {
+          return elements[i];
+        }
+      }
+      return null;
+    };
+    
+    const contractRefElem = body.querySelector('h1 span');
+    if (contractRefElem) {
+      evaluation.contractReference = contractRefElem.textContent?.trim() || '';
+    }
+    
+    const clientElem = findElementByText(body, 'Client:');
+    if (clientElem) {
+      const span = clientElem.querySelector('span');
+      evaluation.clientName = span?.textContent?.trim() || '';
+    }
+    
+    const agentElem = findElementByText(body, 'Agent:');
+    if (agentElem) {
+      const span = agentElem.querySelector('span');
+      evaluation.agentName = span?.textContent?.trim() || '';
+    }
+    
+    const dateElem = findElementByText(body, 'Date:');
+    if (dateElem) {
+      const span = dateElem.querySelector('span');
+      evaluation.evaluationDate = span?.textContent?.trim() || '';
+    }
+    
+    const scoreElem = findElementByText(body, 'Score:');
+    if (scoreElem) {
+      const span = scoreElem.querySelector('span');
+      evaluation.globalRiskScore = parseFloat(span?.textContent?.trim() || '0');
+    }
+    
+    const riskLevelElem = findElementByText(body, 'Risk Level:');
+    if (riskLevelElem) {
+      const span = riskLevelElem.querySelector('span');
+      evaluation.globalRiskLevel = span?.textContent?.trim() || '';
+    }
+    
+    const riskClassElem = findElementByText(body, 'Risk Class:');
+    if (riskClassElem) {
+      const span = riskClassElem.querySelector('span');
+      evaluation.globalRiskClass = span?.textContent?.trim() || '';
+    }
+    
+    const recommendationElem = findElementByText(body, 'Recommendation:');
+    if (recommendationElem) {
+      const span = recommendationElem.querySelector('span');
+      evaluation.recommendation = span?.textContent?.trim() || '';
+    }
+    
+    const allParagraphs = body.querySelectorAll('p');
+    let autoReject = false;
+    for (let i = 0; i < allParagraphs.length; i++) {
+      if (allParagraphs[i].textContent?.includes('Contract automatically rejected')) {
+        autoReject = true;
+        break;
+      }
+    }
+    evaluation.autoReject = autoReject;
+    
+    const categories: { [key: string]: CategoryRiskDTO } = {};
+    const allH2 = body.querySelectorAll('h2');
+    let categoriesHeader: Element | null = null;
+    
+    for (let i = 0; i < allH2.length; i++) {
+      if (allH2[i].textContent?.includes('Details by Category')) {
+        categoriesHeader = allH2[i];
+        break;
+      }
+    }
+    
+    if (categoriesHeader) {
+      const ul = categoriesHeader.nextElementSibling;
+      if (ul && ul.tagName === 'UL') {
+        const items = ul.querySelectorAll(':scope > li');
+        const itemsArray = Array.from(items);
+        
+        for (const item of itemsArray) {
+          const strongElem = item.querySelector(':scope > strong');
+          if (strongElem) {
+            const categoryName = strongElem.textContent?.replace(':', '').trim() || '';
+            const textContent = item.textContent || '';
+            
+            let riskLevel = '';
+            let score = 0;
+            let weight = 0;
+            
+            const riskLevelMatch = textContent.match(/Risk Level:\s*([^\n,]+)/);
+            const scoreMatch = textContent.match(/Score:\s*([0-9.]+)/);
+            const weightMatch = textContent.match(/Weight:\s*([0-9.]+)/);
+            
+            if (riskLevelMatch) riskLevel = riskLevelMatch[1].trim();
+            if (scoreMatch) score = parseFloat(scoreMatch[1]);
+            if (weightMatch) weight = parseFloat(weightMatch[1]);
+            
+            const p = item.querySelector(':scope > p');
+            const description = p?.textContent?.trim() || '';
+            
+            const details: string[] = [];
+            const subUl = item.querySelector(':scope > ul');
+            if (subUl) {
+              const detailItems = subUl.querySelectorAll(':scope > li');
+              const detailItemsArray = Array.from(detailItems);
+              for (const li of detailItemsArray) {
+                details.push(li.textContent?.trim() || '');
+              }
+            }
+            
+            categories[categoryName] = {
+              categoryName,
+              score,
+              weight,
+              riskLevel,
+              description,
+              details
+            };
+          }
+        }
+      }
+    }
+    evaluation.categories = categories;
+    
+    const riskFactors: RiskFactorDTO[] = [];
+    let riskFactorsHeader: Element | null = null;
+    
+    for (let i = 0; i < allH2.length; i++) {
+      if (allH2[i].textContent?.includes('Risk Factors')) {
+        riskFactorsHeader = allH2[i];
+        break;
+      }
+    }
+    
+    if (riskFactorsHeader) {
+      const ul = riskFactorsHeader.nextElementSibling;
+      if (ul && ul.tagName === 'UL') {
+        const items = ul.querySelectorAll(':scope > li');
+        const itemsArray = Array.from(items);
+        
+        for (const item of itemsArray) {
+          const strongElem = item.querySelector(':scope > strong');
+          if (strongElem) {
+            const factor = strongElem.textContent?.replace(':', '').trim() || '';
+            const textContent = item.textContent || '';
+            
+            let impact = '';
+            let points = 0;
+            
+            const impactMatch = textContent.match(/Impact:\s*([^\n,]+)/);
+            const pointsMatch = textContent.match(/Points:\s*([0-9.]+)/);
+            
+            if (impactMatch) impact = impactMatch[1].trim();
+            if (pointsMatch) points = parseFloat(pointsMatch[1]);
+            
+            const p = item.querySelector(':scope > p');
+            const description = p?.textContent?.trim() || '';
+            
+            riskFactors.push({
+              factor,
+              impact,
+              points,
+              description
+            });
+          }
+        }
+      }
+    }
+    evaluation.riskFactors = riskFactors;
+    
+    const positivePoints: string[] = [];
+    let positiveHeader: Element | null = null;
+    
+    for (let i = 0; i < allH2.length; i++) {
+      if (allH2[i].textContent?.includes('Positive Points')) {
+        positiveHeader = allH2[i];
+        break;
+      }
+    }
+    
+    if (positiveHeader) {
+      const ul = positiveHeader.nextElementSibling;
+      if (ul && ul.tagName === 'UL') {
+        const items = ul.querySelectorAll(':scope > li');
+        const itemsArray = Array.from(items);
+        for (const li of itemsArray) {
+          positivePoints.push(li.textContent?.trim() || '');
+        }
+      }
+    }
+    evaluation.positivePoints = positivePoints;
+    
+    const recommendedActions: string[] = [];
+    let actionsHeader: Element | null = null;
+    
+    for (let i = 0; i < allH2.length; i++) {
+      if (allH2[i].textContent?.includes('Recommended Actions')) {
+        actionsHeader = allH2[i];
+        break;
+      }
+    }
+    
+    if (actionsHeader) {
+      const ul = actionsHeader.nextElementSibling;
+      if (ul && ul.tagName === 'UL') {
+        const items = ul.querySelectorAll(':scope > li');
+        const itemsArray = Array.from(items);
+        for (const li of itemsArray) {
+          recommendedActions.push(li.textContent?.trim() || '');
+        }
+      }
+    }
+    evaluation.recommendedActions = recommendedActions;
+    
+    let reportHeader: Element | null = null;
+    
+    for (let i = 0; i < allH2.length; i++) {
+      if (allH2[i].textContent?.includes('Detailed Report')) {
+        reportHeader = allH2[i];
+        break;
+      }
+    }
+    
+    if (reportHeader) {
+      const p = reportHeader.nextElementSibling;
+      if (p && p.tagName === 'P') {
+        evaluation.detailedReport = p.textContent?.trim() || '';
+      }
+    }
+    
+    console.log('Parsed evaluation:', evaluation);
+    return evaluation;
   }
 
   // ========== UTILITAIRES ==========

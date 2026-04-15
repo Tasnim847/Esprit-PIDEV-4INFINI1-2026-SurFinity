@@ -1,0 +1,143 @@
+<div class="dashboard-container">
+  <!-- Header -->
+  <!-- Header -->
+<div class="dashboard-header">
+  <div class="header-left">
+    <button class="btn-back" (click)="goBackToContracts()">
+      <i class="fas fa-arrow-left"></i> Back to Contracts
+    </button>
+  </div>
+  <div class="header-actions">
+    <div class="period-selector">
+      <button [class.active]="timePeriod === 'day'" (click)="timePeriod = 'day'; onTimePeriodChange()">Day</button>
+      <button [class.active]="timePeriod === 'week'" (click)="timePeriod = 'week'; onTimePeriodChange()">Week</button>
+      <button [class.active]="timePeriod === 'month'" (click)="timePeriod = 'month'; onTimePeriodChange()">Month</button>
+      <button [class.active]="timePeriod === 'year'" (click)="timePeriod = 'year'; onTimePeriodChange()">Year</button>
+    </div>
+    <button class="btn-export" (click)="exportToCSV()"><i class="fas fa-download"></i> Export</button>
+    <button class="btn-refresh" (click)="loadDashboardData()"><i class="fas fa-sync-alt"></i> Refresh</button>
+  </div>
+</div>
+
+  <!-- Loading -->
+  <div *ngIf="isLoading" class="loading-overlay"><div class="spinner"></div><p>Loading data...</p></div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-icon blue"><i class="fas fa-file-contract"></i></div><div class="kpi-info"><h3>Total Contracts</h3><p class="kpi-value">{{ stats.total }}</p></div></div>
+    <div class="kpi-card"><div class="kpi-icon green"><i class="fas fa-check-circle"></i></div><div class="kpi-info"><h3>Active</h3><p class="kpi-value">{{ stats.active }}</p><span class="trend positive">{{ (stats.active / stats.total * 100) | number:'1.0-0' }}%</span></div></div>
+    <div class="kpi-card"><div class="kpi-icon yellow"><i class="fas fa-clock"></i></div><div class="kpi-info"><h3>Pending</h3><p class="kpi-value">{{ stats.pending }}</p></div></div>
+    <div class="kpi-card"><div class="kpi-icon red"><i class="fas fa-times-circle"></i></div><div class="kpi-info"><h3>Rejected</h3><p class="kpi-value">{{ stats.rejected }}</p></div></div>
+    <div class="kpi-card"><div class="kpi-icon purple"><i class="fas fa-chart-line"></i></div><div class="kpi-info"><h3>Total Premium</h3><p class="kpi-value">{{ stats.totalPremium | number:'1.0-0' }} DT</p></div></div>
+    <div class="kpi-card"><div class="kpi-icon orange"><i class="fas fa-chart-simple"></i></div><div class="kpi-info"><h3>Avg Risk Score</h3><p class="kpi-value">{{ stats.averageRiskScore | number:'1.0-0' }}/100</p></div></div>
+  </div>
+
+  <!-- Charts Row 1 -->
+  <div class="charts-row">
+    <div class="chart-card"><canvas id="statusChart"></canvas></div>
+    <div class="chart-card"><canvas id="riskDonutChart"></canvas></div>
+  </div>
+
+  <!-- Charts Row 2 - Contract Trends (Line Chart) -->
+  <div class="charts-row">
+    <div class="chart-card full-width"><canvas id="trendChart"></canvas></div>
+  </div>
+
+  <!-- Charts Row 3 - Risk Distribution Modern Dashboard -->
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-header">
+        <h3>Risk Distribution by Period</h3>
+        <div class="chart-legend">
+          <span class="legend-dot low"></span> Low
+          <span class="legend-dot medium"></span> Medium
+          <span class="legend-dot high"></span> High
+          <span class="legend-dot critical"></span> Critical
+        </div>
+      </div>
+      <div class="risk-cards-container">
+        <div *ngFor="let period of riskDistribution" class="risk-period-card" (click)="showRiskPeriodDetails(period)">
+          <div class="period-title">{{ period.label }}</div>
+          <div class="risk-bars">
+            <div class="risk-bar low" [style.height.%]="getRiskPercentage(period.low, getTotalRisk(period))" [style.width.%]="getRiskPercentage(period.low, getTotalRisk(period))">
+              <span class="risk-value" *ngIf="period.low > 0">{{ period.low }}</span>
+            </div>
+            <div class="risk-bar medium" [style.height.%]="getRiskPercentage(period.medium, getTotalRisk(period))" [style.width.%]="getRiskPercentage(period.medium, getTotalRisk(period))">
+              <span class="risk-value" *ngIf="period.medium > 0">{{ period.medium }}</span>
+            </div>
+            <div class="risk-bar high" [style.height.%]="getRiskPercentage(period.high, getTotalRisk(period))" [style.width.%]="getRiskPercentage(period.high, getTotalRisk(period))">
+              <span class="risk-value" *ngIf="period.high > 0">{{ period.high }}</span>
+            </div>
+            <div class="risk-bar critical" [style.height.%]="getRiskPercentage(period.critical, getTotalRisk(period))" [style.width.%]="getRiskPercentage(period.critical, getTotalRisk(period))">
+              <span class="risk-value" *ngIf="period.critical > 0">{{ period.critical }}</span>
+            </div>
+          </div>
+          <div class="period-total">{{ getTotalRisk(period) }} contracts</div>
+        </div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <h3>Contract Status by Period</h3>
+        <div class="chart-legend">
+          <span class="legend-dot active"></span> Active
+          <span class="legend-dot pending"></span> Pending
+          <span class="legend-dot rejected"></span> Rejected
+        </div>
+      </div>
+      <div class="status-cards-container">
+        <div *ngFor="let period of contractsByPeriod" class="status-period-card" (click)="showStatusPeriodDetails(period)">
+          <div class="period-title">{{ period.label }}</div>
+          <div class="status-pie-container">
+            <canvas [id]="period.chartId" class="mini-pie"></canvas>          </div>
+          <div class="status-stats">
+            <div class="stat-item active"><span class="stat-dot"></span>{{ period.active }}</div>
+            <div class="stat-item pending"><span class="stat-dot"></span>{{ period.pending }}</div>
+            <div class="stat-item rejected"><span class="stat-dot"></span>{{ period.rejected }}</div>
+          </div>
+          <div class="period-total">Total: {{ period.active + period.pending + period.rejected }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row 4 - Risk Trends (Stacked Area Chart) -->
+  <div class="charts-row">
+    <div class="chart-card full-width"><canvas id="riskTrendChart"></canvas></div>
+  </div>
+
+  <!-- Charts Row 5 - Premium Trends -->
+  <div class="charts-row">
+    <div class="chart-card full-width"><canvas id="premiumTrendChart"></canvas></div>
+  </div>
+
+  <!-- Details Modal -->
+  <div class="modal" *ngIf="showDetailsModal" (click)="closeModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ selectedDetailData?.title }}</h2>
+        <button class="close-btn" (click)="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p><strong>Period:</strong> {{ selectedDetailData?.period }}</p>
+        <p><strong>Total Contracts:</strong> {{ selectedDetailData?.contracts?.length }}</p>
+        <div class="compact-table" *ngIf="selectedDetailData?.contracts?.length">
+          <table>
+            <thead>
+              <tr><th>ID</th><th>Client</th><th>Premium</th><th>Risk Level</th><th>Start Date</th></tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let contract of selectedDetailData?.contracts">
+                <td>#{{ contract.contractId }}</td>
+                <td>{{ contract.client?.firstName }} {{ contract.client?.lastName }}</td>
+                <td>{{ contract.premium }} DT</td>
+                <td><span class="risk-tag" [style.background]="getRiskLevelColor(riskEvaluations.get(contract.contractId)?.globalRiskLevel || '')">{{ riskEvaluations.get(contract.contractId)?.globalRiskLevel || 'N/A' }}</span></td>
+                <td>{{ contract.startDate | date:'dd/MM/yyyy' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

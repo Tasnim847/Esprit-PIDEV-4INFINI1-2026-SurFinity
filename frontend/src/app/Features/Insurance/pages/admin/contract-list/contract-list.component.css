@@ -51,8 +51,16 @@
 }
 
 /* =========================================
-   BUTTONS & INTERACTIONS
+   HEADER BUTTONS - MODIFIED
 ========================================= */
+.header-buttons {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-direction: row;
+}
+
+/* Check Delays Button */
 .btn-primary {
   background: linear-gradient(135deg, #2c3e50, #3e5a6b);
   border: none;
@@ -99,6 +107,56 @@
   transform: translateY(0);
 }
 
+/* Dashboard Admin Button */
+.btn-dashboard {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border: none;
+  padding: 12px 24px;
+  border-radius: 14px;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.25);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-dashboard::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.btn-dashboard:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.btn-dashboard:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 25px rgba(102, 126, 234, 0.35);
+  background: linear-gradient(135deg, #764ba2, #667eea);
+}
+
+.btn-dashboard:active {
+  transform: translateY(0);
+}
+
+/* =========================================
+   SECONDARY BUTTON
+========================================= */
 .btn-secondary {
   background: linear-gradient(135deg, #e0e6ed, #d0d8e0);
   border: none;
@@ -1159,17 +1217,26 @@
     flex-direction: column;
     align-items: flex-start;
   }
+
+  /* Responsive buttons */
+  .header-buttons {
+    width: 100%;
+    flex-direction: row;
+    justify-content: flex-start;
+  }
+  
+  .btn-dashboard,
+  .btn-primary {
+    flex: 1;
+    justify-content: center;
+    padding: 12px 16px;
+  }
 }
 
 @media (max-width: 480px) {
   .header-content {
     flex-direction: column;
     align-items: flex-start;
-  }
-  
-  .btn-primary {
-    width: 100%;
-    justify-content: center;
   }
   
   .action-buttons {
@@ -1182,6 +1249,18 @@
   
   .pagination-controls {
     flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  /* Stack buttons on very small screens */
+  .header-buttons {
+    width: 100%;
+    flex-direction: column;
+  }
+  
+  .btn-dashboard,
+  .btn-primary {
+    width: 100%;
     justify-content: center;
   }
 }
@@ -1239,6 +1318,7 @@
 @media print {
   .btn-primary,
   .btn-secondary,
+  .btn-dashboard,
   .action-buttons,
   .pagination-container,
   .modal-overlay {
