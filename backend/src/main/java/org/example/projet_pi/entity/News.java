@@ -1,53 +1,20 @@
 package org.example.projet_pi.entity;
 
+import jakarta.persistence.Entity;
 import jakarta.persistence.*;
+import jakarta.persistence.Id;
 
 import java.util.Date;
 
 @Entity
-@Table(name = "news")
 public class News {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long newsId;
 
-    @Column(nullable = false, length = 200)
     private String title;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String content;
-
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date publishDate;
-
-    private String author;
-
-    private String category;
-
-    @Column(length = 500)
-    private String summary;
-
-    private String imageUrl;
-
-    private Long viewCount = 0L;
-
-    @Enumerated(EnumType.STRING)
-    private NewsStatus status = NewsStatus.DRAFT;
-
-    // ========== CONSTRUCTEURS ==========
-    public News() {}
-
-    public News(String title, String content, String author) {
-        this.title = title;
-        this.content = content;
-        this.author = author;
-        this.publishDate = new Date();
-        this.viewCount = 0L;
-        this.status = NewsStatus.DRAFT;
-    }
-
-    // ========== GETTERS ET SETTERS ==========
     public Long getNewsId() {
         return newsId;
     }
@@ -80,51 +47,21 @@ public class News {
         this.publishDate = publishDate;
     }
 
-    public String getAuthor() {
-        return author;
+    public Admin getAdmin() {
+        return admin;
     }
 
-    public void setAuthor(String author) {
-        this.author = author;
+    public void setAdmin(Admin admin) {
+        this.admin = admin;
     }
 
-    public String getCategory() {
-        return category;
-    }
+    @Column(length = 5000)
+    private String content;
 
-    public void setCategory(String category) {
-        this.category = category;
-    }
+    @Temporal(TemporalType.DATE)
+    private java.util.Date publishDate;
 
-    public String getSummary() {
-        return summary;
-    }
-
-    public void setSummary(String summary) {
-        this.summary = summary;
-    }
-
-    public String getImageUrl() {
-        return imageUrl;
-    }
-
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
-    }
-
-    public Long getViewCount() {
-        return viewCount;
-    }
-
-    public void setViewCount(Long viewCount) {
-        this.viewCount = viewCount;
-    }
-
-    public NewsStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(NewsStatus status) {
-        this.status = status;
-    }
+    @ManyToOne
+    private Admin admin;
 }
+

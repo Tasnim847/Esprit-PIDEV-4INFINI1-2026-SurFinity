@@ -1,6 +1,6 @@
 package org.example.projet_pi.Controller;
 
-import org.example.projet_pi.Dto.CreditHistoryWithAverageDTO;
+import org.example.projet_pi.Dto.CreditHistoryDTO;
 import org.example.projet_pi.Dto.CreditRequestDTO;
 import org.example.projet_pi.Repository.AccountRepository;
 import org.example.projet_pi.Repository.CreditRepository;
@@ -16,6 +16,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.example.projet_pi.Dto.CreditHistoryWithAverageDTO;
 
 import java.util.List;
 import java.util.Map;
@@ -50,6 +51,7 @@ public class CreditController {
 
     // ===============================
     // CREATE CREDIT - ADMIN SEULEMENT
+
     // ===============================
     @PostMapping("/addCredit")
     public ResponseEntity<?> addCredit(
@@ -70,6 +72,10 @@ public class CreditController {
                     .body(Map.of("error", "Erreur lors de l'ajout", "message", e.getMessage()));
         }
     }
+
+
+
+
 
     // ===============================
     // DEMANDE DE CRÉDIT - CLIENT

@@ -12,6 +12,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +53,9 @@ public class RepaymentController {
                     .body(Map.of("error", "Erreur lors du paiement", "message", e.getMessage()));
         }
     }
+
+
+
 
     // ===============================
     // PAIEMENT STRIPE - CLIENT SEULEMENT
@@ -95,6 +99,9 @@ public class RepaymentController {
         }
     }
 
+
+
+
     // ===============================
     // MONTANT RESTANT - TOUS LES RÔLES
     // ===============================
@@ -120,6 +127,9 @@ public class RepaymentController {
         }
     }
 
+
+
+    
     // ===============================
     // MES PAIEMENTS - CLIENT
     // ===============================
