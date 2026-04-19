@@ -3,12 +3,15 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ClaimDTO } from '../../../shared/dto/claim-dto.model';
+import { ClaimScoreDTO, ClientScoreResult, DetailedAnalysis } from '../../../shared/dto/scoring-dto.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ClaimsService {
   private apiUrl = 'http://localhost:8081/claims';
+  private scoringApiUrl = 'http://localhost:8081/api/scoring';
+
 
   constructor(private http: HttpClient) { }
 
@@ -67,5 +70,47 @@ export class ClaimsService {
 
   autoDecision(claimId: number): Observable<ClaimDTO> {
     return this.http.post<ClaimDTO>(`${this.apiUrl}/claim/${claimId}/auto-decision`, {});
+  }
+
+
+
+
+
+  // ============ NOUVEAUX ENDPOINTS DE SCORING ============
+  
+  /**
+   * Get advanced scoring for a specific claim
+   */
+  getAdvancedClaimScore(claimId: number): Observable<ClaimScoreDTO> {
+    return this.http.get<ClaimScoreDTO>(`${this.scoringApiUrl}/claim/${claimId}/advanced`);
+  }
+
+  /**
+   * Auto decision with advanced AI scoring
+   */
+  autoDecisionWithAdvancedScoring(claimId: number): Observable<ClaimDTO> {
+    return this.http.post<ClaimDTO>(`${this.scoringApiUrl}/claim/${claimId}/auto-decision-advanced`, {});
+  }
+
+  /**
+   * Get detailed analysis for a claim (combines claim and client scoring)
+   */
+  getDetailedClaimAnalysis(claimId: number): Observable<DetailedAnalysis> {
+    return this.http.get<DetailedAnalysis>(`${this.scoringApiUrl}/claim/${claimId}/detailed-analysis`);
+  }
+
+  /**
+   * Get client score
+   */
+  getClientScore(clientId: number): Observable<ClientScoreResult> {
+    return this.http.get<ClientScoreResult>(`${this.scoringApiUrl}/client/${clientId}`);
+  }
+
+  /**
+   * Get all claims with scores for dashboard
+   */
+  getAllClaimsWithScores(): Observable<ClaimScoreDTO[]> {
+    // You might need to create a batch endpoint or call individually
+    return this.http.get<ClaimScoreDTO[]>(`${this.scoringApiUrl}/claims/all-scores`);
   }
 }

@@ -1,0 +1,452 @@
+<div class="dashboard">
+ 
+
+  <!-- Success/Error Messages -->
+  <div *ngIf="successMessage" class="alert alert-success">{{ successMessage }}</div>
+  <div *ngIf="errorMessage" class="alert alert-error">{{ errorMessage }}</div>
+
+  <!-- Header Section -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <div class="header-left">
+        <button (click)="goBack()" class="back-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          Back to Claims
+        </button>
+        <div class="title-section">
+          <div class="title-icon">📊</div>
+          <div>
+            <h1>Claims Intelligence Dashboard</h1>
+            <p>AI-powered analytics & predictive insights</p>
+          </div>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="date-badge">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          {{ getCurrentDate() }}
+        </div>
+      </div>
+      <button class="ai-refresh" (click)="refreshAIInsights()">🔄 Refresh Insights</button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-overlay">
+    <div class="loading-card">
+      <div class="loader"></div>
+      <p>AI is analyzing your data...</p>
+    </div>
+  </div>
+
+  <div *ngIf="!loading" class="dashboard-content">
+    <!-- Smart KPI Cards -->
+    <div class="kpi-row">
+      <div class="kpi-card total">
+        <div class="kpi-icon">📋</div>
+        <div class="kpi-info">
+          <span class="kpi-value">{{ totalClaims }}</span>
+          <span class="kpi-label">Total Claims</span>
+        </div>
+        <div class="prediction-badge">
+          <span class="trend up">↑ {{ predictNextMonth() }} next month</span>
+        </div>
+      </div>
+
+      <div class="kpi-card approved">
+        <div class="kpi-icon">✅</div>
+        <div class="kpi-info">
+          <span class="kpi-value">{{ approvedClaims }}</span>
+          <span class="kpi-label">Approved</span>
+        </div>
+        <div class="prediction-badge">
+          <span class="trend" [class.up]="approvalRate > 50" [class.down]="approvalRate <= 50">
+            {{ getApprovalTrend() }}
+          </span>
+        </div>
+      </div>
+
+      <div class="kpi-card rejected">
+        <div class="kpi-icon">❌</div>
+        <div class="kpi-info">
+          <span class="kpi-value">{{ rejectedClaims }}</span>
+          <span class="kpi-label">Rejected</span>
+        </div>
+        <div class="prediction-badge">
+          <span class="trend down">↓ {{ getRejectionReason() }}</span>
+        </div>
+      </div>
+
+      <div class="kpi-card pending">
+        <div class="kpi-icon">⏳</div>
+        <div class="kpi-info">
+          <span class="kpi-value">{{ pendingClaims }}</span>
+          <span class="kpi-label">Pending Review</span>
+        </div>
+        <div class="prediction-badge">
+          <span class="trend">⏱️ Avg {{ getAverageProcessingTime() }} days</span>
+        </div>
+      </div>
+
+      <div class="kpi-card success-rate">
+        <div class="kpi-icon">📈</div>
+        <div class="kpi-info">
+          <span class="kpi-value">{{ approvalRate.toFixed(1) }}%</span>
+          <span class="kpi-label">Success Rate</span>
+        </div>
+        <div class="prediction-badge">
+          <span class="trend" [class.up]="approvalRate > 50" [class.down]="approvalRate <= 50">
+            {{ getSuccessRateAnalysis() }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Charts Grid -->
+    <div class="charts-grid">
+      <!-- Claims Distribution -->
+      <div class="chart-card">
+        <div class="card-header">
+          <h3>📊 Claims Distribution</h3>
+          <div class="insight-badge">AI Analysis</div>
+        </div>
+        <div class="distribution-container">
+          <div class="distribution-chart">
+            <div *ngFor="let item of statusDistribution" class="distribution-item">
+              <div class="dist-header">
+                <span class="dist-name">{{ item.icon }} {{ item.name }}</span>
+                <span class="dist-value">{{ item.value }}</span>
+              </div>
+              <div class="dist-bar-container">
+                <div class="dist-bar" 
+                     [style.width.%]="(item.value / totalClaims) * 100"
+                     [style.background]="item.color">
+                  <span class="dist-percent" *ngIf="item.value > 0">
+                    {{ ((item.value / totalClaims) * 100).toFixed(1) }}%
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="distribution-insights">
+            <div class="insight-card">
+              <div class="insight-icon">🎯</div>
+              <div class="insight-text">
+                <strong>Key Finding</strong>
+                <p>{{ getDistributionInsight() }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Performance Gauge -->
+      <div class="chart-card">
+        <div class="card-header">
+          <h3>📈 Performance Score</h3>
+          <div class="insight-badge">Real-time</div>
+        </div>
+        <div class="performance-container">
+          <div class="gauge-wrapper">
+            <div class="gauge">
+              <div class="gauge-value">
+                <span class="big">{{ getPerformanceScore() }}</span>
+                <span class="percent">/100</span>
+              </div>
+              <div class="gauge-track">
+                <div class="gauge-fill" [style.width.%]="getPerformanceScore()"
+                     [class.excellent]="getPerformanceScore() >= 80"
+                     [class.good]="getPerformanceScore() >= 60 && getPerformanceScore() < 80"
+                     [class.average]="getPerformanceScore() >= 40 && getPerformanceScore() < 60"
+                     [class.poor]="getPerformanceScore() < 40">
+                </div>
+              </div>
+              <div class="performance-metrics">
+                <div class="metric">
+                  <span class="metric-label">Efficiency</span>
+                  <span class="metric-value">{{ getEfficiencyScore() }}%</span>
+                </div>
+                <div class="metric">
+                  <span class="metric-label">Accuracy</span>
+                  <span class="metric-value">{{ getAccuracyScore() }}%</span>
+                </div>
+                <div class="metric">
+                  <span class="metric-label">Speed</span>
+                  <span class="metric-value">{{ getSpeedScore() }}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Weekly Activity Heatmap -->
+      <div class="chart-card">
+        <div class="card-header">
+          <h3>📅 Activity Heatmap</h3>
+          <div class="insight-badge">Pattern Detection</div>
+        </div>
+        <div class="heatmap-container">
+          <div class="weekly-heatmap">
+            <div *ngFor="let day of weeklyTrend" class="heatmap-day">
+              <div class="heatmap-bar" 
+                   [style.height.%]="(day.count / getMaxWeeklyCount()) * 100"
+                   [style.background]="getHeatmapColor(day.count, getMaxWeeklyCount())">
+                <span class="heatmap-value" *ngIf="day.count > 0">{{ day.count }}</span>
+              </div>
+              <div class="heatmap-label">{{ day.day }}</div>
+            </div>
+          </div>
+          <div class="activity-insight">
+            <div class="insight-chip">
+              🔥 Peak day: <strong>{{ getPeakActivityDay() }}</strong> with {{ getPeakActivityCount() }} claims
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly Trends with Forecasting -->
+    <div class="chart-card full-width">
+      <div class="card-header">
+        <h3>📊 Trend Analysis & Forecasting</h3>
+        <div class="insight-badge predictive">Predictive AI</div>
+      </div>
+      <div class="trend-container">
+        <div class="trend-chart">
+          <div class="trend-y-axis">
+            <span>{{ formatAmount(getMaxAmount()) }}</span>
+            <span>{{ formatAmount(getMaxAmount() / 2) }}</span>
+            <span>0</span>
+          </div>
+          <div class="trend-bars">
+            <div *ngFor="let data of monthlyData" class="trend-group">
+              <div class="trend-bars-container">
+                <div class="trend-bar claimed" 
+                     [style.height.%]="(data.claimed / getMaxAmount()) * 70"
+                     [title]="'Claimed: ' + formatAmount(data.claimed) + ' DT'">
+                  <span class="trend-tooltip">{{ formatAmount(data.claimed) }}</span>
+                </div>
+                <div class="trend-bar approved" 
+                     [style.height.%]="(data.approved / getMaxAmount()) * 70"
+                     [title]="'Approved: ' + formatAmount(data.approved) + ' DT'">
+                  <span class="trend-tooltip">{{ formatAmount(data.approved) }}</span>
+                </div>
+              </div>
+              <div class="trend-label">{{ formatMonth(data.month) }}</div>
+            </div>
+            <div class="trend-group forecast">
+              <div class="forecast-badge">AI Forecast</div>
+              <div class="trend-bars-container">
+                <div class="trend-bar forecast-bar" 
+                     [style.height.%]="getForecastHeight()"
+                     [title]="'Predicted: ' + formatAmount(getForecastAmount()) + ' DT'">
+                  <span class="trend-tooltip">{{ formatAmount(getForecastAmount()) }}</span>
+                </div>
+              </div>
+              <div class="trend-label">Next Month</div>
+            </div>
+          </div>
+        </div>
+        <div class="trend-insights">
+          <div class="insight-card">
+            <div class="insight-icon">📈</div>
+            <div class="insight-text">
+              <strong>AI Prediction</strong>
+              <p>{{ getTrendPrediction() }}</p>
+            </div>
+          </div>
+          <div class="insight-card">
+            <div class="insight-icon">⚠️</div>
+            <div class="insight-text">
+              <strong>Risk Alert</strong>
+              <p>{{ getRiskAlert() }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="chart-legend">
+        <span><span class="legend-color claimed"></span> Claimed Amount</span>
+        <span><span class="legend-color approved"></span> Approved Amount</span>
+        <span><span class="legend-color forecast"></span> AI Forecast</span>
+      </div>
+    </div>
+
+    <!-- Client Analytics -->
+    <div class="chart-card full-width">
+      <div class="card-header">
+        <h3>🏆 Client Intelligence</h3>
+        <div class="insight-badge">Behavioral Analysis</div>
+      </div>
+      <div class="clients-container">
+        <div *ngFor="let client of topClients; let i = index" class="client-card-enhanced">
+          <div class="client-rank" [class.gold]="i === 0" [class.silver]="i === 1" [class.bronze]="i === 2">
+            {{ i + 1 }}
+          </div>
+          <div class="client-avatar" [style.background]="getAvatarColor(i)">
+            {{ getInitials(client.clientName) }}
+          </div>
+          <div class="client-details">
+            <div class="client-name">{{ client.clientName }}</div>
+            <div class="client-metrics">
+              <div class="metric-badge">
+                <span>📋 {{ client.totalClaims }}</span>
+                <span>✅ {{ client.approvedClaims }}</span>
+                <span>❌ {{ client.rejectedClaims }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="client-risk">
+            <div class="risk-indicator" [class.low-risk]="getClientRiskLevel(client) === 'Low'"
+                                        [class.medium-risk]="getClientRiskLevel(client) === 'Medium'"
+                                        [class.high-risk]="getClientRiskLevel(client) === 'High'">
+              {{ getClientRiskLevel(client) }} Risk
+            </div>
+          </div>
+          <div class="client-trend">
+            <span class="trend-value">{{ getClientTrend(client) }}</span>
+          </div>
+          <button (click)="viewClientClaims(client.clientId)" class="view-btn">
+            Analyze
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </button>
+        </div>
+        <div *ngIf="topClients.length === 0" class="empty-state">
+          <div class="empty-icon">📭</div>
+          <p>No client data available</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Footer -->
+    <div class="stats-footer">
+      <div class="footer-card">
+        <div class="footer-icon">💰</div>
+        <div>
+          <div class="footer-label">Total Value</div>
+          <div class="footer-value">{{ formatAmount(getTotalClaimedAmount()) }} DT</div>
+        </div>
+        <div class="footer-trend up">+{{ getGrowthRate() }}%</div>
+      </div>
+      <div class="footer-card">
+        <div class="footer-icon">✅</div>
+        <div>
+          <div class="footer-label">Approved Value</div>
+          <div class="footer-value">{{ formatAmount(getTotalApprovedAmount()) }} DT</div>
+        </div>
+        <div class="footer-trend">{{ getApprovedGrowth() }}</div>
+      </div>
+      <div class="footer-card">
+        <div class="footer-icon">⚡</div>
+        <div>
+          <div class="footer-label">Processing Time</div>
+          <div class="footer-value">{{ getAverageProcessingTime() }} days</div>
+        </div>
+        <div class="footer-trend down">-{{ getProcessingImprovement() }}%</div>
+      </div>
+      <div class="footer-card">
+        <div class="footer-icon">🎯</div>
+        <div>
+          <div class="footer-label">AI Confidence</div>
+          <div class="footer-value">{{ getAIConfidence() }}%</div>
+        </div>
+        <div class="footer-trend up">High</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Scoring Analysis Modal -->
+<div *ngIf="showScoringModal" class="modal-overlay" (click)="closeScoringModal()">
+  <div class="modal-content modal-large" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>🤖 AI Risk Analysis</h2>
+      <button class="modal-close" (click)="closeScoringModal()">✕</button>
+    </div>
+    
+    <div *ngIf="scoringLoading" class="loading-state">
+      <div class="spinner"></div>
+      <p>AI is analyzing risk factors...</p>
+    </div>
+    
+    <div *ngIf="!scoringLoading && selectedClaimAnalysis" class="scoring-content">
+      <div class="final-score-section">
+        <div class="score-gauge" [class]="getRiskClass(selectedClaimAnalysis.finalScore.value)">
+          <div class="gauge-value">{{ selectedClaimAnalysis.finalScore.value }}</div>
+          <div class="gauge-label">AI Risk Score</div>
+        </div>
+        <div class="decision-badge" [class]="selectedClaimAnalysis.finalScore.decision">
+          {{ selectedClaimAnalysis.finalScore.decision }}
+        </div>
+      </div>
+      
+      <div class="risk-factors">
+        <h3>📊 Claim Risk Analysis</h3>
+        <div class="factors-grid">
+          <div class="factor-item">
+            <span class="factor-label">💰 Amount Risk</span>
+            <div class="factor-bar">
+              <div class="factor-fill" [style.width.%]="extractPercentage(selectedClaimAnalysis.claimScore.recommendation, 'Montant')"></div>
+            </div>
+          </div>
+          <div class="factor-item">
+            <span class="factor-label">⏰ Delay Risk</span>
+            <div class="factor-bar">
+              <div class="factor-fill" [style.width.%]="extractPercentage(selectedClaimAnalysis.claimScore.recommendation, 'Délai')"></div>
+            </div>
+          </div>
+          <div class="factor-item">
+            <span class="factor-label">📄 Documents Risk</span>
+            <div class="factor-bar">
+              <div class="factor-fill" [style.width.%]="extractPercentage(selectedClaimAnalysis.claimScore.recommendation, 'Documents')"></div>
+            </div>
+          </div>
+          <div class="factor-item">
+            <span class="factor-label">🔄 Frequency Risk</span>
+            <div class="factor-bar">
+              <div class="factor-fill" [style.width.%]="extractPercentage(selectedClaimAnalysis.claimScore.recommendation, 'Fréquence')"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="client-score-section">
+        <h3>👤 Client Risk Profile</h3>
+        <div class="client-score-card">
+          <div class="client-score-value">{{ selectedClaimAnalysis.clientScore.globalScore }}</div>
+          <div class="client-risk-level">{{ selectedClaimAnalysis.clientScore.riskLevel }}</div>
+          <div class="client-recommendations">
+            <p *ngFor="let rec of selectedClaimAnalysis.clientScore.recommendations">
+              📌 {{ rec }}
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="ai-recommendation">
+        <h3>🤖 AI Recommendation</h3>
+        <div class="recommendation-text">
+          <pre>{{ selectedClaimAnalysis.claimScore.recommendation }}</pre>
+        </div>
+      </div>
+      
+      <div *ngIf="selectedClaimAnalysis.finalScore.isSuspicious" class="suspicious-alert">
+        ⚠️ This claim has been flagged as potentially fraudulent. Manual investigation recommended.
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button (click)="closeScoringModal()" class="btn-secondary">Close</button>
+      <button (click)="autoDecisionWithAI(selectedClaimAnalysis?.claimScore?.claimId!)" class="btn-primary">Execute AI Decision</button>
+    </div>
+  </div>
+</div>

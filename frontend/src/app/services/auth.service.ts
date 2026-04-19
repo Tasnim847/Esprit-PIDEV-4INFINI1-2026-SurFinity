@@ -16,10 +16,12 @@ export class AuthService {
   }
 
   register(formData: FormData): Observable<any> {
+    localStorage.removeItem('token'); // 🔥 IMPORTANT
     return this.http.post(`${this.API}/register`, formData, {
       responseType: 'text' as 'json'
     });
   }
+  
   getMe(): Observable<any> {
     return this.http.get(`${this.API}/me`);
   }

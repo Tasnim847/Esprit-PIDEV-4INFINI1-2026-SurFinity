@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { ClaimDTO } from '../../../../shared/dto/claim-dto.model';
 import { ClaimStatus } from '../../../../shared';
 import { ClaimsService } from '../../services/claims.service';
+import { Router } from '@angular/router';
+
 
 @Component({
   selector: 'app-list-all-claims',
@@ -38,12 +40,20 @@ export class ListAllClaimsComponent implements OnInit {
   // Auto decision
   autoDecisionLoading = false;
 
-  constructor(private claimsService: ClaimsService) {}
+  constructor(
+    private claimsService: ClaimsService,
+    private router: Router 
+  ) {}
 
   ngOnInit(): void {
     this.loadClaims();
   }
 
+  // Dans votre component claims
+  goToDashboard() {
+    this.router.navigate(['/backoffice/claims-dashboard']);
+  }
+  
   loadClaims(): void {
     this.loading = true;
     this.errorMessage = '';

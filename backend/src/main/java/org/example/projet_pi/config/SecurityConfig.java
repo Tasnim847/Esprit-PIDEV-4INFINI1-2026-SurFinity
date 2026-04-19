@@ -140,6 +140,7 @@ public class SecurityConfig {
                         .requestMatchers("/documents/claim/**").hasAnyRole("CLIENT", "AGENT_ASSURANCE", "ADMIN")
 
                         // 💰 Paiements
+                        .requestMatchers("/payments/payments").hasAnyRole("CLIENT", "AGENT_ASSURANCE", "ADMIN")
                         .requestMatchers("/payments/addPayment").hasAnyRole("CLIENT", "AGENT_ASSURANCE", "ADMIN")
                         .requestMatchers("/payments/getPayment/**").hasAnyRole("CLIENT", "AGENT_ASSURANCE", "ADMIN")
                         .requestMatchers("/payments/allPayments").hasAnyRole("CLIENT","AGENT_ASSURANCE","ADMIN")

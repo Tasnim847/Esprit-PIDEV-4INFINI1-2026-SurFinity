@@ -32,6 +32,10 @@ import { ContractRiskDetailsComponent } from './Features/Insurance/pages/admin/c
 import { AdminDashboardComponent } from './Features/Insurance/pages/admin/admin-dashboard/admin-dashboard.component';
 import { ClientRepaymentComponent } from './Features/Credit/pages/repayment/client-repayment/client-repayment.component'; 
 import { AdminRepaymentComponent } from './Features/Credit/pages/repayment/admin-repayment/admin-repayment.component';
+import { ClaimsDashboardComponent } from './Features/Claims/admin/claims-dashboard/claims-dashboard.component';
+import { PaymentPageComponent } from './Features/Insurance/pages/client/payment-page/payment-page.component';
+import { DashboardInsuranceComponent } from './Features/Insurance/pages/client/dashboard-insurance/dashboard-insurance.component';
+import { ProductDetailComponent } from './Features/Produit/pages/product-detail/product-detail.component';
 
 
 export const routes: Routes = [
@@ -66,6 +70,7 @@ export const routes: Routes = [
       { path: 'complaint', component: ComplaintPageComponent },
       { path: 'news', component: NewsPageComponent },
       { path: 'products', component: ProductListComponent },
+      { path: 'product-detail/:id', component: ProductDetailComponent },
       {path: 'profile', component: ProfileComponent},
       { 
       path: 'insurance/add-contract', 
@@ -77,6 +82,16 @@ export const routes: Routes = [
       component: MyContractsComponent,
       canActivate: [authGuard]
     }, 
+    { 
+      path: 'insurance/dashboard', 
+      component: DashboardInsuranceComponent,
+      canActivate: [authGuard]
+    }, 
+    { 
+      path: 'insurance/payment/:id', 
+      component: PaymentPageComponent,
+      canActivate: [authGuard]
+    },
     
     // Route pour l'agent (gardée séparément)
     { 
@@ -150,6 +165,12 @@ export const routes: Routes = [
       { path: 'complaint', component: ComplaintPageComponent },
       { path: 'news', component: NewsPageComponent },
       { path: 'claims', component: ListAllClaimsComponent },
+      {
+        path: 'claims-dashboard',
+        component: ClaimsDashboardComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN'] }
+      },
       { path: 'compensation', component: ListAllCompensationsComponent }
 
     ]

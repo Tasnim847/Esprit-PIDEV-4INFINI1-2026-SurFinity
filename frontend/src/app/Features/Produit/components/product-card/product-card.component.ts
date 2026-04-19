@@ -1,10 +1,12 @@
+// product-card.component.ts
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router'; // 👈 AJOUTER CET IMPORT
 
 @Component({
   selector: 'app-product-card',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterModule], // 👈 AJOUTER RouterModule ICI
   templateUrl: './product-card.component.html',
   styleUrls: ['./product-card.component.css']
 })
@@ -64,5 +66,9 @@ export class ProductCardComponent {
 
   compare() {
     this.compareEvent.emit(this.product);
+  }
+
+  viewDetails() {
+    console.log('Voir détails:', this.product);
   }
 }

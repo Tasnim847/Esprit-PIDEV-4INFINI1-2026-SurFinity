@@ -161,7 +161,11 @@ export class AddContractComponent implements OnInit {
   }
 
   onCancel(): void {
-    this.cancel.emit();
+  // Navigation correcte vers la page des contrats client
+    this.router.navigate(['/public/insurance/my-contracts'], {
+      queryParams: { refresh: Date.now() }, // Optionnel : pour forcer un rafraîchissement
+      replaceUrl: true // Optionnel : remplace l'URL dans l'historique
+    });
   }
 
   getProductId(product: any): number {

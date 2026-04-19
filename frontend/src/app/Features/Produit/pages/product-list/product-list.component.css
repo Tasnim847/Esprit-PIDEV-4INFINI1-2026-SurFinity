@@ -1,205 +1,161 @@
-/* product-list.component.css - Design moderne et élégant */
-
-/* Container principal */
-.products-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 3rem 2rem;
-  background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
+/* =========================
+   GLOBAL
+========================= */
+.products-page {
+  background: linear-gradient(135deg, #f5f7fa, #e9f2ff);
   min-height: 100vh;
+  font-family: 'Poppins', sans-serif;
 }
 
-/* Hero Section */
-.hero-section {
-  text-align: center;
-  padding: 4rem 2rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 30px;
-  color: white;
-  margin-bottom: 4rem;
-  position: relative;
-  overflow: hidden;
+/* =========================
+   HERO SECTION (BRAND STYLE)
+========================= */
+.hero-modern {
+  animation: fadeInUp 0.8s ease-in-out;
 }
 
-.hero-section::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  right: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(255,255,255,0.1) 1%, transparent 1%);
-  background-size: 50px 50px;
-  animation: moveBackground 20s linear infinite;
-}
-
-@keyframes moveBackground {
-  0% {
-    transform: translate(0, 0);
-  }
-  100% {
-    transform: translate(50px, 50px);
-  }
-}
-
-.hero-content {
-  position: relative;
-  z-index: 1;
-}
-
-.hero-content h1 {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  font-weight: 800;
-  letter-spacing: -1px;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.hero-content p {
-  font-size: 1.2rem;
-  opacity: 0.95;
-  margin-bottom: 0;
-  font-weight: 400;
-}
-
-/* Products Grid */
-.products-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 2rem;
-}
-
-/* Loading State */
-.loading-state {
-  text-align: center;
-  padding: 5rem 2rem;
-  background: white;
-  border-radius: 30px;
-  margin: 2rem 0;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-}
-
-.spinner {
-  border: 3px solid #e2e8f0;
-  border-top: 3px solid #667eea;
-  border-radius: 50%;
-  width: 60px;
-  height: 60px;
-  animation: spin 0.8s linear infinite;
-  margin: 0 auto 1.5rem;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.loading-state p {
-  color: #4a5568;
-  font-size: 1rem;
+.badge-hero {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: 50px;
   font-weight: 500;
+  font-size: 14px;
+  color: #fff;
+
+  /* BRAND GRADIENT */
+  background: linear-gradient(135deg, #1a5ac3, #36c165);
+  box-shadow: 0 6px 18px rgba(26, 90, 195, 0.25);
+  transition: all 0.3s ease;
 }
 
-/* Empty State */
-.empty-state {
-  text-align: center;
-  padding: 5rem 2rem;
-  background: white;
-  border-radius: 30px;
-  margin: 2rem 0;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+.badge-hero:hover {
+  transform: translateY(-2px) scale(1.02);
+  background: linear-gradient(135deg, #dfa94c, #1a5ac3);
 }
 
-.empty-state i {
-  font-size: 5rem;
-  color: #cbd5e0;
-  margin-bottom: 1.5rem;
+.hero-title {
+  font-size: 42px;
+  font-weight: 800;
+  margin-top: 15px;
+
+  background: linear-gradient(135deg, #1a5ac3, #36c165);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-.empty-state h3 {
-  font-size: 1.5rem;
-  color: #4a5568;
-  margin-bottom: 0.75rem;
-  font-weight: 600;
+.hero-subtitle {
+  color: #6c757d;
+  font-size: 18px;
+  margin-top: 10px;
 }
 
-.empty-state p {
-  color: #a0aec0;
-  font-size: 1rem;
+/* =========================
+   FILTER BOX (GLASS EFFECT)
+========================= */
+.filter-box {
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 20px;
+  padding: 20px;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+  animation: fadeIn 0.8s ease;
+  border: 1px solid rgba(26, 90, 195, 0.08);
 }
 
-/* Responsive Design */
-@media (max-width: 1024px) {
-  .products-container {
-    padding: 2rem 1.5rem;
+/* =========================
+   SEARCH BAR
+========================= */
+.search-container {
+  position: relative;
+  margin-bottom: 15px;
+}
+
+.search-container i {
+  position: absolute;
+  top: 50%;
+  left: 15px;
+  transform: translateY(-50%);
+  color: #1a5ac3;
+  opacity: 0.7;
+}
+
+.search-container input {
+  width: 100%;
+  padding: 12px 15px 12px 40px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  outline: none;
+  background: #f1f3f5;
+  transition: all 0.3s ease;
+  font-size: 14px;
+}
+
+.search-container input:focus {
+  background: #fff;
+  border-color: #1a5ac3;
+  box-shadow: 0 0 0 3px rgba(26, 90, 195, 0.15);
+}
+
+/* =========================
+   FILTER BUTTONS (BRAND GRADIENTS)
+========================= */
+.filter-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.filter-btn {
+  border: none;
+  padding: 10px 16px;
+  border-radius: 50px;
+  background: #f1f3f5;
+  color: #495057;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.filter-btn:hover {
+  color: #fff;
+  background: linear-gradient(135deg, #1a5ac3, #36c165);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(26, 90, 195, 0.25);
+}
+
+.filter-btn.active {
+  color: #fff;
+  background: linear-gradient(135deg, #1a5ac3, #36c165);
+  box-shadow: 0 8px 22px rgba(54, 193, 101, 0.25);
+}
+
+/* =========================
+   PRODUCT GRID ANIMATION
+========================= */
+.row.g-4 > div {
+  animation: fadeInUp 0.6s ease forwards;
+}
+
+/* =========================
+   ANIMATIONS
+========================= */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
   }
-  
-  .hero-section {
-    padding: 3rem 1.5rem;
-    margin-bottom: 3rem;
-  }
-  
-  .hero-content h1 {
-    font-size: 2.5rem;
-  }
-  
-  .products-grid {
-    gap: 1.5rem;
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
-@media (max-width: 768px) {
-  .products-container {
-    padding: 1.5rem 1rem;
-  }
-  
-  .hero-section {
-    padding: 2rem 1rem;
-    border-radius: 20px;
-  }
-  
-  .hero-content h1 {
-    font-size: 1.8rem;
-  }
-  
-  .hero-content p {
-    font-size: 1rem;
-  }
-  
-  .products-grid {
-    grid-template-columns: 1fr;
-    gap: 1.25rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .hero-content h1 {
-    font-size: 1.5rem;
-  }
-  
-  .loading-state,
-  .empty-state {
-    padding: 3rem 1rem;
-  }
-  
-  .empty-state i {
-    font-size: 3.5rem;
-  }
-  
-  .empty-state h3 {
-    font-size: 1.2rem;
-  }
-}
-
-/* Animation d'entrée des cartes */
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(30px);
+    transform: translateY(25px);
   }
   to {
     opacity: 1;
@@ -207,36 +163,19 @@
   }
 }
 
-.product-card {
-  animation: fadeInUp 0.5s ease-out;
-  animation-fill-mode: both;
-}
+/* =========================
+   RESPONSIVE
+========================= */
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 28px;
+  }
 
-.product-card:nth-child(1) { animation-delay: 0.05s; }
-.product-card:nth-child(2) { animation-delay: 0.1s; }
-.product-card:nth-child(3) { animation-delay: 0.15s; }
-.product-card:nth-child(4) { animation-delay: 0.2s; }
-.product-card:nth-child(5) { animation-delay: 0.25s; }
-.product-card:nth-child(6) { animation-delay: 0.3s; }
-.product-card:nth-child(7) { animation-delay: 0.35s; }
-.product-card:nth-child(8) { animation-delay: 0.4s; }
+  .hero-subtitle {
+    font-size: 15px;
+  }
 
-/* Scrollbar personnalisée */
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 5px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  border-radius: 5px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #5a67d8, #6b46c1);
+  .filter-buttons {
+    justify-content: center;
+  }
 }
