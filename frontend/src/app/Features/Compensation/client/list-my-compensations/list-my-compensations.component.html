@@ -24,56 +24,175 @@
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
   </div>
 
-  <!-- Compensations list -->
-  <div *ngIf="!loading && compensations.length === 0" class="alert alert-info">
-    <i class="bi bi-info-circle"></i> You have no compensations at the moment.
-  </div>
+  <div class="row g-4">
+    <!-- Compensations list - Left Column -->
+    <div class="col-lg-8">
+      <div *ngIf="!loading && compensations.length === 0" class="alert alert-info">
+        <i class="bi bi-info-circle"></i> You have no compensations at the moment.
+      </div>
 
-  <div class="row" *ngIf="compensations.length > 0">
-    <div class="col-md-6 mb-4" *ngFor="let compensation of compensations">
-      <div class="card h-100 shadow-sm">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <strong>Compensation #{{ compensation.compensationId }}</strong>
-          <span [class]="getStatusColor(compensation.status)">
-            {{ compensation.status }}
-          </span>
+      <div class="row" *ngIf="compensations.length > 0">
+        <div class="col-md-6 mb-4" *ngFor="let compensation of compensations">
+          <div class="card h-100 shadow-sm" [class.selected-for-payment]="selectedCompensationForPayment?.compensationId === compensation.compensationId">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <strong>Compensation #{{ compensation.compensationId }}</strong>
+              <span [class]="getStatusColor(compensation.status)">
+                {{ compensation.status }}
+              </span>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-6">
+                  <small class="text-muted">Insurance amount:</small><br>
+                  <strong class="text-success">{{ formatAmount(compensation.amount) }}</strong>
+                </div>
+                <div class="col-6">
+                  <small class="text-muted">Out of pocket (to pay):</small><br>
+                  <strong class="text-danger">{{ formatAmount(compensation.clientOutOfPocket) }}</strong>
+                </div>
+                <div class="col-6 mt-2">
+                  <small class="text-muted">Calculation date:</small><br>
+                  <strong>{{ formatDate(compensation.calculationDate) }}</strong>
+                </div>
+                <div class="col-6 mt-2">
+                  <small class="text-muted">Total approved amount:</small><br>
+                  <strong class="text-primary">{{ formatAmount(compensation.approvedAmount) }}</strong>
+                </div>
+              </div>
+              <hr>
+            </div>
+            <div class="card-footer bg-transparent">
+              <button class="btn btn-sm btn-outline-info me-2" (click)="viewCompensationDetails(compensation.compensationId)">
+                <i class="bi bi-graph-up"></i> Details & Scoring
+              </button>
+              <button *ngIf="compensation.status === 'CALCULATED'" 
+                      class="btn btn-sm btn-success" 
+                      (click)="selectCompensationForPayment(compensation)">
+                <i class="bi bi-credit-card"></i> Pay {{ formatAmount(compensation.clientOutOfPocket) }}
+              </button>
+            </div>
+          </div>
         </div>
-        <div class="card-body">
-          <div class="row">
-            <div class="col-6">
-              <small class="text-muted">Insurance amount:</small><br>
-              <strong class="text-success">{{ formatAmount(compensation.amount) }}</strong>
+      </div>
+    </div>
+
+    <!-- Payment Summary Sidebar - Right Column -->
+    <div class="col-lg-4" *ngIf="selectedCompensationForPayment">
+      <div class="card shadow-sm border-0 rounded-4 mb-4 sticky-top" style="top: 2rem;">
+        <div class="card-body p-4">
+          <div class="text-center mb-4">
+            <div class="summary-icon mx-auto mb-3">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#10b981">
+                <path d="M20 12V8H4v4M20 12v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6m16 0h-4M4 12H0m20 0h4M12 4v4m0 4v4"/>
+              </svg>
             </div>
-            <div class="col-6">
-              <small class="text-muted">Out of pocket:</small><br>
-              <strong class="text-danger">{{ formatAmount(compensation.clientOutOfPocket) }}</strong>
+            <h5 class="fw-semibold mb-2">Payment Summary</h5>
+            <div class="border-top pt-3 mt-2">
+              <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">Compensation #:</span>
+                <strong class="text-dark">{{ selectedCompensationForPayment.compensationId }}</strong>
+              </div>
+              <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">Insurance reimbursement:</span>
+                <strong class="text-success">{{ formatAmount(selectedCompensationForPayment.amount) }}</strong>
+              </div>
+              <div class="d-flex justify-content-between pt-2 border-top">
+                <span class="text-muted">Amount to pay (out of pocket):</span>
+                <strong class="fs-4 text-danger">{{ formatAmount(selectedCompensationForPayment.clientOutOfPocket) }}</strong>
+              </div>
             </div>
-            <div class="col-6 mt-2">
-              <small class="text-muted">Calculation date:</small><br>
-              <strong>{{ formatDate(compensation.calculationDate) }}</strong>
-            </div>
-            <div class="col-6 mt-2">
-              <small class="text-muted">Risk score:</small><br>
-              <strong [class]="getRiskLevelColor(compensation.riskLevel)">
-                {{ compensation.riskScore }}/100 - {{ compensation.riskLevel }}
-              </strong>
-            </div>
+          </div>
+        </div>
+
+        <!-- Payment Method Selection -->
+        <div class="card-body border-top p-4">
+          <h6 class="fw-semibold mb-3 d-flex align-items-center gap-2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6">
+              <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+              <line x1="1" y1="10" x2="23" y2="10"/>
+            </svg>
+            Payment Method
+          </h6>
+          
+          <div class="d-flex flex-column gap-2 mb-3">
+            <label class="payment-method-modern d-flex align-items-center gap-3 p-3 border rounded-3 cursor-pointer"
+                   [class.active-method]="paymentMethod === 'CARD'">
+              <input type="radio" name="paymentMethod" value="CARD" class="d-none" [(ngModel)]="paymentMethod">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                <line x1="1" y1="10" x2="23" y2="10"/>
+              </svg>
+              <span class="flex-grow-1">Credit Card (Online)</span>
+              <div class="method-check" *ngIf="paymentMethod === 'CARD'">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </div>
+            </label>
+            
+            <label class="payment-method-modern d-flex align-items-center gap-3 p-3 border rounded-3 cursor-pointer"
+                   [class.active-method]="paymentMethod === 'CASH'">
+              <input type="radio" name="paymentMethod" value="CASH" class="d-none" [(ngModel)]="paymentMethod">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v12M8 8h8M8 16h8"/>
+              </svg>
+              <span class="flex-grow-1">Cash (In Person)</span>
+              <div class="method-check" *ngIf="paymentMethod === 'CASH'">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </div>
+            </label>
           </div>
           
-          <hr>
-          <div class="alert alert-light">
-            <small>{{ compensation.message | slice:0:100 }}...</small>
+          <!-- Card Details Form (only shown for CARD payment) -->
+          <div class="card-details-modern bg-light rounded-3 p-3" *ngIf="paymentMethod === 'CARD'">
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Card Number</label>
+              <input type="text" class="form-control form-control-sm rounded-3" 
+                     placeholder="1234 5678 9012 3456"
+                     [(ngModel)]="cardDetails.cardNumber">
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Cardholder Name</label>
+              <input type="text" class="form-control form-control-sm rounded-3" 
+                     placeholder="John DOE"
+                     [(ngModel)]="cardDetails.cardHolder">
+            </div>
+            <div class="row g-2">
+              <div class="col-6">
+                <label class="form-label small fw-semibold">Expiration</label>
+                <input type="text" class="form-control form-control-sm rounded-3" 
+                       placeholder="MM/YY"
+                       [(ngModel)]="cardDetails.expiryDate">
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-semibold">CVV</label>
+                <input type="password" class="form-control form-control-sm rounded-3" 
+                       placeholder="123"
+                       [(ngModel)]="cardDetails.cvv">
+              </div>
+            </div>
           </div>
         </div>
-        <div class="card-footer bg-transparent">
-          <button class="btn btn-sm btn-outline-info me-2" (click)="viewCompensationDetails(compensation.compensationId)">
-            <i class="bi bi-graph-up"></i> Details & Scoring
-          </button>
-          <button *ngIf="compensation.status === 'CALCULATED'" 
-                  class="btn btn-sm btn-success" 
-                  (click)="payCompensation(compensation.compensationId)">
-            <i class="bi bi-credit-card"></i> Pay
-          </button>
+
+        <!-- Action Buttons -->
+        <div class="card-footer bg-white border-0 p-4 pt-0">
+          <div class="d-flex gap-3">
+            <button class="btn btn-outline-secondary flex-grow-1 rounded-pill" (click)="cancelPayment()">
+              Cancel
+            </button>
+            <button class="btn btn-danger flex-grow-1 rounded-pill" 
+                    [disabled]="processingPayment"
+                    (click)="processPayment()">
+              <div class="d-flex align-items-center justify-content-center gap-2">
+                <div class="spinner-border spinner-border-sm" *ngIf="processingPayment" role="status"></div>
+                <i *ngIf="!processingPayment" class="bi bi-credit-card"></i>
+                <span>{{ processingPayment ? 'Processing...' : 'Pay ' + formatAmount(selectedCompensationForPayment.clientOutOfPocket) }}</span>
+              </div>
+            </button>
+          </div>
         </div>
       </div>
     </div>

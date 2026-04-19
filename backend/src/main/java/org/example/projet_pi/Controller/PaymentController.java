@@ -299,4 +299,29 @@ public class PaymentController {
                     .body(Map.of("error", e.getMessage()));
         }
     }
+
+    // Ajoutez cet endpoint dans PaymentController.java
+
+    @PostMapping("/confirm-payment/{paymentIntentId}")
+    public ResponseEntity<Map<String, Object>> confirmPayment(
+            @PathVariable String paymentIntentId,
+            @AuthenticationPrincipal UserDetails currentUser) throws StripeException {
+
+        PaymentIntent paymentIntent = PaymentIntent.retrieve(paymentIntentId);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", paymentIntent.getStatus());
+        response.put("paymentIntentId", paymentIntent.getId());
+
+        if ("succeeded".equals(paymentIntent.getStatus())) {
+            String contractIdStr = paymentIntent.getMetadata().get("contractId");
+            if (contractIdStr != null) {
+                Long contractId = Long.parseLong(contractIdStr);
+                paymentService.handleSuccessfulPayment(paymentIntentId, paymentIntent.getAmount(), contractId);
+                response.put("message", "Paiement confirmé avec succès");
+            }
+        }
+
+        return ResponseEntity.ok(response);
+    }
 }

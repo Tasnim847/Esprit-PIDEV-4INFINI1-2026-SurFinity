@@ -5,6 +5,7 @@ import { catchError, map } from 'rxjs/operators';
 import { RiskEvaluationDTO } from '../../../shared/dto/risk-evaluation.dto';
 import { RiskFactorDTO } from '../../../shared/dto/risk-factor.dto';
 import { CategoryRiskDTO } from '../../../shared/dto/category-risk.dto';
+import { environment } from '../../../../environments/environment'; 
 
 @Injectable({
   providedIn: 'root'
@@ -12,6 +13,8 @@ import { CategoryRiskDTO } from '../../../shared/dto/category-risk.dto';
 export class ContractService {
   private apiUrl = 'http://localhost:8081/contrats';
   private agentApiUrl = 'http://localhost:8081/agent';
+  private baseUrl = environment.apiUrl; // MODIFIER: utiliser environment.apiUrl
+
 
   constructor(private http: HttpClient) {}
 
@@ -68,6 +71,82 @@ export class ContractService {
       .pipe(catchError(this.handleError));
   }
 
+  // ========== PAYMENT ENDPOINTS ==========
+  
+  /**
+   * Récupère tous les paiements d'un contrat
+   * @param contractId L'ID du contrat
+   * @returns Observable contenant la liste des paiements
+   */
+  getPaymentsByContract(contractId: number): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/payments/contract/${contractId}`, { headers: this.getHeaders() })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Effectue un paiement pour un contrat
+   * @param paymentData Les données du paiement
+   * @returns Observable contenant la réponse du serveur
+   */
+  makePayment(paymentData: any): Observable<any> {
+    // ✅ Utiliser la valeur envoyée par le composant
+    const body = {
+      clientEmail: paymentData.clientEmail,
+      contractId: paymentData.contractId,
+      installmentAmount: paymentData.installmentAmount,
+      paymentType: paymentData.paymentType,  // ← Utiliser la valeur dynamique (CASH ou BANK_TRANSFER)
+      remainingAmount: paymentData.remainingAmount || 0
+    };
+  
+    console.log('📤 Envoi de la requête de paiement:', body);
+  
+    return this.http.post(`${this.baseUrl}/payments/payments`, body, { headers: this.getHeaders() })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Récupère le statut de paiement d'un contrat
+   * @param contractId L'ID du contrat
+   * @returns Observable contenant le statut
+   */
+  getPaymentStatus(contractId: number): Observable<any> {
+    return this.http.get(`${this.baseUrl}/payments/status/${contractId}`, { headers: this.getHeaders() })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Récupère l'historique des paiements d'un contrat
+   * @param contractId L'ID du contrat
+   * @returns Observable contenant l'historique
+   */
+  getPaymentHistory(contractId: number): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/payments/history/${contractId}`, { headers: this.getHeaders() })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Récupère le solde restant d'un contrat
+   * @param contractId L'ID du contrat
+   * @returns Observable contenant le solde
+   */
+  getRemainingBalance(contractId: number): Observable<any> {
+    return this.http.get(`${this.baseUrl}/payments/remaining-balance/${contractId}`, { headers: this.getHeaders() })
+      .pipe(catchError(this.handleError));
+  }
+
+  createPaymentIntent(contractId: number, amount?: number): Observable<any> {
+    const url = amount 
+      ? `${environment.apiUrl}/payments/create-payment-intent/${contractId}?amount=${amount}`
+      : `${environment.apiUrl}/payments/create-payment-intent/${contractId}`;
+    
+    return this.http.post(url, {}, { headers: this.getHeaders() })
+      .pipe(catchError(this.handleError));
+  }
+
+  confirmPayment(paymentIntentId: string): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/payments/confirm-payment/${paymentIntentId}`, {}, { headers: this.getHeaders() })
+      .pipe(catchError(this.handleError));
+  }
   // ========== RISK ENDPOINTS ==========
   
   getContractRisk(id: number): Observable<any> {

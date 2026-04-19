@@ -15,8 +15,8 @@ export interface ClaimDTO {
   fraud?: boolean;
   message?: string;
   contractId: number;
-client?: ClientDTO;  
-documentIds?: number[];
+  client?: ClientDTO;  
+  documentIds?: number[];
   documents?: DocumentDTO[];
   autoDetails?: AutoClaimDetails;
   healthDetails?: HealthClaimDetails;

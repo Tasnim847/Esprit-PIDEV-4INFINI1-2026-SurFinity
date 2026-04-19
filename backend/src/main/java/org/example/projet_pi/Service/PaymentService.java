@@ -153,6 +153,7 @@ public class PaymentService implements IPaymentService {
         return PaymentIntent.create(params);
     }
 
+    // Dans PaymentService.java, ajoutez cette méthode si elle n'existe pas
     public PaymentIntent createCustomStripePaymentIntent(Long contractId, Double amount) throws StripeException {
         InsuranceContract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new RuntimeException("Contrat non trouvé"));
@@ -175,8 +176,8 @@ public class PaymentService implements IPaymentService {
         Map<String, String> metadata = new HashMap<>();
         metadata.put("contractId", contractId.toString());
         metadata.put("clientEmail", contract.getClient().getEmail());
-        metadata.put("paymentType", "CUSTOM");
-        metadata.put("requestedAmount", String.valueOf(amount));
+        metadata.put("paymentType", "INSTALLMENT");
+        metadata.put("installmentAmount", String.valueOf(amount));
         metadata.put("remainingAmount", String.valueOf(contract.getRemainingAmount()));
 
         PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
@@ -193,6 +194,7 @@ public class PaymentService implements IPaymentService {
         log.info("✅ PaymentIntent personnalisé créé: {} DT pour le contrat {}", amount, contractId);
         return PaymentIntent.create(params);
     }
+
 
     @Override
     @Transactional
@@ -735,5 +737,36 @@ public class PaymentService implements IPaymentService {
                 amount, contractId, paymentMethod);
 
         return PaymentMapper.toDTO(pendingPayment);
+    }
+
+
+    // Dans PaymentService.java, ajoutez cette méthode
+
+    /**
+     * Créer un PaymentIntent Stripe pour une compensation
+     */
+    public PaymentIntent createCompensationPaymentIntent(Long compensationId, Double amount, String clientEmail) throws StripeException {
+        long amountInCents = (long) (amount * 100);
+
+        Map<String, String> metadata = new HashMap<>();
+        metadata.put("compensationId", compensationId.toString());
+        metadata.put("clientEmail", clientEmail);
+        metadata.put("paymentType", "COMPENSATION");
+        metadata.put("amount", String.valueOf(amount));
+
+        com.stripe.param.PaymentIntentCreateParams params = com.stripe.param.PaymentIntentCreateParams.builder()
+                .setAmount(amountInCents)
+                .setCurrency("usd")
+                .setDescription("Paiement de compensation #" + compensationId)
+                .setAutomaticPaymentMethods(
+                        com.stripe.param.PaymentIntentCreateParams.AutomaticPaymentMethods.builder()
+                                .setEnabled(true)
+                                .build()
+                )
+                .putAllMetadata(metadata)
+                .build();
+
+        log.info("✅ PaymentIntent créé pour la compensation {} de {} DT", compensationId, amount);
+        return com.stripe.model.PaymentIntent.create(params);
     }
 }

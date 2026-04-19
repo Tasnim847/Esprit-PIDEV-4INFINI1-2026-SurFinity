@@ -4,6 +4,7 @@ import { HttpClientModule } from '@angular/common/http';
 import { Compensation } from '../../../../shared';
 import { CompensationService } from '../../services/compensation.service';
 import { FormsModule } from '@angular/forms';
+import { ToastrService } from 'ngx-toastr';
 
 @Component({
   selector: 'app-list-all-compensations',
@@ -27,7 +28,10 @@ export class ListAllCompensationsComponent implements OnInit {
   currentPage = 1;
   itemsPerPage = 10;
   
-  constructor(private compensationService: CompensationService) {}
+  constructor(
+    private compensationService: CompensationService,
+    private toastr: ToastrService
+  ) {}
   
   ngOnInit(): void {
     this.loadAllCompensations();
@@ -37,14 +41,13 @@ export class ListAllCompensationsComponent implements OnInit {
     this.loading = true;
     this.errorMessage = '';
     
-    // Utilisation de l'endpoint existant pour admin
     this.compensationService.getAllCompensations().subscribe({
       next: (data) => {
         this.compensations = data;
         this.loading = false;
       },
-      error: (error) => {
-        console.error('Erreur lors du chargement:', error);
+      error: (err: any) => {
+        console.error('Erreur lors du chargement:', err);
         this.errorMessage = 'Impossible de charger les compensations. Veuillez réessayer.';
         this.loading = false;
       }
@@ -70,7 +73,7 @@ export class ListAllCompensationsComponent implements OnInit {
       'PAID': 'badge-success',
       'CANCELLED': 'badge-danger'
     };
-    return classMap[classMap[status] || 'badge-secondary'];
+    return classMap[status] || 'badge-secondary';
   }
   
   // Formater la date
@@ -88,10 +91,11 @@ export class ListAllCompensationsComponent implements OnInit {
   
   // Formater le montant
   formatAmount(amount: number): string {
+    if (amount === undefined || amount === null) return '0,00 DT';
     return new Intl.NumberFormat('fr-TN', {
-      style: 'currency',
-      currency: 'TND'
-    }).format(amount);
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount) + ' DT';
   }
   
   // Filtrer les compensations
@@ -133,21 +137,32 @@ export class ListAllCompensationsComponent implements OnInit {
   
   // Actions admin
   viewDetails(compensation: Compensation): void {
-    console.log('Voir détails:', compensation);
-    // Implémenter la logique pour afficher les détails
+    // Utiliser Toastr pour afficher les détails ou ouvrir un modal
+    this.toastr.info(`Compensation #${compensation.compensationId}
+    Montant: ${this.formatAmount(compensation.amount)}
+    Reste à charge: ${this.formatAmount(compensation.clientOutOfPocket)}
+    Statut: ${compensation.status}
+    Risque: ${compensation.riskLevel || 'N/A'}`, 'Détails', {
+      timeOut: 5000,
+      enableHtml: true
+    });
   }
   
+  // ✅ CORRIGÉ: Utiliser la bonne méthode pour marquer comme payée
   markAsPaid(compensation: Compensation): void {
     if (confirm(`Confirmer le paiement de la compensation #${compensation.compensationId} ?`)) {
-      this.compensationService.payCompensation(compensation.compensationId).subscribe({
-        next: () => {
+      // Utiliser l'endpoint existant /{id}/pay
+      this.compensationService.markAsPaid(compensation.compensationId).subscribe({
+        next: (response) => {
           this.successMessage = `Compensation #${compensation.compensationId} marquée comme payée`;
+          this.toastr.success(`Compensation #${compensation.compensationId} marquée comme payée`);
           this.loadAllCompensations();
           setTimeout(() => this.successMessage = '', 3000);
         },
-        error: (error) => {
-          console.error('Erreur:', error);
-          this.errorMessage = 'Erreur lors du paiement';
+        error: (err: any) => {
+          console.error('Erreur:', err);
+          this.errorMessage = err.error?.error || 'Erreur lors du paiement';
+          this.toastr.error(this.errorMessage);
           setTimeout(() => this.errorMessage = '', 3000);
         }
       });
@@ -157,21 +172,23 @@ export class ListAllCompensationsComponent implements OnInit {
   recalculate(compensation: Compensation): void {
     if (compensation.claim?.claimId) {
       if (confirm(`Recalculer la compensation #${compensation.compensationId} ?`)) {
-        // Note: L'endpoint /recalculate/{claimId} existe dans votre backend
-        // Vous devrez peut-être ajouter cette méthode au service
         this.compensationService.recalculateCompensation(compensation.claim.claimId).subscribe({
-          next: () => {
+          next: (response) => {
             this.successMessage = `Compensation #${compensation.compensationId} recalculée`;
+            this.toastr.success(`Compensation #${compensation.compensationId} recalculée`);
             this.loadAllCompensations();
             setTimeout(() => this.successMessage = '', 3000);
           },
-          error: (error) => {
-            console.error('Erreur:', error);
-            this.errorMessage = 'Erreur lors du recalcul';
+          error: (err: any) => {
+            console.error('Erreur:', err);
+            this.errorMessage = err.error?.error || 'Erreur lors du recalcul';
+            this.toastr.error(this.errorMessage);
             setTimeout(() => this.errorMessage = '', 3000);
           }
         });
       }
+    } else {
+      this.toastr.warning('Impossible de recalculer: claim ID non trouvé');
     }
   }
   

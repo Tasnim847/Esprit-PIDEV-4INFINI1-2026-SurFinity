@@ -1,13 +1,17 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { CompensationService } from '../../services/compensation.service';
 import { Compensation } from '../../../../shared';
+import { ToastrService } from 'ngx-toastr';
+import { loadStripe, Stripe } from '@stripe/stripe-js';
+import { environment } from '../../../../../environments/environment';
 
 @Component({
   selector: 'app-list-my-compensations',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './list-my-compensations.component.html',
   styleUrl: './list-my-compensations.component.css'
 })
@@ -18,6 +22,23 @@ export class ListMyCompensationsComponent implements OnInit {
   selectedCompensation: any = null;
   showDetails = false;
   paymentStatus: any = null;
+  Math = Math;
+
+  // Payment properties
+  selectedCompensationForPayment: Compensation | null = null;
+  processingPayment = false;
+  paymentMethod: string = 'CARD'; // 'CARD' ou 'CASH'
+  
+  // Stripe
+  stripe: Stripe | null = null;
+  
+  // Card details (pour affichage uniquement)
+  cardDetails = {
+    cardNumber: '',
+    cardHolder: '',
+    expiryDate: '',
+    cvv: ''
+  };
 
   statusColors: { [key: string]: string } = {
     'PENDING': 'badge bg-warning',
@@ -34,10 +55,30 @@ export class ListMyCompensationsComponent implements OnInit {
     'TRES_ELEVE': 'text-danger fw-bold'
   };
 
-  constructor(private compensationService: CompensationService) {}
+  constructor(
+    private compensationService: CompensationService,
+    private toastr: ToastrService
+  ) {}
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
+    await this.initStripe();
     this.loadCompensations();
+  }
+
+  async initStripe(): Promise<void> {
+    if (!environment.stripePublicKey) {
+      console.error('❌ Stripe key not configured');
+      return;
+    }
+    
+    try {
+      this.stripe = await loadStripe(environment.stripePublicKey);
+      if (this.stripe) {
+        console.log('✅ Stripe initialized successfully');
+      }
+    } catch (error) {
+      console.error('❌ Stripe error:', error);
+    }
   }
 
   loadCompensations(): void {
@@ -48,7 +89,7 @@ export class ListMyCompensationsComponent implements OnInit {
         this.loading = false;
       },
       error: (err) => {
-        this.error = 'Erreur lors du chargement des compensations: ' + err.message;
+        this.error = 'Error loading compensations: ' + err.message;
         this.loading = false;
       }
     });
@@ -61,36 +102,140 @@ export class ListMyCompensationsComponent implements OnInit {
         this.showDetails = true;
       },
       error: (err) => {
-        this.error = 'Erreur lors du chargement des détails: ' + err.message;
+        this.error = 'Error loading details: ' + err.message;
       }
     });
   }
 
-  async payCompensation(compensationId: number): Promise<void> {
-    if (confirm('Voulez-vous vraiment payer cette compensation ?')) {
-      // Vérifier le solde d'abord
-      this.compensationService.checkBalanceBeforePayment(compensationId).subscribe({
-        next: (balanceCheck) => {
-          if (balanceCheck.sufficientBalance) {
-            // Procéder au paiement
-            this.compensationService.payCompensation(compensationId).subscribe({
-              next: (result) => {
-                this.paymentStatus = result;
-                this.loadCompensations(); // Recharger la liste
-                setTimeout(() => this.paymentStatus = null, 5000);
+  selectCompensationForPayment(compensation: Compensation): void {
+    if (compensation.status !== 'CALCULATED') {
+      this.toastr.warning('This compensation cannot be paid');
+      return;
+    }
+    
+    this.selectedCompensationForPayment = compensation;
+    this.paymentMethod = 'CARD';
+    this.cardDetails = {
+      cardNumber: '',
+      cardHolder: '',
+      expiryDate: '',
+      cvv: ''
+    };
+  }
+
+  cancelPayment(): void {
+    this.selectedCompensationForPayment = null;
+    this.processingPayment = false;
+  }
+
+  async processCardPayment(): Promise<void> {
+    if (!this.selectedCompensationForPayment) return;
+    
+    this.processingPayment = true;
+    
+    this.compensationService.payCompensationByCard(this.selectedCompensationForPayment.compensationId).subscribe({
+      next: async (response) => {
+        if (response.success && response.clientSecret && this.stripe) {
+          try {
+            // Afficher le formulaire Stripe
+            const result = await this.stripe.confirmCardPayment(response.clientSecret, {
+              payment_method: {
+                card: {
+                  token: 'tok_visa', // En développement, utiliser un token de test
+                },
+                billing_details: {
+                  name: this.cardDetails.cardHolder || 'Client',
+                },
               },
-              error: (err) => {
-                this.error = err.error?.error || 'Erreur lors du paiement';
-              }
             });
-          } else {
-            this.error = `Solde insuffisant. Il vous manque ${balanceCheck.difference} DT`;
+            
+            if (result.error) {
+              this.processingPayment = false;
+              this.toastr.error('Payment error: ' + result.error.message);
+            } else if (result.paymentIntent?.status === 'succeeded') {
+              // Confirmer le paiement
+              this.compensationService.confirmCompensationPayment(result.paymentIntent.id).subscribe({
+                next: (confirmResponse) => {
+                  this.processingPayment = false;
+                  if (confirmResponse.success) {
+                    this.toastr.success('✅ Payment successful!');
+                    this.loadCompensations();
+                    this.cancelPayment();
+                  } else {
+                    this.toastr.error(confirmResponse.error || 'Confirmation failed');
+                  }
+                },
+                error: (err) => {
+                  this.processingPayment = false;
+                  this.toastr.error('Confirmation error: ' + err.message);
+                }
+              });
+            }
+          } catch (error) {
+            this.processingPayment = false;
+            console.error('Stripe error:', error);
+            this.toastr.error('Payment processing error');
           }
-        },
-        error: (err) => {
-          this.error = err.error?.error || 'Erreur lors de la vérification du solde';
+        } else {
+          this.processingPayment = false;
+          this.toastr.error(response.error || 'Failed to initialize payment');
         }
-      });
+      },
+      error: (err) => {
+        this.processingPayment = false;
+        console.error('Payment error:', err);
+        this.toastr.error(err.error?.error || 'Payment initialization failed');
+      }
+    });
+  }
+
+  processCashPayment(): void {
+    if (!this.selectedCompensationForPayment) return;
+    
+    const confirmMessage = `Confirm cash payment of ${this.formatAmount(this.selectedCompensationForPayment.clientOutOfPocket)} for compensation #${this.selectedCompensationForPayment.compensationId}?`;
+    
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+    
+    this.processingPayment = true;
+    
+    this.compensationService.payCompensationByCash(this.selectedCompensationForPayment.compensationId).subscribe({
+      next: (response) => {
+        this.processingPayment = false;
+        
+        if (response.success) {
+          this.toastr.success(response.message || 'Cash payment recorded successfully!');
+          this.loadCompensations();
+          this.cancelPayment();
+        } else {
+          this.toastr.error(response.error || 'Payment failed');
+        }
+      },
+      error: (err) => {
+        this.processingPayment = false;
+        console.error('Payment error:', err);
+        this.toastr.error(err.error?.error || 'Payment failed');
+      }
+    });
+  }
+
+  processPayment(): void {
+    if (!this.selectedCompensationForPayment) {
+      this.toastr.warning('Please select a compensation to pay');
+      return;
+    }
+    
+    if (this.selectedCompensationForPayment.status !== 'CALCULATED') {
+      this.toastr.error('This compensation has already been paid');
+      this.cancelPayment();
+      return;
+    }
+    
+    if (this.paymentMethod === 'CARD') {
+      this.processCardPayment();
+    } else if (this.paymentMethod === 'CASH') {
+      this.processCashPayment();
     }
   }
 
@@ -112,6 +257,7 @@ export class ListMyCompensationsComponent implements OnInit {
   }
 
   formatAmount(amount: number): string {
+    if (amount === undefined || amount === null) return '0.00 DT';
     return amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' DT';
   }
 }

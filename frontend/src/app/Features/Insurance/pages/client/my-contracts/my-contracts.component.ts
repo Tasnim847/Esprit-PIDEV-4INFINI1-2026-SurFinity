@@ -7,6 +7,8 @@ import { ContractService } from '../../../services/contract.service';
 import { ToastrService } from 'ngx-toastr';
 import { saveAs } from 'file-saver';
 import { AddContractComponent } from '../add-contract/add-contract.component';
+import { Router } from '@angular/router';
+
 
 @Component({
   selector: 'app-my-contracts',
@@ -46,7 +48,8 @@ export class MyContractsComponent implements OnInit {
 
   constructor(
     private contractService: ContractService,
-    private toastr: ToastrService
+    private toastr: ToastrService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -280,5 +283,14 @@ export class MyContractsComponent implements OnInit {
   closeModal(): void {
     this.showRiskModal = false;
     this.selectedContract = null;
+  }
+  
+  openPayment(contract: any): void {
+    this.router.navigate(['/public/insurance/payment', contract.contractId]);
+  }
+
+  // Dans votre composant TypeScript
+  goToDashboard(): void {
+    this.router.navigate(['/public/insurance/dashboard']);
   }
 }

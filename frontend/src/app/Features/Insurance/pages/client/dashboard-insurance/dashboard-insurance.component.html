@@ -1,0 +1,442 @@
+<div class="dashboard-container">
+  <!-- Header -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <div>
+        <h1 class="dashboard-title">
+          <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <line x1="3" y1="9" x2="21" y2="9"/>
+            <line x1="9" y1="21" x2="9" y2="9"/>
+          </svg>
+          Insurance Dashboard
+        </h1>
+        <p class="dashboard-subtitle">Overview of your contracts and claims</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn-back" (click)="goToInsurance()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          Insurance Home
+        </button>
+        <button class="btn-refresh" (click)="refresh()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          </svg>
+          Refresh
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="isLoading">
+    <div class="loading-spinner"></div>
+    <p>Loading your dashboard...</p>
+  </div>
+
+  <div *ngIf="!isLoading">
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M20 12V8H4v4M20 12v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6m16 0h-4M4 12H0m20 0h4M12 4v4m0 4v4"/>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.totalContracts }}</span>
+          <span class="stat-label">Total Contracts</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon success">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.activeContracts }}</span>
+          <span class="stat-label">Active Contracts</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon warning">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ totalClaims }}</span>
+          <span class="stat-label">Claims Filed</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon info">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ formatNumber(stats.totalPaid) }} DT</span>
+          <span class="stat-label">Total Paid</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress Section -->
+    <div class="progress-section">
+      <div class="progress-card">
+        <div class="progress-header">
+          <span class="progress-title">Global Payment Progress</span>
+          <span class="progress-percentage">{{ stats.completionRate | number:'1.0-0' }}%</span>
+        </div>
+        <div class="progress-bar-wrapper">
+          <div class="progress-bar-fill" [style.width.%]="stats.completionRate">
+            <div class="progress-glow"></div>
+          </div>
+        </div>
+        <div class="progress-details">
+          <div class="detail-item">
+            <span class="detail-label">Total Premium:</span>
+            <span class="detail-value">{{ formatNumber(stats.totalPremium) }} DT</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Remaining:</span>
+            <span class="detail-value warning">{{ formatNumber(stats.totalRemaining) }} DT</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Grid -->
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>Status Distribution</h3>
+          <p>Contract status breakdown</p>
+        </div>
+        <div class="chart-container">
+          <canvas id="statusChart"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>Payment Frequency</h3>
+          <p>Selected payment method</p>
+        </div>
+        <div class="chart-container">
+          <canvas id="frequencyChart"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-card chart-full">
+        <div class="chart-header">
+          <h3>Payment Progress by Contract</h3>
+          <p>Paid vs Remaining (Top 6 contracts)</p>
+        </div>
+        <div class="chart-container-large">
+          <canvas id="paymentProgressChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Claims Dashboard Section -->
+    <div class="claims-dashboard">
+      <div class="section-header">
+        <h2>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M20 12V8H4v4M20 12v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6m16 0h-4M4 12H0m20 0h4M12 4v4m0 4v4"/>
+          </svg>
+          Claims Dashboard
+        </h2>
+        <div class="claims-stats">
+          <span class="claims-badge pending">Pending: {{ pendingClaims }}</span>
+          <span class="claims-badge approved">Approved: {{ approvedClaims }}</span>
+          <span class="claims-badge rejected">Rejected: {{ rejectedClaims }}</span>
+          <span class="claims-badge total">Total: {{ totalClaims }}</span>
+        </div>
+      </div>
+
+      <!-- Claims Charts -->
+      <div class="claims-charts-grid">
+        <div class="claims-chart-card">
+          <div class="chart-header">
+            <h3>Status Distribution</h3>
+            <p>Claims progress status</p>
+          </div>
+          <div class="chart-container-small">
+            <canvas id="claimsStatusChart"></canvas>
+          </div>
+        </div>
+        <div class="claims-chart-card">
+          <div class="chart-header">
+            <h3>Amounts by Status</h3>
+            <p>Total declared amounts</p>
+          </div>
+          <div class="chart-container-small">
+            <canvas id="claimsAmountChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Claims Timeline -->
+      <div class="claims-timeline" *ngIf="allClaims.length > 0">
+        <h3>Claims History</h3>
+        <div class="timeline">
+          <div class="timeline-item" *ngFor="let claim of allClaims | slice:0:5">
+            <div class="timeline-marker" [class]="getClaimStatusClass(claim.status)"></div>
+            <div class="timeline-content">
+              <div class="timeline-header">
+                <span class="timeline-contract">Contract #{{ claim.contractId }}</span>
+                <span class="timeline-date">{{ formatDate(claim.claimDate) }}</span>
+              </div>
+              <div class="timeline-body">
+                <div class="timeline-amount">{{ formatNumber(claim.claimedAmount) }} DT</div>
+                <div class="timeline-status" [class]="getClaimStatusClass(claim.status)">
+                  {{ getClaimStatusLabel(claim.status) }}
+                </div>
+              </div>
+              <div class="timeline-description" *ngIf="claim.description">
+                {{ claim.description | slice:0:100 }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="no-claims" *ngIf="totalClaims === 0">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <p>No claims filed yet</p>
+      </div>
+    </div>
+
+    <!-- Contracts Dashboard - Modern Cards Version -->
+    <div class="contracts-dashboard">
+      <div class="section-header">
+        <h2>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M4 4h16v16H4z"/>
+            <line x1="8" y1="8" x2="16" y2="8"/>
+            <line x1="8" y1="12" x2="16" y2="12"/>
+            <line x1="8" y1="16" x2="12" y2="16"/>
+          </svg>
+          My Contracts
+        </h2>
+        <div class="header-right">
+          <span class="contracts-count">{{ contracts.length }} contract(s)</span>
+          <button class="btn-view-all" (click)="viewAllContracts()">
+            View All
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Modern Contracts Cards Grid -->
+      <div class="modern-contracts-grid">
+        <div class="modern-contract-card" *ngFor="let contract of contracts" (click)="selectContract(contract)">
+          <!-- Card Gradient Accent -->
+          <div class="card-accent" [class]="'accent-' + getStatusClass(contract.status)"></div>
+          
+          <!-- Card Header -->
+          <div class="modern-card-header">
+            <div class="contract-type">
+              <div class="type-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M20 7h-4.18A3 3 0 0016 5.18V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v1.18A3 3 0 008.18 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/>
+                  <line x1="16" y1="5" x2="8" y2="5"/>
+                </svg>
+              </div>
+              <div class="type-info">
+                <span class="contract-id">#{{ contract.contractId }}</span>
+                <span class="product-name">{{ contract.product?.name || 'Insurance Contract' }}</span>
+              </div>
+            </div>
+            <div class="contract-status-badge" [class]="getStatusClass(contract.status)">
+              {{ getStatusLabel(contract.status) }}
+            </div>
+          </div>
+
+          <!-- Financial Info - Version simplifiée et stable -->
+          <div class="financial-ring-simple">
+            <div class="ring-amounts">
+              <div class="amount-item">
+                <span class="amount-label">Total Premium</span>
+                <span class="amount-value">{{ formatNumber(contract.premium) }} DT</span>
+              </div>
+              <div class="amount-item">
+                <span class="amount-label">Paid</span>
+                <span class="amount-value success">{{ formatNumber(contract.totalPaid) }} DT</span>
+              </div>
+              <div class="amount-item">
+                <span class="amount-label">Remaining</span>
+                <span class="amount-value warning">{{ formatNumber(contract.remainingAmount) }} DT</span>
+              </div>
+            </div>
+            <div class="progress-bar-modern">
+              <div class="progress-bar-fill-modern" [style.width.%]="getProgressPercentage(contract)">
+                <span class="progress-text">{{ getProgressPercentage(contract) | number:'1.0-0' }}%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Contract Timeline -->
+          <div class="contract-timeline">
+            <div class="timeline-dates">
+              <div class="date-point">
+                <span class="date-label">Start</span>
+                <span class="date-value">{{ formatDate(contract.startDate) }}</span>
+              </div>
+              <div class="timeline-line"></div>
+              <div class="date-point">
+                <span class="date-label">End</span>
+                <span class="date-value">{{ formatDate(contract.endDate) }}</span>
+              </div>
+            </div>
+            <div class="payment-frequency">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+              <span>{{ getFrequencyLabel(contract.paymentFrequency) }}</span>
+            </div>
+          </div>
+
+          <!-- Claims Badge -->
+          <div class="claims-badge-modern" *ngIf="getContractClaimsCount(contract.contractId) > 0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M20 12V8H4v4M20 12v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6m16 0h-4M4 12H0m20 0h4M12 4v4m0 4v4"/>
+            </svg>
+            <span>{{ getContractClaimsCount(contract.contractId) }} active claim(s)</span>
+            <span class="claims-total" *ngIf="getContractClaimsTotal(contract.contractId) > 0">
+              ({{ formatNumber(getContractClaimsTotal(contract.contractId)) }} DT)
+            </span>
+          </div>
+
+          <!-- Days Warning -->
+          <div class="days-warning" *ngIf="getDaysRemaining(contract.endDate) <= 30 && getDaysRemaining(contract.endDate) > 0 && contract.status === 'ACTIVE'"
+               [class.urgent]="getDaysRemaining(contract.endDate) <= 7">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <span>{{ getDaysRemaining(contract.endDate) }} days remaining</span>
+          </div>
+
+          <!-- Card Actions -->
+          <div class="modern-card-actions">
+            <button class="action-btn-modern" (click)="$event.stopPropagation(); viewContractDetails(contract)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+              </svg>
+              Details
+            </button>
+            <button class="action-btn-modern primary" *ngIf="contract.remainingAmount > 0 && contract.status === 'ACTIVE'" 
+                    (click)="$event.stopPropagation(); makePayment(contract)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M12 5v14M5 12h14"/>
+              </svg>
+              Pay Now
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="no-contracts" *ngIf="contracts.length === 0">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M20 12V8H4v4M20 12v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6m16 0h-4M4 12H0m20 0h4M12 4v4m0 4v4"/>
+        </svg>
+        <p>No contracts found</p>
+        <button class="btn-create-contract" (click)="createContract()">Create your first contract</button>
+      </div>
+    </div>
+
+    <!-- Contract Details Modal - Version corrigée -->
+    <div class="contract-detail-modal" *ngIf="selectedContract">
+      <div class="modal-overlay" (click)="closeModal()"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Contract Details #{{ selectedContract.contractId }}</h3>
+          <button class="close-btn" (click)="closeModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="detail-grid">
+            <div class="detail-section">
+              <h4>General Information</h4>
+              <div class="detail-row">
+                <span>Product:</span>
+                <strong>{{ selectedContract.product?.name || 'Insurance' }}</strong>
+              </div>
+              <div class="detail-row">
+                <span>Status:</span>
+                <strong [class]="getStatusClass(selectedContract.status)">{{ getStatusLabel(selectedContract.status) }}</strong>
+              </div>
+              <div class="detail-row">
+                <span>Start Date:</span>
+                <strong>{{ formatDate(selectedContract.startDate) }}</strong>
+              </div>
+              <div class="detail-row">
+                <span>End Date:</span>
+                <strong>{{ formatDate(selectedContract.endDate) }}</strong>
+              </div>
+            </div>
+            
+            <div class="detail-section">
+              <h4>Financial Information</h4>
+              <div class="detail-row">
+                <span>Total Premium:</span>
+                <strong>{{ formatNumber(selectedContract.premium) }} DT</strong>
+              </div>
+              <div class="detail-row">
+                <span>Amount Paid:</span>
+                <strong class="success">{{ formatNumber(selectedContract.totalPaid) }} DT</strong>
+              </div>
+              <div class="detail-row">
+                <span>Remaining:</span>
+                <strong class="warning">{{ formatNumber(selectedContract.remainingAmount) }} DT</strong>
+              </div>
+              <div class="detail-row">
+                <span>Frequency:</span>
+                <strong>{{ getFrequencyLabel(selectedContract.paymentFrequency) }}</strong>
+              </div>
+            </div>
+          </div>
+          
+          <div class="claims-section" *ngIf="getContractClaims(selectedContract.contractId).length > 0">
+            <h4>Associated Claims</h4>
+            <div class="claims-list-modal">
+              <div class="claim-item-modal" *ngFor="let claim of getContractClaims(selectedContract.contractId)">
+                <div class="claim-header-modal">
+                  <span class="claim-date">{{ formatDate(claim.claimDate) }}</span>
+                  <span class="claim-status-modal" [class]="getClaimStatusClass(claim.status)">
+                    {{ getClaimStatusLabel(claim.status) }}
+                  </span>
+                </div>
+                <div class="claim-amount-modal">
+                  Declared Amount: {{ formatNumber(claim.claimedAmount) }} DT
+                </div>
+                <div class="claim-description-modal" *ngIf="claim.description">
+                  {{ claim.description }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

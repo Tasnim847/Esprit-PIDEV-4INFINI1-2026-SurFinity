@@ -53,7 +53,11 @@
         </select>
       </div>
       
+      <!-- Dans le header, après les boutons existants -->
       <div class="filter-actions">
+        <button (click)="goToDashboard()" class="btn-dashboard">
+          📊 Dashboard
+        </button>
         <button (click)="resetFilters()" class="btn-secondary">
           🔄 Reset
         </button>

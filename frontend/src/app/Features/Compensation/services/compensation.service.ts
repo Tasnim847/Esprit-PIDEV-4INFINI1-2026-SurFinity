@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Compensation } from '../../../shared';
 
@@ -11,42 +11,66 @@ export class CompensationService {
 
   constructor(private http: HttpClient) { }
 
-  // Récupérer les compensations du client connecté
+  private getHeaders(): HttpHeaders {
+    const token = localStorage.getItem('token');
+    let headers = new HttpHeaders({
+      'Content-Type': 'application/json'
+    });
+    
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
+    }
+    
+    return headers;
+  }
+
+  // Get client's compensations
   getMyCompensations(): Observable<Compensation[]> {
-    return this.http.get<Compensation[]>(`${this.apiUrl}/my-compensations`);
+    return this.http.get<Compensation[]>(`${this.apiUrl}/my-compensations`, { headers: this.getHeaders() });
   }
 
-  // Récupérer une compensation par son ID
+  // Get compensation by ID
   getCompensationById(id: number): Observable<Compensation> {
-    return this.http.get<Compensation>(`${this.apiUrl}/getComp/${id}`);
+    return this.http.get<Compensation>(`${this.apiUrl}/getComp/${id}`, { headers: this.getHeaders() });
   }
 
-  // Obtenir les détails d'une compensation avec scoring
+  // Get compensation details with scoring
   getCompensationWithScoring(id: number): Observable<any> {
-    return this.http.get(`${this.apiUrl}/${id}/with-scoring`);
+    return this.http.get(`${this.apiUrl}/${id}/with-scoring`, { headers: this.getHeaders() });
   }
 
-  // Obtenir les détails complets d'une compensation pour le client
+  // Get complete compensation details for client
   getMyCompensationDetails(id: number): Observable<any> {
-    return this.http.get(`${this.apiUrl}/${id}/my-details`);
+    return this.http.get(`${this.apiUrl}/${id}/my-details`, { headers: this.getHeaders() });
   }
 
-  // Vérifier le solde avant paiement
-  checkBalanceBeforePayment(id: number): Observable<any> {
-    return this.http.get(`${this.apiUrl}/${id}/check-balance`);
+  // ✅ Paiement par CARTE (Stripe)
+  payCompensationByCard(compensationId: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/${compensationId}/pay-by-card`, {}, { headers: this.getHeaders() });
   }
 
-  // Payer une compensation
-  payCompensation(id: number): Observable<any> {
-    return this.http.post(`${this.apiUrl}/${id}/pay-by-client`, {});
+  // ✅ Paiement en CASH
+  payCompensationByCash(compensationId: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/${compensationId}/pay-by-cash`, {}, { headers: this.getHeaders() });
   }
 
-  // Dans compensation.service.ts
+  // ✅ Confirmer paiement Stripe
+  confirmCompensationPayment(paymentIntentId: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/confirm-payment/${paymentIntentId}`, {}, { headers: this.getHeaders() });
+  }
+
+  // Get all compensations (admin)
   getAllCompensations(): Observable<Compensation[]> {
-    return this.http.get<Compensation[]>(`${this.apiUrl}/allComp`);
+    return this.http.get<Compensation[]>(`${this.apiUrl}/allComp`, { headers: this.getHeaders() });
   }
 
+  // Recalculate compensation
   recalculateCompensation(claimId: number): Observable<Compensation> {
-    return this.http.post<Compensation>(`${this.apiUrl}/recalculate/${claimId}`, {});
+    return this.http.post<Compensation>(`${this.apiUrl}/recalculate/${claimId}`, {}, { headers: this.getHeaders() });
+  }
+
+  // Ajouter cette méthode dans CompensationService
+  markAsPaid(compensationId: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/${compensationId}/pay`, {}, { headers: this.getHeaders() });
   }
 }

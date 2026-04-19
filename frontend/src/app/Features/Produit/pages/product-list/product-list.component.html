@@ -1,31 +1,58 @@
-<!-- product-list.component.html -->
-<div class="products-container">
-  <!-- Hero Section -->
-  <div class="hero-section">
-    <div class="hero-content">
-      <h1>Nos Produits d'Assurance</h1>
-      <p>Découvrez notre sélection exclusive de produits de qualité</p>
+<div class="products-page">
+  <div class="container py-5">
+
+    <!-- HERO SECTION -->
+    <div class="hero-modern text-center mb-5">
+     
+      <h1 class="hero-title">Your Insurance Products</h1>
+      <p class="hero-subtitle">
+        Find the perfect coverage for your needs
+      </p>
     </div>
-  </div>
 
-  <!-- Loading State -->
-  <div *ngIf="isLoading" class="loading-state">
-    <div class="spinner"></div>
-    <p>Chargement des produits...</p>
-  </div>
+    <!-- SEARCH & FILTERS -->
+    <div class="filter-box">
+      <div class="search-container">
+        <i class="fas fa-search"></i>
+        <input
+          type="text"
+          placeholder="Search products..."
+          [(ngModel)]="searchTerm"
+          (input)="applyFilters()"
+        />
+      </div>
 
-  <!-- Products Grid - UTILISATION DU COMPOSANT PRODUCT-CARD -->
-  <div *ngIf="!isLoading && products.length > 0" class="products-grid">
-    <app-product-card 
-      *ngFor="let product of products" 
-      [product]="product">
-    </app-product-card>
-  </div>
+      <div class="filter-buttons">
+        <button 
+          class="filter-btn"
+          [class.active]="selectedType === ''"
+          (click)="selectedType=''; applyFilters()">
+          <i class="fas fa-th"></i> All Products
+        </button>
 
-  <!-- Empty State -->
-  <div *ngIf="!isLoading && products.length === 0" class="empty-state">
-    <i class="fas fa-box-open"></i>
-    <h3>Aucun produit disponible</h3>
-    <p>Revenez plus tard pour découvrir nos nouveaux produits</p>
+        <button
+          *ngFor="let type of getUniqueTypes()"
+          class="filter-btn"
+          [class.active]="selectedType === type.value"
+          (click)="selectedType=type.value; applyFilters()">
+          {{ type.label }}
+        </button>
+      </div>
+    </div>
+
+    <!-- PRODUCTS GRID -->
+    <div class="row g-4 mt-4">
+      <div class="col-md-6 col-lg-4" *ngFor="let product of filteredProducts">
+        <app-product-card [product]="product"></app-product-card>
+      </div>
+    </div>
+
+    <!-- EMPTY STATE (optionnel) -->
+    <div *ngIf="filteredProducts.length === 0" class="text-center py-5">
+      <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+      <h3 class="text-muted">No products found</h3>
+      <p class="text-muted">Try adjusting your search or filter criteria</p>
+    </div>
+
   </div>
 </div>
