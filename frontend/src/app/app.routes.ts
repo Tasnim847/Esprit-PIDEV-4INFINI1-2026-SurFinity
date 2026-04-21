@@ -25,7 +25,11 @@ import { AddClaimComponent } from './Features/Claims/client/add-claim/add-claim.
 import {ForgotPasswordComponent} from './Features/auth/forgot-password/forgot-password.component';
 import { UserManagementComponent } from './pages/dashboard/user-management/user-management.component';
 import {DashboardProfileComponent} from './pages/dashboard-profile/dashboard-profile.component';
+import { OauthCallbackComponent } from './Features/auth/oauth-callback.component';
+
+
 export const routes: Routes = [
+
   // Landing page ouverte par défaut
   { path: '', component: LandingPageComponent },
 
@@ -41,6 +45,21 @@ export const routes: Routes = [
   {
     path: 'forgot-password',
     component: LandingPageComponent
+  },
+  // Route OAuth2 Callback - UNE SEULE FOIS
+  {
+    path: 'oauth2/callback',
+    component: OauthCallbackComponent
+  },
+  {
+    path: 'face-login',
+    loadComponent: () => import('./components/face-login/face-login.component')
+      .then(m => m.FaceLoginComponent)
+  },
+  {
+    path: 'face-register',
+    loadComponent: () => import('./components/face-register/face-register.component')
+      .then(m => m.FaceRegisterComponent)
   },
 
   // Pages publiques sous NavbarFooterLayout
