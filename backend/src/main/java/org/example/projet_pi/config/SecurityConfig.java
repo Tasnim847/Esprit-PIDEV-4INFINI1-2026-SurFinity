@@ -105,9 +105,6 @@ public class SecurityConfig {
                         .requestMatchers("/login/oauth2/**").permitAll()
                         .requestMatchers("/oauth2/**").permitAll()
 
-                        .requestMatchers("/api/clients/**").hasAnyRole("ADMIN", "AGENT_ASSURANCE", "AGENT_FINANCE")
-                        .requestMatchers("/api/clients/{id}").hasAnyRole("ADMIN", "AGENT_ASSURANCE", "AGENT_FINANCE")
-                        .requestMatchers("/api/clients/email/{email}").hasAnyRole("ADMIN", "AGENT_ASSURANCE", "AGENT_FINANCE")
 
                         // 👑 ADMIN uniquement
                         .requestMatchers("/products/addProduct").hasRole("ADMIN")
@@ -157,7 +154,6 @@ public class SecurityConfig {
                         .requestMatchers("/documents/claim/**").hasAnyRole("CLIENT", "AGENT_ASSURANCE", "ADMIN")
 
                         // 💰 Paiements
-                        .requestMatchers("/payments/payments").hasAnyRole("CLIENT", "AGENT_ASSURANCE", "ADMIN")
                         .requestMatchers("/payments/addPayment").hasAnyRole("CLIENT", "AGENT_ASSURANCE", "ADMIN")
                         .requestMatchers("/payments/getPayment/**").hasAnyRole("CLIENT", "AGENT_ASSURANCE", "ADMIN")
                         .requestMatchers("/payments/allPayments").hasAnyRole("CLIENT","AGENT_ASSURANCE","ADMIN")

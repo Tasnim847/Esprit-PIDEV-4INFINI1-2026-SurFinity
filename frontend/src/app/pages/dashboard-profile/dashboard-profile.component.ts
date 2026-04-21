@@ -73,7 +73,7 @@ export class DashboardProfileComponent implements OnInit {
         }
 
         if (user.photo) {
-          this.profilePhoto = `http://localhost:8083/uploads/${user.photo}`;
+          this.profilePhoto = `http://localhost:8081/uploads/${user.photo}`;
         }
       },
       error: (err) => {

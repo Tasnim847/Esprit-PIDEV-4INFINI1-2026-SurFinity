@@ -70,7 +70,7 @@ export class DashboardNavbarComponent implements OnInit {
       this.auth.getMe().subscribe({
         next: (user) => {
           if (user && user.photo) {
-            this.profilePhoto = `http://localhost:8083/uploads/${user.photo}`;
+            this.profilePhoto = `http://localhost:8081/uploads/${user.photo}`;
             this.userAvatar = this.profilePhoto;
             if (this.isBrowser) {
               localStorage.setItem('profilePhoto', this.profilePhoto);

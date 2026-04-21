@@ -164,12 +164,6 @@
             <version>1.5.9</version>
         </dependency>
 
-        <!-- OpenBLAS pour calcul -->
-        <dependency>
-            <groupId>org.bytedeco</groupId>
-            <artifactId>openblas-platform</artifactId>
-            <version>0.3.23-1.5.9</version>
-        </dependency>
 
         <!-- DeepLearning4J pour extraction features -->
         <dependency>
