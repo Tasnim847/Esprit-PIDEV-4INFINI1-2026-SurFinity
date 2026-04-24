@@ -9,7 +9,7 @@ import { Observable, map } from 'rxjs';
 })
 export class ComplaintService {
 
-  private apiUrl = 'http://localhost:8082/complaints';
+  private apiUrl = 'http://localhost:8081/complaints';
 
   constructor(private http: HttpClient) {}
 
@@ -66,4 +66,25 @@ export class ComplaintService {
       headers: this.getAuthHeaders()
     });
   }
+  // src/app/services/complaint.service.ts
+
+// Ajoutez cette méthode
+getComplaintsByClient(clientId: number): Observable<any> {
+  console.log(`📡 Récupération des réclamations du client ID: ${clientId}`);
+  return this.http.get(`${this.apiUrl}/client/${clientId}`);
+}
+// src/app/services/complaint.service.ts
+
+// Ajoutez cette méthode
+getComplaintsForAgent(endpoint: string): Observable<any> {
+  console.log(`📡 Récupération des réclamations pour agent: ${endpoint}`);
+  return this.http.get(`${this.apiUrl}/${endpoint}`);
+}
+
+// src/app/services/complaint.service.ts
+
+updateComplaintStatus(id: number, payload: any): Observable<any> {
+  console.log(`📡 Mise à jour du statut de la réclamation ID: ${id}`);
+  return this.http.put(`${this.apiUrl}/updateComplaint/${id}`, payload);
+}
 }

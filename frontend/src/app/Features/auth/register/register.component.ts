@@ -117,6 +117,6 @@ export class RegisterComponent {
   }
 
   loginWithGoogle() {
-    window.location.href = 'http://localhost:8081/oauth2/authorization/google';
+    window.location.href = 'http://localhost:8083/oauth2/authorization/google';
   }
 }

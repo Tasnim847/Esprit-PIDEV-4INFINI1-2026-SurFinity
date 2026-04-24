@@ -11,8 +11,8 @@ import { environment } from '../../../../environments/environment';
   providedIn: 'root'
 })
 export class ContractService {
-  private apiUrl = 'http://localhost:8082/contrats';
-  private agentApiUrl = 'http://localhost:8082/agent';
+  private apiUrl = 'http://localhost:8081/contrats';
+  private agentApiUrl = 'http://localhost:8081/agent';
   private baseUrl = environment.apiUrl; // MODIFIER: utiliser environment.apiUrl
 
 

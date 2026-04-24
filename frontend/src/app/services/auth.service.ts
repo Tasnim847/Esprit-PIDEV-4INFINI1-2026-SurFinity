@@ -1,5 +1,3 @@
-// services/auth.service.ts - Complete working version
-
 import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
@@ -11,7 +9,7 @@ import { isPlatformBrowser } from '@angular/common';
 })
 export class AuthService {
 
-  private API = 'http://localhost:8082/api/auth';
+  private API = 'http://localhost:8081/api/auth';
   private isBrowser: boolean;
 
   constructor(
@@ -21,7 +19,13 @@ export class AuthService {
     this.isBrowser = isPlatformBrowser(this.platformId);
   }
 
-  login(data: { email: string, password: string }): Observable<any> {
+  // ✅ Ajout de clientLat et clientLon optionnels
+  login(data: {
+    email: string;
+    password: string;
+    clientLat?: number | null;
+    clientLon?: number | null;
+  }): Observable<any> {
     return this.http.post<any>(`${this.API}/login`, data).pipe(
       catchError(this.handleError)
     );
@@ -43,27 +47,21 @@ export class AuthService {
 
   updateMe(data: any): Observable<any> {
     return this.http.put(
-      'http://localhost:8082/api/auth/update-me',
+      'http://localhost:8081/api/auth/update-me',
       data,
       { responseType: 'text' }
     ).pipe(catchError(this.handleError));
   }
 
-  // ✅ FIXED: Change password based on role
   changePassword(role: string | null, data: any): Observable<any> {
     let url = '';
 
     switch (role) {
       case 'ADMIN':
-        // Admin: Use path variable for ID
-        url = `http://localhost:8082/admins/change-password/${data.id}`;
+        url = `http://localhost:8081/admins/change-password/${data.id}`;
         const params = new URLSearchParams();
         params.set('oldPassword', data.oldPassword);
         params.set('newPassword', data.newPassword);
-
-        console.log('Admin change password URL:', url);
-        console.log('Admin params:', params.toString());
-
         return this.http.post(url, params.toString(), {
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -73,7 +71,7 @@ export class AuthService {
         }).pipe(catchError(this.handleError));
 
       case 'CLIENT':
-        url = 'http://localhost:8082/api/clients/change-password';
+        url = 'http://localhost:8081/api/clients/change-password';
         return this.http.put(url, {
           id: data.id,
           oldPassword: data.oldPassword,
@@ -84,7 +82,7 @@ export class AuthService {
         }).pipe(catchError(this.handleError));
 
       case 'AGENT_FINANCE':
-        url = 'http://localhost:8082/agents/finance/change-password';
+        url = 'http://localhost:8081/agents/finance/change-password';
         return this.http.put(url, {
           id: data.id,
           oldPassword: data.oldPassword,
@@ -95,7 +93,7 @@ export class AuthService {
         }).pipe(catchError(this.handleError));
 
       case 'AGENT_ASSURANCE':
-        url = 'http://localhost:8082/agents-assurance/change-password';
+        url = 'http://localhost:8081/agents-assurance/change-password';
         return this.http.put(url, {
           id: data.id,
           oldPassword: data.oldPassword,
@@ -116,16 +114,16 @@ export class AuthService {
 
     switch (role) {
       case 'CLIENT':
-        url = `http://localhost:8082/api/clients/update/${userId}`;
+        url = `http://localhost:8081/api/clients/update/${userId}`;
         break;
       case 'AGENT_FINANCE':
-        url = `http://localhost:8082/agents/finance/update/${userId}`;
+        url = `http://localhost:8081/agents/finance/update/${userId}`;
         break;
       case 'AGENT_ASSURANCE':
-        url = `http://localhost:8082/agents-assurance/update/${userId}`;
+        url = `http://localhost:8081/agents-assurance/update/${userId}`;
         break;
       case 'ADMIN':
-        url = `http://localhost:8082/admins/update/${userId}`;
+        url = `http://localhost:8081/admins/update/${userId}`;
         break;
       default:
         throw new Error('Role non supporté');
@@ -147,57 +145,37 @@ export class AuthService {
     return throwError(() => error);
   }
 
-  // Session management
   saveSession(token: string, role: string, userId?: number | null, firstName?: string, lastName?: string, email?: string) {
     if (this.isBrowser) {
       localStorage.setItem('token', token);
       localStorage.setItem('role', role);
-      if (userId) {
-        localStorage.setItem('userId', userId.toString());
-      }
-      if (firstName) {
-        localStorage.setItem('firstName', firstName);
-      }
-      if (lastName) {
-        localStorage.setItem('lastName', lastName);
-      }
-      if (email) {
-        localStorage.setItem('userEmail', email);
-      }
+      if (userId) localStorage.setItem('userId', userId.toString());
+      if (firstName) localStorage.setItem('firstName', firstName);
+      if (lastName) localStorage.setItem('lastName', lastName);
+      if (email) localStorage.setItem('userEmail', email);
     }
   }
 
   getToken(): string | null {
-    if (this.isBrowser) {
-      return localStorage.getItem('token');
-    }
-    return null;
+    return this.isBrowser ? localStorage.getItem('token') : null;
   }
 
   getRole(): string | null {
-    if (this.isBrowser) {
-      return localStorage.getItem('role');
-    }
-    return null;
+    return this.isBrowser ? localStorage.getItem('role') : null;
   }
 
   getUserId(): number | null {
     if (this.isBrowser) {
-      // First try localStorage
       const storedUserId = localStorage.getItem('userId');
       if (storedUserId && !isNaN(parseInt(storedUserId))) {
         return parseInt(storedUserId);
       }
-
-      // Then try from token
       const token = this.getToken();
       if (!token) return null;
-
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         return payload.id || payload.userId || null;
       } catch (e) {
-        console.error('Error extracting userId:', e);
         return null;
       }
     }
@@ -205,36 +183,22 @@ export class AuthService {
   }
 
   getUserFirstName(): string | null {
-    if (this.isBrowser) {
-      return localStorage.getItem('firstName');
-    }
-    return null;
+    return this.isBrowser ? localStorage.getItem('firstName') : null;
   }
 
   getUserLastName(): string | null {
-    if (this.isBrowser) {
-      return localStorage.getItem('lastName');
-    }
-    return null;
+    return this.isBrowser ? localStorage.getItem('lastName') : null;
   }
 
   getUserEmail(): string | null {
-    if (this.isBrowser) {
-      return localStorage.getItem('userEmail');
-    }
-    return null;
+    return this.isBrowser ? localStorage.getItem('userEmail') : null;
   }
 
   isLoggedIn(): boolean {
-    if (this.isBrowser) {
-      return !!this.getToken();
-    }
-    return false;
+    return this.isBrowser ? !!this.getToken() : false;
   }
 
   logout(): void {
-    if (this.isBrowser) {
-      localStorage.clear();
-    }
+    if (this.isBrowser) localStorage.clear();
   }
 }
