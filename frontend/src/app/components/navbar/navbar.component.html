@@ -36,10 +36,10 @@
           <a class="nav-link" routerLink="/public/account" routerLinkActive="active">Account</a>
         </li>
 
-        <!-- Complaint - visible pour CLIENT et AGENT_FINANCE seulement -->
-        <li class="nav-item" *ngIf="isComplaintVisible()">
-          <a class="nav-link" routerLink="/public/complaint" routerLinkActive="active">Complaint</a>
-        </li>
+        <!-- Complaint - visible pour CLIENT, AGENT_ASSURANCE et AGENT_FINANCE -->
+<li class="nav-item" *ngIf="isComplaintVisible()">
+  <a class="nav-link" [routerLink]="getComplaintLink()" routerLinkActive="active">Complaint</a>
+</li>
 
         <!-- News - visible pour CLIENT et AGENT_ASSURANCE seulement -->
         <li class="nav-item" *ngIf="isNewsVisible()">

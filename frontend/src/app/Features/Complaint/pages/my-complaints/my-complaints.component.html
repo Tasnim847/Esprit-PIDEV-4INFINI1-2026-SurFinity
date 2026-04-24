@@ -1,0 +1,241 @@
+<!-- src/app/Features/Complaint/pages/my-complaints/my-complaints.component.html -->
+
+<div class="my-complaints-container">
+  
+  <!-- HEADER -->
+  <div class="page-header">
+    <div>
+      <h1>📋 My Complaints</h1>
+      <p class="subtitle">
+        Welcome {{ currentUser?.firstName }} {{ currentUser?.lastName }}
+      </p>
+      <p class="stats">
+        <span class="badge-count">{{ filteredComplaints.length }}</span> complaint(s)
+      </p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-primary" (click)="openAddForm()">
+        <span class="btn-icon">➕</span>
+        New Complaint
+      </button>
+    </div>
+  </div>
+
+  <!-- MESSAGES -->
+  <div *ngIf="successMessage" class="alert alert-success">
+    <span>✅ {{ successMessage }}</span>
+    <button class="alert-close" (click)="successMessage = ''">✖</button>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-error">
+    <span>⚠️ {{ errorMessage }}</span>
+    <button class="alert-close" (click)="errorMessage = ''">✖</button>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filters-card">
+    <div class="filters-bar">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input 
+          type="text" 
+          [(ngModel)]="searchTerm" 
+          placeholder="Search my complaints..."
+          class="search-input"
+        >
+      </div>
+      
+      <div class="filter-group">
+        <select [(ngModel)]="selectedStatus" class="filter-select">
+          <option value="">📋 All statuses</option>
+          <option value="PENDING">🟡 Pending</option>
+          <option value="IN_PROGRESS">🔵 In Progress</option>
+          <option value="APPROVED">🟢 Approved</option>
+          <option value="REJECTED">🔴 Rejected</option>
+          <option value="CLOSED">⚫ Closed</option>
+        </select>
+        
+        <button class="btn btn-secondary" (click)="resetFilters()">
+          🔄 Reset
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div *ngIf="isLoading" class="loading-spinner">
+    <div class="spinner"></div>
+    <p>Loading your complaints...</p>
+  </div>
+
+  <!-- COMPLAINTS LIST -->
+  <div *ngIf="!isLoading" class="complaints-grid">
+    
+    <div *ngFor="let complaint of filteredComplaints" class="complaint-card" (click)="viewDetails(complaint)">
+      
+      <div class="card-header" [class]="'header-' + (complaint.status?.toLowerCase() || 'pending')">
+        <div class="card-status-badge">
+          <span class="status-badge" [class]="getStatusClass(complaint.status)">
+            {{ getStatusIcon(complaint.status) }} {{ getStatusLabel(complaint.status) }}
+          </span>
+        </div>
+        <div class="card-actions">
+          <button class="btn-icon btn-delete" (click)="deleteComplaint(complaint.id, $event)" title="Delete">
+            🗑️
+          </button>
+        </div>
+      </div>
+      
+      <div class="card-body">
+        <div class="complaint-message">
+          <p class="message-text">{{ complaint.message || 'No message' }}</p>
+        </div>
+        
+        <div class="complaint-details">
+          <div class="detail-item">
+            <span class="detail-icon">📅</span>
+            <span class="detail-text">{{ formatDate(complaint.claimDate) }}</span>
+          </div>
+          <div class="detail-item" *ngIf="complaint.phone">
+            <span class="detail-icon">📞</span>
+            <span class="detail-text">{{ complaint.phone }}</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card-footer">
+        <span class="complaint-id">#{{ complaint.id }}</span>
+        <span class="view-detail">Click to view details →</span>
+      </div>
+    </div>
+
+    <div *ngIf="filteredComplaints.length === 0" class="empty-state">
+      <div class="empty-icon">📭</div>
+      <h3>No complaints found</h3>
+      <p *ngIf="complaints.length === 0">You don't have any complaints yet.</p>
+      <p *ngIf="complaints.length > 0 && filteredComplaints.length === 0">No complaints match your filters.</p>
+      <button class="btn btn-primary" (click)="openAddForm()">➕ Create my first complaint</button>
+    </div>
+  </div>
+
+  <!-- MODAL FORM WITH VOICE RECOGNITION -->
+  <div *ngIf="showForm && complaintForm" class="modal-overlay" (click)="closeForm()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      
+      <div class="modal-header">
+        <h2>➕ New complaint</h2>
+        <button class="close-btn" (click)="closeForm()">✖</button>
+      </div>
+      
+      <form [formGroup]="complaintForm" (ngSubmit)="saveComplaint()">
+
+        <div class="form-group">
+          <label>Message <span class="required">*</span></label>
+          <div class="message-input-group">
+            <textarea 
+              rows="4" 
+              formControlName="message" 
+              placeholder="Describe your complaint... or use the microphone 🎤"
+              class="form-control"
+            ></textarea>
+            <button 
+              type="button" 
+              class="voice-btn" 
+              (click)="startVoiceRecognition()"
+              [class.listening]="isListening"
+              [title]="voiceSupported ? 'Dictate my message' : 'Voice recognition not supported'">
+              <i class="fas fa-microphone"></i>
+              <span class="voice-status" *ngIf="isListening">{{ voiceMessage }}</span>
+            </button>
+          </div>
+          <div class="error-message" *ngIf="complaintForm.get('message')?.invalid && complaintForm.get('message')?.touched">
+            Message is required (minimum 5 characters)
+          </div>
+          <div class="voice-hint" *ngIf="voiceSupported">
+            <i class="fas fa-info-circle"></i>
+            <small>Click on the microphone and speak to dictate your message</small>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Phone <span class="required">*</span></label>
+          <input type="tel" formControlName="phone" placeholder="Your phone number" class="form-control">
+          <div class="error-message" *ngIf="complaintForm.get('phone')?.invalid && complaintForm.get('phone')?.touched">
+            Phone is required
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="closeForm()">Cancel</button>
+          <button type="submit" class="btn btn-primary" [disabled]="complaintForm.invalid || isLoading">
+            {{ isLoading ? 'Loading...' : 'Submit' }}
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL DETAILS -->
+  <div *ngIf="selectedComplaint && !showForm" class="modal-overlay" (click)="closeDetails()">
+    <div class="modal-content modal-details" (click)="$event.stopPropagation()">
+      
+      <div class="modal-header" [class]="'header-' + (selectedComplaint.status?.toLowerCase() || 'pending')">
+        <h2>📄 Complaint details</h2>
+        <button class="close-btn" (click)="closeDetails()">✖</button>
+      </div>
+      
+      <div class="details-content">
+        <div class="detail-row">
+          <div class="detail-label">ID :</div>
+          <div class="detail-value">#{{ selectedComplaint.id }}</div>
+        </div>
+
+        <div class="detail-row">
+          <div class="detail-label">Status :</div>
+          <div class="detail-value">
+            <span class="badge" [class]="getStatusClass(selectedComplaint.status)">
+              {{ getStatusIcon(selectedComplaint.status) }} {{ getStatusLabel(selectedComplaint.status) }}
+            </span>
+          </div>
+        </div>
+
+        <div class="detail-row">
+          <div class="detail-label">Message :</div>
+          <div class="detail-value message-full">{{ selectedComplaint.message }}</div>
+        </div>
+
+        <div class="detail-row">
+          <div class="detail-label">Phone :</div>
+          <div class="detail-value">{{ selectedComplaint.phone || 'Not provided' }}</div>
+        </div>
+
+        <div class="detail-row">
+          <div class="detail-label">Creation date :</div>
+          <div class="detail-value">{{ formatDate(selectedComplaint.claimDate) }}</div>
+        </div>
+
+        <div class="detail-row" *ngIf="selectedComplaint.resolutionDate">
+          <div class="detail-label">Resolution date :</div>
+          <div class="detail-value">{{ formatDate(selectedComplaint.resolutionDate) }}</div>
+        </div>
+        
+        <div class="detail-row" *ngIf="selectedComplaint.agentAssurance">
+          <div class="detail-label">Insurance Agent :</div>
+          <div class="detail-value">{{ selectedComplaint.agentAssurance.firstName }} {{ selectedComplaint.agentAssurance.lastName }}</div>
+        </div>
+        
+        <div class="detail-row" *ngIf="selectedComplaint.agentFinance">
+          <div class="detail-label">Finance Agent :</div>
+          <div class="detail-value">{{ selectedComplaint.agentFinance.firstName }} {{ selectedComplaint.agentFinance.lastName }}</div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeDetails()">Close</button>
+      </div>
+
+    </div>
+  </div>
+
+</div>

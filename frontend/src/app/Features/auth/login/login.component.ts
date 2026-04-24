@@ -1,7 +1,7 @@
 import { Component, Inject, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import {ActivatedRoute, Router} from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
 import { FaceAuthService } from '../../../services/face-auth.service';
 import { RouterModule } from '@angular/router';
@@ -21,6 +21,11 @@ export class LoginComponent {
   errorMessage: string = '';
   private isBrowser: boolean;
 
+  // Coordonnées GPS
+  private clientLat: number | null = null;
+  private clientLon: number | null = null;
+  private gpsAttempted: boolean = false;
+
   // Variables pour la reconnaissance faciale
   showFaceModal: boolean = false;
   faceImage: File | null = null;
@@ -35,12 +40,47 @@ export class LoginComponent {
     private faceAuth: FaceAuthService,
     private router: Router,
     private route: ActivatedRoute,
-  @Inject(PLATFORM_ID) private platformId: Object
+    @Inject(PLATFORM_ID) private platformId: Object
   ) {
     this.isBrowser = isPlatformBrowser(this.platformId);
+    // Capture automatique dès l'ouverture de la page
+    this.captureGeoPosition();
   }
 
-  // ========== LOGIN CLASSIQUE ==========
+  // Capture automatique et silencieuse de la position GPS
+  private captureGeoPosition() {
+    if (!this.isBrowser || !navigator.geolocation) {
+      console.log('📍 Géolocalisation non disponible');
+      this.gpsAttempted = true;
+      return;
+    }
+
+    console.log('📍 Tentative de capture GPS...');
+    
+    // Options optimisées pour une réponse rapide
+    const options = {
+      enableHighAccuracy: false,  // Plus rapide sans haute précision
+      timeout: 5000,              // 5 secondes max
+      maximumAge: 60000          // Accepte position récente de 1 minute
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        this.clientLat = position.coords.latitude;
+        this.clientLon = position.coords.longitude;
+        this.gpsAttempted = true;
+        console.log('✅ GPS capturé automatiquement:', this.clientLat, this.clientLon);
+      },
+      (error) => {
+        this.gpsAttempted = true;
+        console.warn('⚠️ Échec capture GPS automatique:', error.message);
+        // Pas d'UI, on continue silencieusement
+      },
+      options
+    );
+  }
+
+  // ========== LOGIN ==========
   onLogin() {
     if (!this.email || !this.password) {
       this.errorMessage = 'Veuillez remplir tous les champs';
@@ -50,24 +90,49 @@ export class LoginComponent {
     this.isLoading = true;
     this.errorMessage = '';
 
-    this.auth.login({
-      email: this.email,
-      password: this.password
-    }).subscribe({
-      next: (res) => {
-        this.handleLoginResponse(res);
-      },
-      error: (err) => {
-        this.isLoading = false;
-        if (err.status === 401) {
-          this.errorMessage = 'Email ou mot de passe incorrect';
-        } else if (err.status === 403) {
-          this.errorMessage = 'Compte bloqué. Réessayez dans 2 minutes.';
-        } else {
-          this.errorMessage = err.error?.message || 'Une erreur est survenue';
-        }
+    // Attendre un peu si le GPS n'a pas encore répondu (max 1 seconde)
+    const sendLogin = () => {
+      const loginData: any = {
+        email: this.email,
+        password: this.password
+      };
+
+      // Envoyer les coordonnées GPS uniquement si on les a
+      if (this.clientLat !== null && this.clientLon !== null) {
+        loginData.clientLat = this.clientLat;
+        loginData.clientLon = this.clientLon;
+        console.log('📍 Envoi GPS au backend:', this.clientLat, this.clientLon);
+      } else {
+        console.log('📍 Pas de GPS disponible, backend utilisera IP');
       }
-    });
+
+      this.auth.login(loginData).subscribe({
+        next: (res) => {
+          this.handleLoginResponse(res);
+        },
+        error: (err) => {
+          this.isLoading = false;
+          if (err.status === 401) {
+            this.errorMessage = 'Email ou mot de passe incorrect';
+          } else if (err.status === 403) {
+            this.errorMessage = 'Compte bloqué. Réessayez dans 2 minutes.';
+          } else {
+            this.errorMessage = err.error?.message || 'Une erreur est survenue';
+          }
+        }
+      });
+    };
+
+    // Si le GPS est déjà tenté, on envoie directement
+    if (this.gpsAttempted) {
+      sendLogin();
+    } else {
+      // Sinon on attend un peu que le GPS réponde (max 1.5 secondes)
+      console.log('⏳ Attente réponse GPS...');
+      setTimeout(() => {
+        sendLogin();
+      }, 1500);
+    }
   }
 
   // ========== RECONNAISSANCE FACIALE ==========
@@ -93,7 +158,6 @@ export class LoginComponent {
       });
       this.isCameraActive = true;
 
-      // Attendre que le DOM soit prêt
       setTimeout(() => {
         const video = document.getElementById('faceVideo') as HTMLVideoElement;
         if (video && this.stream) {

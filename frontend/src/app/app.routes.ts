@@ -10,9 +10,9 @@ import { CreditPageComponent } from './Features/Credit/pages/credit-page/credit-
 import { AccountPageComponent } from './Features/Account/pages/account-page/account-page.component';
 import { ComplaintPageComponent } from './Features/Complaint/pages/complaint-page/complaint-page.component';
 import { NewsPageComponent } from './Features/News/pages/news-page/news-page.component';
-import {authGuard} from './guards/auth.guard';
+import { authGuard } from './guards/auth.guard';
 import { roleGuard } from './guards/role.guard';
-import {ProfileComponent} from './pages/profile/profile.component';
+import { ProfileComponent } from './pages/profile/profile.component';
 import { AddContractComponent } from './Features/Insurance/pages/client/add-contract/add-contract.component';
 import { MyContractsComponent } from './Features/Insurance/pages/client/my-contracts/my-contracts.component';
 import { AdminProductListComponent } from './Features/Produit/pages/admin-product-list/admin-product-list/admin-product-list.component';
@@ -20,9 +20,9 @@ import { ContractListComponent } from './Features/Insurance/pages/admin/contract
 import { ListAllClaimsComponent } from './Features/Claims/admin/list-all-claims/list-all-claims.component';
 import { ListMyClaimsComponent } from './Features/Claims/client/list-my-claims/list-my-claims.component';
 import { AddClaimComponent } from './Features/Claims/client/add-claim/add-claim.component';
-import {ForgotPasswordComponent} from './Features/auth/forgot-password/forgot-password.component';
+import { ForgotPasswordComponent } from './Features/auth/forgot-password/forgot-password.component';
 import { UserManagementComponent } from './pages/dashboard/user-management/user-management.component';
-import {DashboardProfileComponent} from './pages/dashboard-profile/dashboard-profile.component';
+import { DashboardProfileComponent } from './pages/dashboard-profile/dashboard-profile.component';
 import { OauthCallbackComponent } from './Features/auth/oauth-callback.component';
 import { ClientRepaymentComponent } from './Features/Credit/pages/repayment/client-repayment/client-repayment.component';
 import { InsuranceRouterComponent } from './Features/Insurance/insurance-router';
@@ -39,15 +39,15 @@ import { ClaimsDashboardComponent } from './Features/Claims/admin/claims-dashboa
 import { ListAllCompensationsComponent } from './Features/Compensation/admin/list-all-compensations/list-all-compensations.component';
 import { ComplaintKpiComponent } from './Features/Complaint/pages/complaint-kpi/complaint-kpi.component';
 import { TransactionPageComponent } from './Features/Transaction/pages/transaction-page/transaction-page.component';
-
-
+import { MyComplaintsComponent } from './Features/Complaint/pages/my-complaints/my-complaints.component';
+import { AgentComplaintsComponent } from './Features/Complaint/pages/agent-complaints/agent-complaints.component';
 
 export const routes: Routes = [
 
   // Landing page ouverte par défaut
   { path: '', component: LandingPageComponent },
 
-  // Routes pour login et register (DOIVENT ÊTRE DÉCOMMENTÉES)
+  // Routes pour login et register
   {
     path: 'login',
     component: LandingPageComponent
@@ -60,7 +60,8 @@ export const routes: Routes = [
     path: 'forgot-password',
     component: LandingPageComponent
   },
-  // Route OAuth2 Callback - UNE SEULE FOIS
+  
+  // Route OAuth2 Callback
   {
     path: 'oauth2/callback',
     component: OauthCallbackComponent
@@ -76,94 +77,103 @@ export const routes: Routes = [
       .then(m => m.FaceRegisterComponent)
   },
 
-  // Pages publiques sous NavbarFooterLayout
+  // ============================================
+  // PAGES AVEC NAVBAR ET FOOTER (Clients + Agents)
+  // ============================================
   {
     path: 'public',
     component: NavbarFooterLayoutComponent,
     children: [
+      // Pages publiques
       { path: 'home', component: HomeComponent },
       { path: 'about', component: AboutComponent },
       { path: 'credit', component: CreditPageComponent },
       { path: 'repayment/:id', component: ClientRepaymentComponent, canActivate: [authGuard] },
-      { path: 'insurance', component: InsuranceRouterComponent }, // ✅ MODIFIÉ ICI
+      { path: 'insurance', component: InsuranceRouterComponent },
       { path: 'account', component: AccountPageComponent },
       { path: 'complaint', component: ComplaintPageComponent },
       { path: 'complaint/kpi', component: ComplaintKpiComponent },
       { path: 'news', component: NewsPageComponent },
       { path: 'products', component: ProductListComponent },
       { path: 'product-detail/:id', component: ProductDetailComponent },
-      {path: 'profile', component: ProfileComponent},
+      { path: 'profile', component: ProfileComponent },
+      
+      // Insurance routes (Client)
       { 
-      path: 'insurance/add-contract', 
-      component: AddContractComponent,
-      canActivate: [authGuard]
-    },
-    { 
-      path: 'insurance/my-contracts', 
-      component: MyContractsComponent,
-      canActivate: [authGuard]
-    }, 
-    { 
-      path: 'insurance/dashboard', 
-      component: DashboardInsuranceComponent,
-      canActivate: [authGuard]
-    }, 
-    { 
-      path: 'insurance/payment/:id', 
-      component: PaymentPageComponent,
-      canActivate: [authGuard]
-    },
-    
-    // Route pour l'agent (gardée séparément)
-    { 
-      path: 'agent/contracts', 
-      component: AgentContractsComponent,
-      canActivate: [roleGuard],
-      data: { roles: ['AGENT_ASSURANCE'] }
-    },
-    
-    // Routes pour les claims
-    {
-      path: 'claims',
-      component: ListMyClaimsComponent,
-      canActivate: [authGuard],
-      data: { roles: ['CLIENT'] }
-    },
-    {
-      path: 'agent/claims',
-      component: AgentClaimsComponent,
-      canActivate: [roleGuard],
-      data: { roles: ['AGENT_ASSURANCE'] }
-    },
-    { 
-      path: 'claims/new', 
-      component: AddClaimComponent,
-      canActivate: [authGuard]
-    },
-    { 
-      path: 'compensations', 
-      component: ListMyCompensationsComponent,
-      canActivate: [authGuard]
-    },
-
+        path: 'insurance/add-contract', 
+        component: AddContractComponent,
+        canActivate: [authGuard]
+      },
+      { 
+        path: 'insurance/my-contracts', 
+        component: MyContractsComponent,
+        canActivate: [authGuard]
+      }, 
+      { 
+        path: 'insurance/dashboard', 
+        component: DashboardInsuranceComponent,
+        canActivate: [authGuard]
+      }, 
+      { 
+        path: 'insurance/payment/:id', 
+        component: PaymentPageComponent,
+        canActivate: [authGuard]
+      },
+      
+      // Route pour l'agent (Insurance)
+      { 
+        path: 'agent/contracts', 
+        component: AgentContractsComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['AGENT_ASSURANCE'] }
+      },
+      
+      // Routes pour les claims
+      {
+        path: 'claims',
+        component: ListMyClaimsComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['CLIENT'] }
+      },
+      {
+        path: 'agent/claims',
+        component: AgentClaimsComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['AGENT_ASSURANCE'] }
+      },
+      { 
+        path: 'claims/new', 
+        component: AddClaimComponent,
+        canActivate: [authGuard]
+      },
+      { 
+        path: 'compensations', 
+        component: ListMyCompensationsComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['CLIENT'] }
+      },
+      
+      // ⭐ ROUTE POUR LES CLIENTS - Mes réclamations
+      {
+        path: 'my-complaints',
+        component: MyComplaintsComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['CLIENT'] }
+      },
+      
+      // ⭐ ROUTE POUR LES AGENTS - Leurs réclamations (dans le même layout)
+      {
+        path: 'agent/complaints',
+        component: AgentComplaintsComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['AGENT_ASSURANCE', 'AGENT_FINANCE'] }
+      }
     ]
   },
 
-  /*
-  {
-    path: 'login',
-    component: LandingPageComponent,
-    children: []
-  },
-  {
-    path: 'register',
-    component: LandingPageComponent,
-    children: []
-  },
-  */
-
-
-  // Pages protégées sous SidebarLayout (dashboard)
+  // ============================================
+  // BACKOFFICE ADMIN (Sans navbar/footer, avec sidebar)
+  // ============================================
   {
     path: 'backoffice',
     component: SidebarLayoutComponent,
@@ -180,8 +190,8 @@ export const routes: Routes = [
       { path: 'credit', component: CreditPageComponent },
       { path: 'repayment', component: AdminRepaymentComponent },
       { path: 'insurance', component: ContractListComponent },
-      { path: 'insurance/contract-risk/:id', component: ContractRiskDetailsComponent }, // ✅ Ajoutez cette ligne
-      { path: 'insurance/admin-dashboard', component: AdminDashboardComponent }, // ✅ Route dashboard
+      { path: 'insurance/contract-risk/:id', component: ContractRiskDetailsComponent },
+      { path: 'insurance/admin-dashboard', component: AdminDashboardComponent },
       { path: 'account', component: AccountPageComponent },
       { path: 'complaint', component: ComplaintPageComponent },
       { path: 'complaint/kpi', component: ComplaintKpiComponent },
@@ -194,12 +204,10 @@ export const routes: Routes = [
         data: { roles: ['ADMIN'] }
       },
       { path: 'compensation', component: ListAllCompensationsComponent },
-      { path: 'transaction', component: TransactionPageComponent}
-
+      { path: 'transaction', component: TransactionPageComponent }
     ]
   },
 
   // Redirection si chemin inconnu
   { path: '**', redirectTo: '' }
 ];
-/**************/

@@ -130,7 +130,9 @@ public class ComplaintService implements IComplaintService {
                 .map(this::mapToDTO)
                 .toList();
     }
-
+    public List<Complaint> getComplaintsByClientId(Long clientId) {
+        return complaintRepository.findByClient_Id(clientId);
+    }
     // ================= SEARCH =================
 
     @Override
@@ -255,5 +257,14 @@ public class ComplaintService implements IComplaintService {
         dashboard.put("statistics", statistics);
 
         return dashboard;
+    }
+    // Ajoutez ces méthodes dans ComplaintService.java
+
+    public List<Complaint> getComplaintsByAgentAssurance(Long agentId) {
+        return complaintRepository.findByAgentAssurance_Id(agentId);
+    }
+
+    public List<Complaint> getComplaintsByAgentFinance(Long agentId) {
+        return complaintRepository.findByAgentFinance_Id(agentId);
     }
 }

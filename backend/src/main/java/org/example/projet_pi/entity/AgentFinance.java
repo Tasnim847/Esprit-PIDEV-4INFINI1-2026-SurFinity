@@ -1,5 +1,6 @@
 package org.example.projet_pi.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.Entity;
 import jakarta.persistence.OneToMany;
@@ -12,14 +13,17 @@ public class AgentFinance extends User {
 
     @OneToMany(mappedBy = "agentFinance")
     @JsonManagedReference("agentFinance-clients")
+    @JsonIgnore
     private List<Client> clients;
 
 
     @OneToMany(mappedBy = "agentFinance")
+    @JsonIgnore
     private List<Credit> credits;
 
 
     @OneToMany(mappedBy = "agentFinance")
+    @JsonIgnore
     private List<Complaint> complaints;
 
 

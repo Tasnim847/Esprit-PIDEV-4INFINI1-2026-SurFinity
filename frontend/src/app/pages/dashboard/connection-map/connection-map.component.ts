@@ -36,7 +36,6 @@ export class ConnectionMapComponent implements AfterViewInit {
       this.L = await import('leaflet');
       const L = this.L;
 
-      // ✅ Fix icônes Leaflet
       delete (L.Icon.Default.prototype as any)._getIconUrl;
       L.Icon.Default.mergeOptions({
         iconUrl: 'assets/marker-icon.png',
@@ -44,20 +43,17 @@ export class ConnectionMapComponent implements AfterViewInit {
         shadowUrl: 'assets/marker-shadow.png',
       });
 
-      // ✅ Vue toute la Tunisie
       this.map = L.map('connectionMap', {
-        center: [33.8869, 9.5375], // ✅ Centre géographique de la Tunisie
-        zoom: 6,                    // ✅ Zoom pour voir toute la Tunisie
+        center: [33.8869, 9.5375],
+        zoom: 6,
         zoomControl: true,
       });
 
-      // ✅ Tuiles OpenStreetMap
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
         maxZoom: 18,
       }).addTo(this.map);
 
-      // ✅ Fix taille carte
       setTimeout(() => this.map.invalidateSize(), 200);
 
       this.loadLocations();
@@ -118,7 +114,7 @@ export class ConnectionMapComponent implements AfterViewInit {
       '#e91e63', '#00bcd4', '#ff5722', '#607d8b'
     ];
 
-    // ✅ Grouper par position identique
+    // Grouper par position identique
     const grouped: { [key: string]: any[] } = {};
     validLocations.forEach(loc => {
       const key = `${loc.lat.toFixed(4)}_${loc.lon.toFixed(4)}`;
@@ -128,21 +124,18 @@ export class ConnectionMapComponent implements AfterViewInit {
 
     let globalIndex = 0;
 
-    // ✅ Pour chaque groupe, décaler les marqueurs en spirale
     Object.values(grouped).forEach((group: any[]) => {
       group.forEach((loc, indexInGroup) => {
         const color = colors[globalIndex % colors.length];
         globalIndex++;
 
-        // ✅ Décaler si même position
-        const offset = 0.015; // offset plus grand pour zoom Tunisie
+        const offset = 0.015;
         const angle = indexInGroup * (Math.PI * 2 / Math.max(group.length, 8));
         const lat = indexInGroup === 0 ? loc.lat :
           loc.lat + offset * Math.cos(angle);
         const lon = indexInGroup === 0 ? loc.lon :
           loc.lon + offset * Math.sin(angle);
 
-        // ✅ Icône pin personnalisée
         const icon = L.divIcon({
           html: `
             <div style="
@@ -167,7 +160,6 @@ export class ConnectionMapComponent implements AfterViewInit {
           popupAnchor: [0, -35]
         });
 
-        // ✅ Popup stylisé
         const formattedDate = loc.date ?
           new Date(loc.date).toLocaleDateString('fr-FR', {
             day: '2-digit',
@@ -177,6 +169,7 @@ export class ConnectionMapComponent implements AfterViewInit {
             minute: '2-digit'
           }) : 'Unknown date';
 
+        // ✅ Popup avec mention position approximative
         const popup = `
           <div style="
             min-width: 220px;
@@ -195,12 +188,24 @@ export class ConnectionMapComponent implements AfterViewInit {
             ">
               👤 ${loc.email}
             </div>
-            <div style="font-size: 13px; color: #2c3e50; margin-bottom: 4px;">
+
+            <div style="font-size: 13px; color: #2c3e50; margin-bottom: 2px;">
               📍 <b>${loc.city}</b>, ${loc.country}
             </div>
+
+            <div style="
+              font-size: 11px;
+              color: #95a5a6;
+              margin-bottom: 6px;
+              font-style: italic;
+            ">
+              ℹ️ Position approximative (ville du FAI)
+            </div>
+
             <div style="font-size: 12px; color: #95a5a6;">
               🕐 ${formattedDate}
             </div>
+
             ${group.length > 1 ? `
               <div style="
                 margin-top: 8px;
@@ -223,25 +228,22 @@ export class ConnectionMapComponent implements AfterViewInit {
       });
     });
 
-    // ✅ Adapter le zoom pour montrer tous les marqueurs
+    // Adapter le zoom pour montrer tous les marqueurs
     if (validLocations.length > 0) {
       const bounds = L.latLngBounds(
         validLocations.map((loc: any) => [loc.lat, loc.lon])
       );
 
-      // ✅ Vérifier si tous les points sont en Tunisie
       const allInTunisia = validLocations.every((loc: any) =>
         loc.country === 'Tunisia' || loc.country === 'Tunisie'
       );
 
       if (allInTunisia) {
-        // ✅ Vue complète de la Tunisie
         this.map.fitBounds(bounds, {
           padding: [60, 60],
-          maxZoom: 9  // ✅ Ne pas trop zoomer pour voir toute la Tunisie
+          maxZoom: 9
         });
       } else {
-        // Vue monde si utilisateurs internationaux
         this.map.fitBounds(bounds, {
           padding: [50, 50],
           maxZoom: 10

@@ -72,5 +72,4 @@ public interface LoginHistoryRepository extends JpaRepository<LoginHistory, Long
     @Query("SELECT l.city, l.country, COUNT(l) FROM LoginHistory l " +
             "WHERE l.city IS NOT NULL GROUP BY l.city, l.country ORDER BY COUNT(l) DESC")
     List<Object[]> countByCity();
-
 }

@@ -87,6 +87,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/face/login").permitAll()      // Login facial sans token
                         .requestMatchers("/api/auth/face/check/**").permitAll()  // Vérifier si visage existe
                         .requestMatchers("/api/auth/face/register").authenticated() // Enregistrement nécessite auth
+                        .requestMatchers("/uploads/**").permitAll()
                         //  Endpoints publics
                         .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
                         .requestMatchers("/api/otp/**").permitAll()
@@ -98,6 +99,7 @@ public class SecurityConfig {
                         // ✅ REMPLACER par des règles précises
                         .requestMatchers("/agents/finance/**").hasAnyRole("AGENT_FINANCE", "ADMIN")  // finance
                         .requestMatchers("/agents-assurance/**").hasAnyRole("AGENT_ASSURANCE", "ADMIN")  // assurance (déjà OK)
+                        .requestMatchers("/api/clients/all").hasAnyRole("ADMIN", "AGENT_FINANCE")
                         .requestMatchers("/api/clients/**").hasRole("ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         // Dans authorizeHttpRequests — ajouter avec les routes publiques

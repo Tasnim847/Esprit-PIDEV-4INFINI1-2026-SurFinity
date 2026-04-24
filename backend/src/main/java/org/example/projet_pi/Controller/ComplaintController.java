@@ -4,11 +4,16 @@ import org.example.projet_pi.Dto.ComplaintSearchDTO;
 import org.example.projet_pi.Repository.ComplaintRepository;
 import org.example.projet_pi.Repository.UserRepository;
 import org.example.projet_pi.Service.SmsService3;
+import org.example.projet_pi.entity.Client;
 import org.example.projet_pi.entity.Complaint;
 import org.example.projet_pi.entity.Role;
 import org.example.projet_pi.entity.User;
+import org.example.projet_pi.security.CustomUserPrincipal;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -43,53 +48,74 @@ public class ComplaintController {
     public ResponseEntity<?> addComplaint(@RequestBody Complaint complaint) {
         try {
             System.out.println("=== ADD COMPLAINT ===");
-            System.out.println("Reçu: message=" + complaint.getMessage() + ", phone=" + complaint.getPhone());
-            if (complaint.getClient() != null) {
-                System.out.println("Client email: " + complaint.getClient().getEmail());
-                System.out.println("Client id: " + complaint.getClient().getId());
-            }
 
+            // 1. Valider et charger le client
             validateAndLoadUsers(complaint);
 
+            // 2. Récupérer l'utilisateur connecté
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            User currentUser = null;
+
+            if (auth.getPrincipal() instanceof CustomUserPrincipal) {
+                String email = auth.getName();
+                currentUser = userRepository.findByEmail(email).orElse(null);
+            }
+
+            // 3. Affecter l'agent correspondant
+            Client client = (Client) complaint.getClient();
+
+            // Si l'utilisateur connecté est un agent d'assurance
+            if (currentUser != null && currentUser.getRole() == Role.AGENT_ASSURANCE) {
+                complaint.setAgentAssurance(currentUser);
+                System.out.println("✅ Affecté à l'agent d'assurance: " + currentUser.getEmail());
+            }
+            // Si l'utilisateur connecté est un agent financier
+            else if (currentUser != null && currentUser.getRole() == Role.AGENT_FINANCE) {
+                complaint.setAgentFinance(currentUser);
+                System.out.println("✅ Affecté à l'agent financier: " + currentUser.getEmail());
+            }
+            // Sinon (client qui crée), utiliser les agents déjà affectés au client
+            else {
+                if (client.getAgentAssurance() != null) {
+                    complaint.setAgentAssurance(client.getAgentAssurance());
+                    System.out.println("✅ Affecté à l'agent assurance du client");
+                }
+                if (client.getAgentFinance() != null) {
+                    complaint.setAgentFinance(client.getAgentFinance());
+                    System.out.println("✅ Affecté à l'agent finance du client");
+                }
+            }
+
+            // 4. Définir les dates et statut
             if (complaint.getClaimDate() == null) {
                 complaint.setClaimDate(new Date());
             }
-
             if (complaint.getStatus() == null || complaint.getStatus().isEmpty()) {
                 complaint.setStatus("PENDING");
             }
 
+            // 5. Sauvegarder
             Complaint saved = complaintRepository.save(complaint);
-            System.out.println("✅ Réclamation sauvegardée avec ID: " + saved.getId());
 
-            // SMS
+            // 6. Envoyer SMS
             if (saved.getPhone() != null && !saved.getPhone().isEmpty()) {
                 try {
-                    smsService3.sendSms(
-                            saved.getPhone(),
-                            "Votre réclamation a été enregistrée avec succès. Elle sera traitée dans les plus brefs délais."
-                    );
+                    smsService3.sendSms(saved.getPhone(),
+                            "Votre réclamation a été enregistrée avec succès.");
                 } catch (Exception e) {
                     System.out.println("Erreur SMS: " + e.getMessage());
                 }
             }
 
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", "Réclamation ajoutée avec succès");
-            response.put("complaint", saved);
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(Map.of("message", "Réclamation ajoutée avec succès", "complaint", saved));
 
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of(
-                            "error", "Erreur lors de l'ajout de la réclamation",
-                            "message", e.getMessage()
-                    ));
+                    .body(Map.of("error", e.getMessage()));
         }
     }
-
     /**
      * MODIFIER une réclamation
      * PUT /complaints/updateComplaint/{id}
@@ -441,6 +467,101 @@ public class ComplaintController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+    // ComplaintController.java
+
+    // Dans ComplaintController.java, modifiez la méthode getComplaintsByClient :
+    @GetMapping("/client/{clientId}")
+    @PreAuthorize("hasRole('CLIENT')")
+    public ResponseEntity<?> getComplaintsByClient(@PathVariable Long clientId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        // Récupérer le principal correctement
+        Object principal = auth.getPrincipal();
+
+        Long currentUserId = null;
+
+        if (principal instanceof CustomUserPrincipal) {
+            CustomUserPrincipal customUser = (CustomUserPrincipal) principal;
+            currentUserId = customUser.getId();  // Supposons que votre CustomUserPrincipal a une méthode getId()
+        } else if (principal instanceof User) {
+            User user = (User) principal;
+            currentUserId = user.getId();
+        } else {
+            return ResponseEntity.status(403).body(Map.of("error", "Accès non autorisé"));
+        }
+
+        // Vérifier que l'utilisateur ne voit que ses propres réclamations
+        if (!currentUserId.equals(clientId)) {
+            return ResponseEntity.status(403).body(Map.of("error", "Accès non autorisé"));
+        }
+
+        List<Complaint> complaints = complaintRepository.findByClient_Id(clientId);
+        return ResponseEntity.ok(complaints);
+    }
+    // Ajoutez ces méthodes après la méthode getComplaintsByClient
+
+    /**
+     * RÉCUPÉRER les réclamations pour l'agent d'assurance connecté
+     */
+    /**
+     * RÉCUPÉRER les réclamations pour l'agent d'assurance connecté
+     */
+    @GetMapping("/agent-assurance/complaints")
+    @PreAuthorize("hasRole('AGENT_ASSURANCE')")
+    public ResponseEntity<?> getComplaintsForAgentAssurance() {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            String email = auth.getName();
+
+            User agent = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("Agent non trouvé"));
+
+            // ✅ Utilisez le bon nom de méthode avec underscore
+            List<Complaint> complaints = complaintRepository.findByAgentAssurance_Id(agent.getId());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Réclamations pour agent d'assurance");
+            response.put("count", complaints.size());
+            response.put("complaints", complaints);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * RÉCUPÉRER les réclamations pour l'agent financier connecté
+     */
+    @GetMapping("/agent-finance/complaints")
+    @PreAuthorize("hasRole('AGENT_FINANCE')")
+    public ResponseEntity<?> getComplaintsForAgentFinance() {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            String email = auth.getName();
+
+            User agent = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("Agent non trouvé"));
+
+            // ✅ Utilisez le bon nom de méthode avec underscore
+            List<Complaint> complaints = complaintRepository.findByAgentFinance_Id(agent.getId());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Réclamations pour agent financier");
+            response.put("count", complaints.size());
+            response.put("complaints", complaints);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", e.getMessage()));
         }

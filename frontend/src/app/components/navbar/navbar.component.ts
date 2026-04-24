@@ -121,8 +121,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   isComplaintVisible(): boolean {
-    return this.userRole === 'CLIENT' || this.userRole === 'AGENT_FINANCE';
-  }
+    // Tous les rôles voient Complaint
+    return this.userRole === 'CLIENT' || 
+           this.userRole === 'AGENT_ASSURANCE' || 
+           this.userRole === 'AGENT_FINANCE';
+}
 
   isNewsVisible(): boolean {
     return this.userRole === 'CLIENT' || this.userRole === 'AGENT_ASSURANCE';
@@ -158,4 +161,14 @@ export class NavbarComponent implements OnInit, OnDestroy {
       window.location.reload();
     }, 100);
   }
+  // Ajoutez cette méthode
+
+getComplaintLink(): string {
+    if (this.userRole === 'CLIENT') {
+        return '/public/my-complaints';
+    } else if (this.userRole === 'AGENT_ASSURANCE' || this.userRole === 'AGENT_FINANCE') {
+        return '/public/agent/complaints';  // ← Changement ici : ajouter /public/
+    }
+    return '/public/my-complaints';
+}
 }
