@@ -37,7 +37,7 @@ export class AccountService {
     return this.http.delete(`${this.baseUrl}/${id}`, { responseType: 'text' });
   }
 
-  // ===== SET LIMITS — ADMIN only =====
+  // ===== SET WITHDRAWAL LIMITS — ADMIN only =====
   setLimits(id: number, dailyLimit: number, monthlyLimit: number): Observable<Account> {
     const params = new HttpParams()
       .set('dailyLimit', dailyLimit.toString())
@@ -45,6 +45,18 @@ export class AccountService {
 
     return this.http.put<Account>(
       `${this.baseUrl}/${id}/limits`,
+      null,
+      { params }
+    );
+  }
+
+  // 🆕 SET TRANSFER LIMIT — ADMIN only
+  setTransferLimit(id: number, dailyTransferLimit: number): Observable<Account> {
+    const params = new HttpParams()
+      .set('dailyTransferLimit', dailyTransferLimit.toString());
+
+    return this.http.put<Account>(
+      `${this.baseUrl}/${id}/transfer-limit`,
       null,
       { params }
     );
@@ -58,5 +70,10 @@ export class AccountService {
   // ===== GET BY STATUS =====
   getAccountsByStatus(status: string): Observable<Account[]> {
     return this.http.get<Account[]>(`${this.baseUrl}/status/${status}`);
+  }
+
+  // ===== GET BY RIP =====
+  getAccountByRip(rip: string): Observable<Account> {
+    return this.http.get<Account>(`${this.baseUrl}/by-rip/${rip}`);
   }
 }

@@ -17,12 +17,34 @@ public class CustomUserPrincipal implements UserDetails {
         this.authorities = authorities;
     }
 
-    public Long getId(){
+    // ✅ Getters existants
+    public Long getId() {
         return user.getId();
     }
 
-    public String getEmail(){
+    public String getEmail() {
         return user.getEmail();
+    }
+
+    // 🆕 Getters ajoutés
+    public String getFirstName() {
+        return user.getFirstName();
+    }
+
+    public String getLastName() {
+        return user.getLastName();
+    }
+
+    public String getTelephone() {
+        return user.getTelephone();
+    }
+
+    public String getPhoto() {
+        return user.getPhoto();
+    }
+
+    public String getRole() {
+        return user.getRole() != null ? user.getRole().name() : null;
     }
 
     @Override
@@ -40,9 +62,24 @@ public class CustomUserPrincipal implements UserDetails {
         return user.getEmail();
     }
 
-    // les autres override
-    @Override public boolean isAccountNonExpired(){ return true; }
-    @Override public boolean isAccountNonLocked(){ return true; }
-    @Override public boolean isCredentialsNonExpired(){ return true; }
-    @Override public boolean isEnabled(){ return true; }
+    // ✅ Override requis
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return user.isAccountNonLocked();  // Utiliser la vraie valeur
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
+    }
 }

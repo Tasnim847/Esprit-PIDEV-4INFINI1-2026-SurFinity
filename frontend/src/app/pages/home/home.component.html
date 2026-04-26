@@ -1,218 +1,202 @@
 <!-- Main Content -->
 <div class="bank-dashboard" style="margin-top: 76px;">
   <div class="container-fluid px-4 py-4">
-    <!-- Welcome Banner -->
-    <div class="welcome-banner mb-4">
-      <div class="row align-items-center">
-        <div class="col-md-8">
-          <h1 class="display-6 fw-bold mb-2">
-            Hello, {{ firstName }} {{ lastName }}!
-          </h1>
-          <p class="lead mb-0">Welcome to your SurFinity banking space</p>
-        </div>
-        <div class="col-md-4 text-md-end">
-          <div class="date-badge">
-            <i class="fas fa-calendar-alt me-2"></i>
-            Thursday, April 10, 2026
+    
+    <!-- =============================================== -->
+    <!-- CLIENT VIEW - DASHBOARD ONLY -->
+    <!-- =============================================== -->
+    <div *ngIf="isClient()">
+      
+      <!-- Welcome Banner -->
+      <div class="welcome-banner mb-4">
+        <div class="row align-items-center">
+          <div class="col-md-8">
+            <h1 class="display-6 fw-bold mb-2">
+              Hello, {{ firstName }} {{ lastName }}!
+            </h1>
+            <p class="lead mb-0">Welcome to your SurFinity banking space</p>
+          </div>
+          <div class="col-md-4 text-md-end">
+            <div class="date-badge">
+              <i class="fas fa-calendar-alt me-2"></i>
+              {{ currentDate }}
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Balance Card -->
-    <div class="row mb-4">
-      <div class="col-lg-4 col-md-6 mb-3">
-        <div class="balance-card">
-          <div class="card-body p-4">
-            <div class="d-flex justify-content-between align-items-start mb-3">
+      <!-- Balance Cards -->
+      <div class="row mb-4">
+        <div class="col-lg-4 col-md-6 mb-3">
+          <div class="balance-card">
+            <div class="card-body p-4">
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                  <p class="text-muted mb-1">💰 Total Balance</p>
+                  <h2 class="display-5 fw-bold mb-0">{{ getTotalBalance() | currency:'TND':'symbol':'1.2-2' }}</h2>
+                </div>
+              </div>
+              <div class="row mt-3">
+                <div class="col-6">
+                  <small class="text-muted">Current Account</small>
+                  <p class="fw-bold mb-0">{{ getCurrentAccountBalance() | currency:'TND':'symbol':'1.2-2' }}</p>
+                </div>
+                <div class="col-6">
+                  <small class="text-muted">Savings Account</small>
+                  <p class="fw-bold mb-0">{{ getSavingsAccountBalance() | currency:'TND':'symbol':'1.2-2' }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="col-lg-8 col-md-6">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="stat-card">
+                <div class="stat-icon bg-primary bg-opacity-10">
+                  <i class="fas fa-exchange-alt text-primary"></i>
+                </div>
+                <div class="stat-info">
+                  <h3 class="mb-0">{{ getTransactionCount() }}</h3>
+                  <p class="text-muted mb-0">Recent transactions</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="stat-card">
+                <div class="stat-icon bg-success bg-opacity-10">
+                  <i class="fas fa-chart-line text-success"></i>
+                </div>
+                <div class="stat-info">
+                  <h3 class="mb-0">{{ accounts.length }}</h3>
+                  <p class="text-muted mb-0">Active accounts</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="stat-card">
+                <div class="stat-icon bg-info bg-opacity-10">
+                  <i class="fas fa-piggy-bank text-info"></i>
+                </div>
+                <div class="stat-info">
+                  <h3 class="mb-0">{{ myRequests.length }}</h3>
+                  <p class="text-muted mb-0">Pending requests</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="actions-card">
+            <div class="card-body p-4">
+              <h5 class="mb-3">Quick Actions</h5>
+              <div class="row g-3">
+                <!-- 📤 Send - OPENS TRANSFER MODAL -->
+                <div class="col-md-3 col-6">
+                  <button class="action-btn w-100" (click)="showTransferModal = true">
+                    <i class="fas fa-paper-plane fa-2x mb-2"></i>
+                    <span>📤 Send</span>
+                  </button>
+                </div>
+                <!-- 📥 New Account - OPENS REQUEST MODAL -->
+                <div class="col-md-3 col-6">
+                  <button class="action-btn w-100" (click)="showRequestModal = true">
+                    <i class="fas fa-plus-circle fa-2x mb-2"></i>
+                    <span>📥 New Account</span>
+                  </button>
+                </div>
+                <!-- 📑 Statement - DOWNLOADS PDF -->
+                <div class="col-md-3 col-6">
+                  <button class="action-btn w-100" (click)="downloadStatement()">
+                    <i class="fas fa-file-invoice fa-2x mb-2"></i>
+                    <span>📑 Statement</span>
+                  </button>
+                </div>
+                <!-- 💳 My Accounts - REDIRECTS TO PAGE -->
+                <div class="col-md-3 col-6">
+                  <button class="action-btn w-100" (click)="goToAccounts()">
+                    <i class="fas fa-credit-card fa-2x mb-2"></i>
+                    <span>💳 My Accounts</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Transactions -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="transactions-card">
+            <div class="card-body p-0">
+              <div class="d-flex justify-content-between align-items-center p-4 border-bottom">
+                <h5 class="mb-0">📊 Recent Transactions</h5>
+                <a href="javascript:void(0)" class="text-decoration-none" (click)="goToAccounts()">
+                  View all <i class="fas fa-chevron-right ms-1"></i>
+                </a>
+              </div>
               <div>
-                <p class="text-muted mb-1">💰 Account Balance</p>
-                <h2 class="display-5 fw-bold mb-0">20,680.50 €</h2>
-              </div>
-              <button class="btn btn-link text-dark" onclick="alert('Feature: Hide/Show balance')">
-                <i class="fas fa-eye-slash"></i>
-              </button>
-            </div>
-            <div class="row mt-3">
-              <div class="col-6">
-                <small class="text-muted">Current Account</small>
-                <p class="fw-bold mb-0">12,450.00 €</p>
-              </div>
-              <div class="col-6">
-                <small class="text-muted">Savings Account</small>
-                <p class="fw-bold mb-0">8,230.50 €</p>
+                <div class="transaction-item" *ngFor="let tx of transactions">
+                  <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+                    <div class="d-flex align-items-center">
+                      <div class="transaction-icon" [class.credit]="tx.type === 'DEPOSIT'" [class.debit]="tx.type === 'WITHDRAW'">
+                        <i class="fas" [class.fa-arrow-down]="tx.type === 'DEPOSIT'" [class.fa-arrow-up]="tx.type === 'WITHDRAW'"></i>
+                      </div>
+                      <div>
+                        <h6 class="mb-0">{{ tx.description || (tx.type === 'DEPOSIT' ? 'Deposit' : 'Withdrawal') }}</h6>
+                        <small class="text-muted">{{ tx.date | date:'dd/MM/yyyy HH:mm' }}</small>
+                      </div>
+                    </div>
+                    <div class="fw-bold" [class.text-success]="tx.type === 'DEPOSIT'" [class.text-danger]="tx.type === 'WITHDRAW'">
+                      {{ tx.type === 'DEPOSIT' ? '+' : '-' }} {{ tx.amount | currency:'TND' }}
+                    </div>
+                  </div>
+                </div>
+                <div class="transaction-item" *ngIf="transactions.length === 0">
+                  <div class="d-flex justify-content-between align-items-center p-3">
+                    <div class="text-muted">No transactions yet</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Quick Stats -->
-      <div class="col-lg-8 col-md-6">
-        <div class="row g-3">
-          <div class="col-md-4">
-            <div class="stat-card">
-              <div class="stat-icon bg-primary bg-opacity-10">
-                <i class="fas fa-exchange-alt text-primary"></i>
-              </div>
-              <div class="stat-info">
-                <h3 class="mb-0">12</h3>
-                <p class="text-muted mb-0">Transactions this month</p>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-4">
-            <div class="stat-card">
-              <div class="stat-icon bg-success bg-opacity-10">
-                <i class="fas fa-chart-line text-success"></i>
-              </div>
-              <div class="stat-info">
-                <h3 class="mb-0">+15.5%</h3>
-                <p class="text-muted mb-0">Savings Growth</p>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-4">
-            <div class="stat-card">
-              <div class="stat-icon bg-info bg-opacity-10">
-                <i class="fas fa-piggy-bank text-info"></i>
-              </div>
-              <div class="stat-info">
-                <h3 class="mb-0">3</h3>
-                <p class="text-muted mb-0">Savings Goals</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Quick Actions -->
-    <div class="row mb-4">
-      <div class="col-12">
-        <div class="actions-card">
-          <div class="card-body p-4">
-            <h5 class="mb-3">Quick Actions</h5>
-            <div class="row g-3">
-              <div class="col-md-3 col-6">
-                <button class="action-btn w-100" onclick="alert('📤 Feature: Send money')">
-                  <i class="fas fa-paper-plane fa-2x mb-2"></i>
-                  <span>📤 Send</span>
+      <!-- My Accounts Summary -->
+      <div class="row mb-4" *ngIf="accounts.length > 0">
+        <div class="col-12">
+          <div class="savings-card">
+            <div class="card-body p-4">
+              <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="mb-0">💳 My Accounts</h5>
+                <button class="btn btn-sm btn-outline-primary" (click)="goToAccounts()">
+                  View details <i class="fas fa-arrow-right ms-1"></i>
                 </button>
               </div>
-              <div class="col-md-3 col-6">
-                <button class="action-btn w-100" onclick="alert('📥 Feature: Top up account')">
-                  <i class="fas fa-plus-circle fa-2x mb-2"></i>
-                  <span>📥 Top Up</span>
-                </button>
-              </div>
-              <div class="col-md-3 col-6">
-                <button class="action-btn w-100" onclick="alert('📑 Feature: Bank statement')">
-                  <i class="fas fa-file-invoice fa-2x mb-2"></i>
-                  <span>📑 Statement</span>
-                </button>
-              </div>
-              <div class="col-md-3 col-6">
-                <button class="action-btn w-100" onclick="document.getElementById('savingsGoals').scrollIntoView({ behavior: 'smooth' })">
-                  <i class="fas fa-bullseye fa-2x mb-2"></i>
-                  <span>🎯 Goals</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Recent Transactions -->
-    <div class="row mb-4">
-      <div class="col-12">
-        <div class="transactions-card">
-          <div class="card-body p-0">
-            <div class="d-flex justify-content-between align-items-center p-4 border-bottom">
-              <h5 class="mb-0">📊 Transaction History</h5>
-              <a href="#" class="text-decoration-none" data-bs-toggle="collapse" data-bs-target="#transactionsList">
-                View all <i class="fas fa-chevron-down ms-1"></i>
-              </a>
-            </div>
-            <div id="transactionsList" class="collapse show">
-              <div class="transaction-item">
-                <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
-                  <div class="d-flex align-items-center">
-                    <div class="transaction-icon debit me-3">
-                      <i class="fas fa-tv"></i>
+              <div class="row g-3">
+                <div class="col-md-6" *ngFor="let account of accounts">
+                  <div class="goal-card">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                      <div>
+                        <i class="fas fa-2x" [class.fa-wallet]="account.type === 'CURRENT'" [class.fa-piggy-bank]="account.type === 'SAVINGS'"></i>
+                        <h6 class="mb-1 mt-2">{{ account.type === 'CURRENT' ? 'Current Account' : 'Savings Account' }}</h6>
+                        <small class="text-muted" style="font-size: 11px;">RIP: {{ account.rip }}</small>
+                      </div>
+                      <span class="badge" [class.bg-success]="account.status === 'ACTIVE'" [class.bg-warning]="account.status !== 'ACTIVE'">
+                        {{ account.status === 'ACTIVE' ? 'Active' : account.status }}
+                      </span>
                     </div>
-                    <div>
-                      <h6 class="mb-0">Netflix</h6>
-                      <small class="text-muted">Today, 2:30 PM</small>
+                    <div class="mb-2">
+                      <h4 class="text-primary">{{ account.balance | currency:'TND' }}</h4>
                     </div>
-                  </div>
-                  <div class="fw-bold text-danger">
-                    -15.99 €
-                  </div>
-                </div>
-              </div>
-              <div class="transaction-item">
-                <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
-                  <div class="d-flex align-items-center">
-                    <div class="transaction-icon credit me-3">
-                      <i class="fas fa-exchange-alt"></i>
-                    </div>
-                    <div>
-                      <h6 class="mb-0">Transfer from Jean Dupont</h6>
-                      <small class="text-muted">Yesterday, 9:15 AM</small>
-                    </div>
-                  </div>
-                  <div class="fw-bold text-success">
-                    +250.00 €
-                  </div>
-                </div>
-              </div>
-              <div class="transaction-item">
-                <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
-                  <div class="d-flex align-items-center">
-                    <div class="transaction-icon debit me-3">
-                      <i class="fas fa-shopping-cart"></i>
-                    </div>
-                    <div>
-                      <h6 class="mb-0">Carrefour Market</h6>
-                      <small class="text-muted">Dec 25, 2024</small>
-                    </div>
-                  </div>
-                  <div class="fw-bold text-danger">
-                    -85.40 €
-                  </div>
-                </div>
-              </div>
-              <div class="transaction-item">
-                <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
-                  <div class="d-flex align-items-center">
-                    <div class="transaction-icon credit me-3">
-                      <i class="fas fa-briefcase"></i>
-                    </div>
-                    <div>
-                      <h6 class="mb-0">Salary</h6>
-                      <small class="text-muted">Dec 20, 2024</small>
-                    </div>
-                  </div>
-                  <div class="fw-bold text-success">
-                    +2,450.00 €
-                  </div>
-                </div>
-              </div>
-              <div class="transaction-item">
-                <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
-                  <div class="d-flex align-items-center">
-                    <div class="transaction-icon debit me-3">
-                      <i class="fas fa-mobile-alt"></i>
-                    </div>
-                    <div>
-                      <h6 class="mb-0">Free Mobile</h6>
-                      <small class="text-muted">Dec 15, 2024</small>
-                    </div>
-                  </div>
-                  <div class="fw-bold text-danger">
-                    -19.99 €
                   </div>
                 </div>
               </div>
@@ -222,85 +206,246 @@
       </div>
     </div>
 
-    <!-- Savings Goals -->
-    <div class="row" id="savingsGoals">
-      <div class="col-12">
-        <div class="savings-card">
-          <div class="card-body p-4">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-              <h5 class="mb-0">🎯 Savings Goals</h5>
-              <button class="btn btn-sm btn-outline-primary" onclick="alert('🎯 Feature: New savings goal')">
-                <i class="fas fa-plus me-1"></i> New Goal
-              </button>
+    <!-- =============================================== -->
+    <!-- AGENT VIEW - DASHBOARD -->
+    <!-- =============================================== -->
+    <div *ngIf="isAgentFinance()">
+      
+      <!-- Welcome Banner -->
+      <div class="welcome-banner mb-4">
+        <div class="row align-items-center">
+          <div class="col-md-8">
+            <h1 class="display-6 fw-bold mb-2">
+              Hello, Agent {{ firstName }} {{ lastName }}!
+            </h1>
+            <p class="lead mb-0">Client request management space</p>
+          </div>
+          <div class="col-md-4 text-md-end">
+            <div class="date-badge">
+              <i class="fas fa-calendar-alt me-2"></i>
+              {{ currentDate }}
             </div>
-            <div class="row g-3">
-              <div class="col-md-4">
-                <div class="goal-card">
-                  <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div>
-                      <i class="fas fa-plane fa-2x text-primary mb-2"></i>
-                      <h6 class="mb-1">Trip to Japan</h6>
-                    </div>
-                    <span class="badge bg-light text-dark">41.67%</span>
-                  </div>
-                  <div class="mb-2">
-                    <div class="d-flex justify-content-between small mb-1">
-                      <span>€1,250</span>
-                      <span>€3,000</span>
-                    </div>
-                    <div class="progress" style="height: 8px;">
-                      <div class="progress-bar bg-primary" style="width: 41.67%"></div>
-                    </div>
-                  </div>
-                  <small class="text-muted">Goal: June 2025</small>
-                </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pending Requests -->
+      <div class="row">
+        <div class="col-12">
+          <div class="savings-card">
+            <div class="card-body p-4">
+              <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="mb-0">📋 Pending Account Opening Requests</h5>
+                <button class="btn btn-sm btn-outline-primary" (click)="loadPendingRequests()">
+                  <i class="fas fa-sync-alt me-1"></i> Refresh
+                </button>
               </div>
-              <div class="col-md-4">
-                <div class="goal-card">
-                  <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div>
-                      <i class="fas fa-car fa-2x text-primary mb-2"></i>
-                      <h6 class="mb-1">New Car</h6>
-                    </div>
-                    <span class="badge bg-light text-dark">25%</span>
-                  </div>
-                  <div class="mb-2">
-                    <div class="d-flex justify-content-between small mb-1">
-                      <span>€5,000</span>
-                      <span>€20,000</span>
-                    </div>
-                    <div class="progress" style="height: 8px;">
-                      <div class="progress-bar bg-primary" style="width: 25%"></div>
-                    </div>
-                  </div>
-                  <small class="text-muted">Goal: December 2025</small>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="goal-card">
-                  <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div>
-                      <i class="fas fa-shield-alt fa-2x text-primary mb-2"></i>
-                      <h6 class="mb-1">Emergency Fund</h6>
-                    </div>
-                    <span class="badge bg-light text-dark">35%</span>
-                  </div>
-                  <div class="mb-2">
-                    <div class="d-flex justify-content-between small mb-1">
-                      <span>€3,500</span>
-                      <span>€10,000</span>
-                    </div>
-                    <div class="progress" style="height: 8px;">
-                      <div class="progress-bar bg-primary" style="width: 35%"></div>
-                    </div>
-                  </div>
-                  <small class="text-muted">Goal: March 2026</small>
-                </div>
+              <div class="table-responsive">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Client</th>
+                      <th>Type</th>
+                      <th>Date</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let req of pendingRequests">
+                      <td>{{ req.id }}</td>
+                      <td>{{ req.clientName }}</td>
+                      <td>{{ req.requestedType === 'CURRENT' ? 'Current Account' : 'Savings Account' }}</td>
+                      <td>{{ req.requestDate | date:'dd/MM/yyyy HH:mm' }}</td>
+                      <td>
+                        <button class="btn btn-sm btn-success me-2" (click)="approveRequest(req.id)">
+                          <i class="fas fa-check me-1"></i> Approve
+                        </button>
+                        <button class="btn btn-sm btn-danger" (click)="openRejectModal(req)">
+                          <i class="fas fa-times me-1"></i> Reject
+                        </button>
+                      </td>
+                    </tr>
+                    <tr *ngIf="pendingRequests.length === 0">
+                      <td colspan="5" class="text-center text-muted py-4">No pending requests</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- =============================================== -->
+    <!-- ADMIN VIEW - DASHBOARD -->
+    <!-- =============================================== -->
+    <div *ngIf="isAdmin()">
+      <div class="welcome-banner mb-4">
+        <div class="row align-items-center">
+          <div class="col-md-8">
+            <h1 class="display-6 fw-bold mb-2">
+              Hello, Admin {{ firstName }} {{ lastName }}!
+            </h1>
+            <p class="lead mb-0">Administration space</p>
+          </div>
+          <div class="col-md-4 text-md-end">
+            <div class="date-badge">
+              <i class="fas fa-calendar-alt me-2"></i>
+              {{ currentDate }}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-6">
+          <div class="action-card" (click)="goToAdminAccounts()">
+            <i class="fas fa-credit-card fa-3x mb-3"></i>
+            <h4>Account Management</h4>
+            <p>Create, modify, delete bank accounts</p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="action-card" (click)="goToAdminTransactions()">
+            <i class="fas fa-exchange-alt fa-3x mb-3"></i>
+            <h4>Transaction Management</h4>
+            <p>View and manage all transactions</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =============================================== -->
+    <!-- ACCOUNT REQUEST MODAL -->
+    <!-- =============================================== -->
+    <div class="modal fade show" [style.display]="showRequestModal ? 'block' : 'none'" tabindex="-1" style="background: rgba(0,0,0,0.5); z-index: 1050;">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">📝 New Account Request</h5>
+            <button type="button" class="btn-close" (click)="showRequestModal = false"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Account Type</label>
+              <select class="form-select" [(ngModel)]="newRequestType">
+                <option value="CURRENT">Current Account</option>
+                <option value="SAVINGS">Savings Account</option>
+              </select>
+            </div>
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i>
+              Once approved, you will receive a unique RIP for your account.
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" (click)="showRequestModal = false">Cancel</button>
+            <button class="btn btn-primary" (click)="submitRequest()">Submit Request</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =============================================== -->
+    <!-- TRANSFER MODAL (POPUP) -->
+    <!-- =============================================== -->
+    <div class="modal fade show" [style.display]="showTransferModal ? 'block' : 'none'" tabindex="-1" style="background: rgba(0,0,0,0.5); z-index: 1050;">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">🔄 Make a Transfer</h5>
+            <button type="button" class="btn-close" (click)="showTransferModal = false"></button>
+          </div>
+          <div class="modal-body">
+            <!-- Source Account -->
+            <div class="mb-3">
+              <label class="form-label">My Account (source)</label>
+              <select class="form-select" [(ngModel)]="transferData.sourceRip">
+                <option value="">-- Select an account --</option>
+                <option *ngFor="let acc of accounts" [value]="acc.rip">
+                  {{ acc.type === 'CURRENT' ? 'Current Account' : 'Savings Account' }} - Balance: {{ acc.balance | currency:'TND' }}
+                </option>
+              </select>
+            </div>
+            
+            <!-- Destination RIP -->
+            <div class="mb-3">
+              <label class="form-label">Destination RIP (21 digits)</label>
+              <input 
+                type="text" 
+                class="form-control" 
+                [(ngModel)]="transferData.targetRip" 
+                maxlength="21" 
+                placeholder="Ex: 100003053814053105923">
+              <small class="text-muted">RIP must be exactly 21 digits</small>
+            </div>
+            
+            <!-- Amount -->
+            <div class="mb-3">
+              <label class="form-label">Amount (TND)</label>
+              <input 
+                type="number" 
+                class="form-control" 
+                [(ngModel)]="transferData.amount" 
+                min="0.01" 
+                step="0.01" 
+                placeholder="0.00">
+            </div>
+            
+            <!-- Description -->
+            <div class="mb-3">
+              <label class="form-label">Description (optional)</label>
+              <input 
+                type="text" 
+                class="form-control" 
+                [(ngModel)]="transferData.description" 
+                placeholder="Transfer reason">
+            </div>
+            
+            <!-- Error/Success Message -->
+            <div *ngIf="message" class="alert" [class.alert-success]="messageType === 'success'" [class.alert-danger]="messageType === 'error'">
+              <i class="fas" [class.fa-check-circle]="messageType === 'success'" [class.fa-exclamation-triangle]="messageType === 'error'"></i>
+              {{ message }}
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" (click)="showTransferModal = false">Cancel</button>
+            <button class="btn btn-primary" (click)="submitTransfer()" [disabled]="!transferData.sourceRip || !transferData.targetRip || transferData.amount <= 0">
+              <i class="fas fa-paper-plane me-1"></i> Confirm Transfer
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =============================================== -->
+    <!-- REJECT MODAL (AGENT) -->
+    <!-- =============================================== -->
+    <div class="modal fade show" [style.display]="rejectModalOpen ? 'block' : 'none'" tabindex="-1" style="background: rgba(0,0,0,0.5); z-index: 1050;">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">❌ Reject Request</h5>
+            <button type="button" class="btn-close" (click)="closeRejectModal()"></button>
+          </div>
+          <div class="modal-body">
+            <p><strong>Client:</strong> {{ selectedRequest?.clientName }}</p>
+            <p><strong>Type:</strong> {{ selectedRequest?.requestedType === 'CURRENT' ? 'Current Account' : 'Savings Account' }}</p>
+            <div class="mb-3 mt-3">
+              <label class="form-label">Rejection Reason</label>
+              <textarea class="form-control" rows="3" [(ngModel)]="rejectReason" placeholder="Explain the reason for rejection..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" (click)="closeRejectModal()">Cancel</button>
+            <button class="btn btn-danger" (click)="confirmReject()" [disabled]="!rejectReason.trim()">
+              <i class="fas fa-times me-1"></i> Confirm Rejection
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>

@@ -290,3 +290,46 @@
     text-align: center;
   }
 }
+/* Ajouter à la fin du fichier */
+.rip-code {
+  font-family: monospace;
+  font-size: 12px;
+  background: #f5f5f5;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+
+.btn-copy {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #1a5ac3;
+  margin-left: 5px;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.btn-copy:hover {
+  background: #e9ecef;
+}
+
+.btn-transfer-limit {
+  background: #6f42c1;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin: 0 2px;
+}
+
+.btn-transfer-limit:hover {
+  background: #5a32a3;
+}
+
+.text-muted {
+  font-size: 11px;
+  color: #6c757d;
+  display: block;
+  margin-top: 4px;
+}

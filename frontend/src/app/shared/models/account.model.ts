@@ -9,6 +9,15 @@ export interface Account {
     status: string;
     dailyLimit: number;
     monthlyLimit: number;
-    client?: Client;
+    rip: string;
+    dailyTransferLimit: number;
+    createdAt: string;
+    updatedAt: string;
+    client?: {
+        id: number;
+        firstName: string;
+        lastName: string;
+        email: string;
+    };
     transactions?: Transaction[];
 }

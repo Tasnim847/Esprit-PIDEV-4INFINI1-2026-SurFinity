@@ -5,13 +5,17 @@ import lombok.RequiredArgsConstructor;
 import org.example.projet_pi.Dto.ChangePasswordRequest;
 import org.example.projet_pi.Service.IAgentFinanceService;
 import org.example.projet_pi.entity.AgentFinance;
+import org.example.projet_pi.entity.Client;
 import org.example.projet_pi.entity.Role;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/agents/finance")
@@ -82,11 +86,42 @@ public class AgentFinanceController {
 
     @PreAuthorize("hasAnyRole('ADMIN','AGENT_FINANCE')")
     @GetMapping("/{id}/clients")
-    public List<?> getClientsByAgent(@PathVariable Long id) {
+    public ResponseEntity<List<Map<String, Object>>> getClientsByAgent(@PathVariable Long id) {
         AgentFinance agent = agentFinanceService.getAgentById(id);
-        return agent.getClients();
-    }
+        List<Client> clients = agent.getClients();
 
+        List<Map<String, Object>> response = clients.stream().map(client -> {
+            Map<String, Object> clientMap = new HashMap<>();
+            clientMap.put("id", client.getId());
+            clientMap.put("firstName", client.getFirstName());
+            clientMap.put("lastName", client.getLastName());
+            clientMap.put("email", client.getEmail());
+            clientMap.put("telephone", client.getTelephone());
+
+            // 🔥 Récupérer les comptes du client
+            List<Map<String, Object>> accounts = client.getAccounts().stream().map(account -> {
+                Map<String, Object> accountMap = new HashMap<>();
+                accountMap.put("accountId", account.getAccountId());
+                accountMap.put("rip", account.getRip());
+                accountMap.put("balance", account.getBalance());
+                accountMap.put("type", account.getType().name());
+                accountMap.put("status", account.getStatus());
+                return accountMap;
+            }).collect(Collectors.toList());
+
+            clientMap.put("accounts", accounts);
+
+            // Calculer le solde total
+            double totalBalance = accounts.stream()
+                    .mapToDouble(a -> (Double) a.get("balance"))
+                    .sum();
+            clientMap.put("totalBalance", totalBalance);
+
+            return clientMap;
+        }).collect(Collectors.toList());
+
+        return ResponseEntity.ok(response);
+    }
     @PutMapping("/change-password")
     @PreAuthorize("hasAnyRole('ADMIN','AGENT_FINANCE')")
     public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequest request){

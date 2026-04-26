@@ -117,9 +117,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   isAccountVisible(): boolean {
-    return this.userRole === 'CLIENT' || this.userRole === 'AGENT_ASSURANCE';
-  }
-
+  // ✅ Ajouter AGENT_FINANCE
+  return this.userRole === 'CLIENT' || this.userRole === 'AGENT_ASSURANCE' || this.userRole === 'AGENT_FINANCE';
+}
   isComplaintVisible(): boolean {
     // Tous les rôles voient Complaint
     return this.userRole === 'CLIENT' || 

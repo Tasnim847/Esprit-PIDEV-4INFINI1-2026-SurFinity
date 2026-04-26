@@ -1,0 +1,101 @@
+<div class="pending-requests-container">
+  <div class="section-header">
+    <div>
+      <h2>📋 Account Opening Requests</h2>
+      <p class="text-muted">Manage pending client requests</p>
+    </div>
+    <button class="btn-refresh" (click)="loadPendingRequests()" [disabled]="isLoading">
+      <i class="fas fa-sync-alt" [class.spin]="isLoading"></i> Refresh
+    </button>
+  </div>
+
+  <div *ngIf="message" class="alert-message" [class.success]="messageType === 'success'" [class.error]="messageType === 'error'">
+    <i [class.fa-check-circle]="messageType === 'success'" [class.fa-exclamation-circle]="messageType === 'error'" class="fas me-2"></i>
+    {{ message }}
+  </div>
+
+  <!-- Requests Table -->
+  <div class="requests-table-wrapper" *ngIf="!isLoading; else loadingTemplate">
+    <table class="requests-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Client</th>
+          <th>Account Type</th>
+          <th>Request Date</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let request of pendingRequests">
+          <td><span class="fw-bold">#{{ request.id }}</span></td>
+          <td>
+            <div class="client-info">
+              <i class="fas fa-user-circle me-2"></i>
+              <span>{{ request.clientName }}</span>
+            </div>
+           </td>
+          <td>
+            <span class="account-type-badge">
+              <i [class.fa-wallet]="request.requestedType === 'CURRENT'" [class.fa-piggy-bank]="request.requestedType === 'SAVINGS'" class="fas me-1"></i>
+              {{ request.requestedType === 'CURRENT' ? 'Current Account' : 'Savings Account' }}
+            </span>
+           </td>
+          <td>{{ request.requestDate | date:'dd/MM/yyyy HH:mm' }}</td>
+          <td>
+            <span class="status-badge" [class]="getStatusBadgeClass(request.status)">
+              {{ request.status }}
+            </span>
+           </td>
+          <td class="actions-cell">
+            <button class="btn-approve" (click)="approveRequest(request.id)" title="Approve">
+              <i class="fas fa-check-circle me-1"></i> Approve
+            </button>
+            <button class="btn-reject" (click)="openRejectModal(request)" title="Reject">
+              <i class="fas fa-times-circle me-1"></i> Reject
+            </button>
+          </td>
+        </tr>
+        <tr *ngIf="pendingRequests.length === 0">
+          <td colspan="6" class="text-center py-4 text-muted">No pending requests</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Loading Template -->
+  <ng-template #loadingTemplate>
+    <div class="loading-spinner">
+      <div class="spinner"></div>
+      <p>Loading requests...</p>
+    </div>
+  </ng-template>
+
+  <!-- Reject Modal -->
+  <div class="modal-overlay" *ngIf="selectedRequest" (click)="closeRejectModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>❌ Reject Request</h3>
+        <button class="modal-close" (click)="closeRejectModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="request-info">
+          <p><strong>Client:</strong> {{ selectedRequest.clientName }}</p>
+          <p><strong>Type:</strong> {{ selectedRequest.requestedType === 'CURRENT' ? 'Current Account' : 'Savings Account' }}</p>
+          <p><strong>Date:</strong> {{ selectedRequest.requestDate | date:'dd/MM/yyyy HH:mm' }}</p>
+        </div>
+        <div class="form-group">
+          <label>Rejection Reason <span class="required">*</span></label>
+          <textarea class="form-control" [(ngModel)]="rejectReason" rows="4" placeholder="Explain the reason for rejection..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="closeRejectModal()">Cancel</button>
+        <button class="btn-confirm-reject" (click)="confirmReject()" [disabled]="!rejectReason.trim()">
+          Confirm Rejection
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

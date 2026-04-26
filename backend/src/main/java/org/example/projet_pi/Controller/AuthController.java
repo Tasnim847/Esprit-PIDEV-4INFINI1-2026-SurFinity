@@ -8,6 +8,7 @@ import org.example.projet_pi.Service.EmailService2;
 import org.example.projet_pi.Service.SmsServiceYosr;
 import org.example.projet_pi.config.JwtUtils;
 import org.example.projet_pi.entity.*;
+import org.example.projet_pi.security.CustomUserPrincipal;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -497,20 +498,25 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        String email = authentication.getName();
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        // ✅ Utiliser le Principal directement (sans requête SQL !)
+        Object principal = authentication.getPrincipal();
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("id", user.getId());
-        response.put("firstName", user.getFirstName());
-        response.put("lastName", user.getLastName());
-        response.put("email", user.getEmail());
-        response.put("telephone", user.getTelephone());
-        response.put("role", user.getRole().name());
-        response.put("photo", user.getPhoto());
+        if (principal instanceof CustomUserPrincipal) {
+            CustomUserPrincipal userPrincipal = (CustomUserPrincipal) principal;
 
-        return ResponseEntity.ok(response);
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", userPrincipal.getId());
+            response.put("firstName", userPrincipal.getFirstName());
+            response.put("lastName", userPrincipal.getLastName());
+            response.put("email", userPrincipal.getEmail());
+            response.put("telephone", userPrincipal.getTelephone());
+            response.put("role", userPrincipal.getRole());
+            response.put("photo", userPrincipal.getPhoto());
+
+            return ResponseEntity.ok(response);
+        }
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
     @PutMapping("/update-me")

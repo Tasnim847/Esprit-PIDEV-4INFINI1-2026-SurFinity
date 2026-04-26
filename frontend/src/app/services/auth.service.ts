@@ -4,6 +4,16 @@ import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { isPlatformBrowser } from '@angular/common';
 
+export interface UserInfo {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+  telephone?: string;
+  photo?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -43,6 +53,53 @@ export class AuthService {
       return throwError(() => new Error('No token found'));
     }
     return this.http.get(`${this.API}/me`).pipe(catchError(this.handleError));
+  }
+
+  // ✅ NOUVELLE MÉTHODE getCurrentUser
+  getCurrentUser(): UserInfo | null {
+    if (!this.isBrowser) return null;
+    
+    // Essayer de récupérer depuis localStorage d'abord
+    const storedUser = localStorage.getItem('user_info');
+    if (storedUser) {
+      try {
+        return JSON.parse(storedUser);
+      } catch (e) {
+        console.error('Error parsing user info', e);
+      }
+    }
+    
+    // Sinon, construire à partir des données stockées
+    const token = this.getToken();
+    const userId = this.getUserId();
+    const firstName = this.getUserFirstName();
+    const lastName = this.getUserLastName();
+    const email = this.getUserEmail();
+    const role = this.getRole();
+    
+    if (token && userId) {
+      return {
+        id: userId,
+        firstName: firstName || '',
+        lastName: lastName || '',
+        email: email || '',
+        role: role || 'CLIENT'
+      };
+    }
+    
+    return null;
+  }
+  
+  // ✅ NOUVELLE MÉTHODE pour mettre à jour l'utilisateur dans le storage
+  setCurrentUser(user: UserInfo): void {
+    if (this.isBrowser) {
+      localStorage.setItem('user_info', JSON.stringify(user));
+      localStorage.setItem('userId', user.id.toString());
+      localStorage.setItem('firstName', user.firstName);
+      localStorage.setItem('lastName', user.lastName);
+      localStorage.setItem('userEmail', user.email);
+      localStorage.setItem('role', user.role);
+    }
   }
 
   updateMe(data: any): Observable<any> {
@@ -153,6 +210,16 @@ export class AuthService {
       if (firstName) localStorage.setItem('firstName', firstName);
       if (lastName) localStorage.setItem('lastName', lastName);
       if (email) localStorage.setItem('userEmail', email);
+      
+      // ✅ Sauvegarder aussi l'objet complet
+      const userInfo: UserInfo = {
+        id: userId || 0,
+        firstName: firstName || '',
+        lastName: lastName || '',
+        email: email || '',
+        role: role
+      };
+      localStorage.setItem('user_info', JSON.stringify(userInfo));
     }
   }
 
