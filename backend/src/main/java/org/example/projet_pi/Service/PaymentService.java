@@ -35,15 +35,12 @@ public class PaymentService implements IPaymentService {
     @Override
     @Transactional
     public PaymentDTO addPayment(PaymentDTO dto, String userEmail) {
-        // 1. Récupérer l'utilisateur connecté
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
 
-        // 2. Récupérer le contrat
         InsuranceContract contract = contractRepository.findById(dto.getContractId())
                 .orElseThrow(() -> new RuntimeException("Contrat non trouvé"));
 
-        // 3. Vérification des droits d'accès
         if (user instanceof Client) {
             if (!contract.getClient().getId().equals(user.getId())) {
                 throw new AccessDeniedException("Vous ne pouvez payer que vos propres contrats");
@@ -55,12 +52,10 @@ public class PaymentService implements IPaymentService {
             }
         }
 
-        // 4. Vérifier si le contrat n'est pas déjà COMPLETED
         if (contract.getStatus() == ContractStatus.COMPLETED) {
             throw new RuntimeException("Ce contrat est déjà complété, aucun paiement supplémentaire n'est requis");
         }
 
-        // 5. Vérifier si ce paiement n'a pas déjà été traité par Stripe
         boolean alreadyProcessedByStripe = contract.getPayments().stream()
                 .anyMatch(p -> Math.abs(dto.getAmount() - p.getAmount()) < 0.01 &&
                         p.getPaymentMethod() == PaymentMethod.CARD &&
@@ -72,38 +67,33 @@ public class PaymentService implements IPaymentService {
             throw new RuntimeException("Ce paiement a déjà été traité");
         }
 
-        // 6. Vérifier que le montant ne dépasse pas le reste à payer
         if (dto.getAmount() > contract.getRemainingAmount()) {
             throw new RuntimeException("Le montant du paiement (" + dto.getAmount() +
                     ") dépasse le reste à payer (" + contract.getRemainingAmount() + ")");
         }
 
-        // 7. Vérifier que le montant n'est pas trop petit
         if (dto.getAmount() < 0.01) {
             throw new RuntimeException("Le montant du paiement est trop petit");
         }
 
-        // 8. Créer le paiement
         Payment payment = PaymentMapper.toEntity(dto);
         payment.setContract(contract);
         payment.setPaymentDate(new Date());
         payment.setStatus(PaymentStatus.PAID);
 
-        // 9. Appliquer le paiement au contrat
         double oldRemaining = contract.getRemainingAmount();
         contract.applyPayment(payment.getAmount());
 
-        // 10. Sauvegarder
         payment = paymentRepository.save(payment);
-        contractRepository.save(contract);
 
-        // 11. Vérifier si le contrat est maintenant COMPLETED
-        checkAndMarkContractAsCompletedAfterPayment(contract);
+        // ✅ Vérifier si toutes les tranches sont payées
+        updateContractStatusIfFullyPaid(contract);
+
+        contractRepository.save(contract);
 
         log.info("✅ Paiement ajouté: {} DT pour le contrat {} (reste: {} -> {} DT)",
                 payment.getAmount(), contract.getContractId(), oldRemaining, contract.getRemainingAmount());
 
-        // 12. Envoyer email de confirmation
         try {
             emailService.sendPaymentConfirmationEmail(contract.getClient(), contract, payment);
             log.info("📧 Email de confirmation envoyé à {}", contract.getClient().getEmail());
@@ -121,12 +111,10 @@ public class PaymentService implements IPaymentService {
         InsuranceContract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new RuntimeException("Contrat non trouvé"));
 
-        // Vérifier que le contrat n'est pas déjà COMPLETED
         if (contract.getStatus() == ContractStatus.COMPLETED) {
             throw new RuntimeException("Ce contrat est déjà complété");
         }
 
-        // Par défaut, proposer le montant de l'échéance (tranche)
         double installmentAmount = contract.calculateInstallmentAmount();
         long amountInCents = (long) (installmentAmount * 100);
 
@@ -153,7 +141,6 @@ public class PaymentService implements IPaymentService {
         return PaymentIntent.create(params);
     }
 
-    // Dans PaymentService.java, ajoutez cette méthode si elle n'existe pas
     public PaymentIntent createCustomStripePaymentIntent(Long contractId, Double amount) throws StripeException {
         InsuranceContract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new RuntimeException("Contrat non trouvé"));
@@ -195,7 +182,6 @@ public class PaymentService implements IPaymentService {
         return PaymentIntent.create(params);
     }
 
-
     @Override
     @Transactional
     public void handleSuccessfulPayment(String stripePaymentId, Long amountInCents, Long contractId) {
@@ -207,50 +193,36 @@ public class PaymentService implements IPaymentService {
 
             double amountDT = amountInCents / 100.0;
 
-            // ✅ Récupérer la première tranche non payée
             Payment pendingPayment = contract.getPayments().stream()
                     .filter(p -> p.getStatus() == PaymentStatus.PENDING)
                     .min(Comparator.comparing(Payment::getPaymentDate))
                     .orElseThrow(() -> new RuntimeException("Aucune tranche à payer"));
 
-            // Vérifier que le montant correspond à la tranche
             if (Math.abs(amountDT - pendingPayment.getAmount()) > 0.01) {
                 log.warn("⚠️ Montant reçu {} DT ne correspond pas à la tranche {} DT",
                         amountDT, pendingPayment.getAmount());
             }
 
             log.info("💰 Paiement de la tranche {} ({} DT)", pendingPayment.getPaymentId(), amountDT);
-            log.info("📊 Reste AVANT paiement: {}", contract.getRemainingAmount());
 
-            // Marquer la tranche comme payée
             pendingPayment.setStatus(PaymentStatus.PAID);
             pendingPayment.setPaymentMethod(PaymentMethod.CARD);
             pendingPayment.setPaymentDate(new Date());
             paymentRepository.save(pendingPayment);
 
-            // Mettre à jour le contrat
             contract.setRemainingAmount(contract.getRemainingAmount() - amountDT);
             contract.setTotalPaid(contract.getTotalPaid() + amountDT);
+
+            // ✅ Vérifier si toutes les tranches sont payées
+            updateContractStatusIfFullyPaid(contract);
+
             contractRepository.save(contract);
 
             log.info("✅ Paiement Stripe {} traité pour la tranche {} du contrat {}",
                     stripePaymentId, pendingPayment.getPaymentId(), contractId);
             log.info("💰 Reste à payer: {} DT", contract.getRemainingAmount());
 
-            // Vérifier si toutes les tranches sont payées
-            boolean allPaid = contract.getPayments().stream()
-                    .allMatch(p -> p.getStatus() == PaymentStatus.PAID);
-
-            if (allPaid && contract.getRemainingAmount() < 0.01) {
-                contract.setStatus(ContractStatus.COMPLETED);
-                contractRepository.save(contract);
-                log.info("🎉 Contrat {} complété!", contractId);
-
-                emailService.sendContractCompletedEmail(contract.getClient(), contract);
-            } else {
-                // Envoyer email de confirmation pour la tranche payée
-                emailService.sendPaymentConfirmationEmail(contract.getClient(), contract, pendingPayment);
-            }
+            emailService.sendPaymentConfirmationEmail(contract.getClient(), contract, pendingPayment);
 
         } catch (Exception e) {
             log.error("❌ Erreur: {}", e.getMessage(), e);
@@ -261,7 +233,6 @@ public class PaymentService implements IPaymentService {
     @Override
     public void handleSuccessfulPayment(String stripePaymentId, Long amountInCents) {
         log.warn("⚠️ Appel à la méthode de fallback handleSuccessfulPayment sans contractId");
-        log.info("Paiement Stripe reçu: {} pour {} centimes", stripePaymentId, amountInCents);
     }
 
     // ==================== MÉTHODES DE CONSULTATION ====================
@@ -336,8 +307,36 @@ public class PaymentService implements IPaymentService {
     // ==================== MÉTHODES UTILITAIRES ====================
 
     /**
-     * Vérifier le solde restant d'un contrat
+     * Méthode utilitaire pour vérifier et mettre à jour le statut du contrat
+     * si toutes les tranches sont payées
      */
+    private void updateContractStatusIfFullyPaid(InsuranceContract contract) {
+        long remainingPendingPayments = contract.getPayments().stream()
+                .filter(p -> p.getStatus() == PaymentStatus.PENDING)
+                .count();
+
+        boolean noRemainingAmount = contract.getRemainingAmount() <= 0.01;
+
+        if (remainingPendingPayments == 0 && noRemainingAmount) {
+            if (contract.getStatus() != ContractStatus.COMPLETED) {
+                contract.setStatus(ContractStatus.COMPLETED);
+                contract.setRemainingAmount(0.0);
+                log.info("🎉 Contrat {} marqué COMPLETED - toutes les {} tranches sont payées",
+                        contract.getContractId(), contract.getPayments().size());
+
+                try {
+                    emailService.sendContractCompletedEmail(contract.getClient(), contract);
+                    log.info("📧 Email de contrat complété envoyé à {}", contract.getClient().getEmail());
+                } catch (Exception e) {
+                    log.error("❌ Erreur envoi email contrat complété: {}", e.getMessage());
+                }
+            }
+        } else {
+            log.debug("📊 Contrat {} - {} tranches restantes à payer (reste: {} DT)",
+                    contract.getContractId(), remainingPendingPayments, contract.getRemainingAmount());
+        }
+    }
+
     public Map<String, Object> getRemainingBalance(Long contractId, String userEmail) {
         InsuranceContract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new RuntimeException("Contrat non trouvé"));
@@ -363,9 +362,6 @@ public class PaymentService implements IPaymentService {
         return balance;
     }
 
-    /**
-     * Récupérer l'historique des paiements avec détails
-     */
     public List<Map<String, Object>> getPaymentHistory(Long contractId, String userEmail) {
         InsuranceContract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new RuntimeException("Contrat non trouvé"));
@@ -391,9 +387,6 @@ public class PaymentService implements IPaymentService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Recalculer les tranches de paiement restantes pour un contrat
-     */
     public List<Map<String, Object>> getRemainingInstallments(Long contractId, String userEmail) {
         InsuranceContract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new RuntimeException("Contrat non trouvé"));
@@ -425,9 +418,6 @@ public class PaymentService implements IPaymentService {
 
     // ==================== MÉTHODES STRIPE UTILITAIRES ====================
 
-    /**
-     * Vérifier le statut d'un PaymentIntent Stripe
-     */
     public Map<String, Object> getPaymentIntentStatus(String paymentIntentId) {
         try {
             PaymentIntent paymentIntent = PaymentIntent.retrieve(paymentIntentId);
@@ -449,9 +439,6 @@ public class PaymentService implements IPaymentService {
         }
     }
 
-    /**
-     * Annuler un PaymentIntent Stripe (si non encore traité)
-     */
     public boolean cancelStripePaymentIntent(String paymentIntentId) {
         try {
             PaymentIntent paymentIntent = PaymentIntent.retrieve(paymentIntentId);
@@ -478,13 +465,8 @@ public class PaymentService implements IPaymentService {
 
     // ==================== MÉTHODES INTERNES ====================
 
-    /**
-     * Méthode interne pour créer un paiement sans passer par addPayment
-     * (pour éviter la récursion avec le webhook Stripe)
-     */
     @Transactional
     protected Payment createPaymentInternal(InsuranceContract contract, double amount, String paymentMethod) {
-        // Validation
         if (contract == null) {
             throw new IllegalArgumentException("Le contrat ne peut pas être null");
         }
@@ -503,11 +485,9 @@ public class PaymentService implements IPaymentService {
         double oldRemaining = contract.getRemainingAmount();
         double oldTotalPaid = contract.getTotalPaid();
 
-        // Créer le paiement
         Payment payment = new Payment();
         payment.setAmount(amount);
 
-        // Gérer les différentes méthodes de paiement
         try {
             if ("CARD".equalsIgnoreCase(paymentMethod) || "CREDIT_CARD".equalsIgnoreCase(paymentMethod)) {
                 payment.setPaymentMethod(PaymentMethod.CARD);
@@ -527,62 +507,21 @@ public class PaymentService implements IPaymentService {
         payment.setStatus(PaymentStatus.PAID);
         payment.setContract(contract);
 
-        // Mettre à jour le contrat
         contract.setRemainingAmount(oldRemaining - amount);
         contract.setTotalPaid(oldTotalPaid + amount);
 
-        // Sauvegarder
         Payment savedPayment = paymentRepository.save(payment);
+
+        // ✅ Vérifier si toutes les tranches sont payées
+        updateContractStatusIfFullyPaid(contract);
+
         contractRepository.save(contract);
 
         log.info("💰 Paiement interne créé: {} DT | Reste: {} -> {} DT | Total payé: {} -> {} DT | Méthode: {}",
                 amount, oldRemaining, contract.getRemainingAmount(),
                 oldTotalPaid, contract.getTotalPaid(), payment.getPaymentMethod());
 
-        // Vérifier si contrat terminé
-        checkAndMarkContractAsCompletedAfterPayment(contract);
-
         return savedPayment;
-    }
-
-    /**
-     * Vérifier et marquer le contrat comme COMPLETED si tous les paiements sont effectués
-     */
-    private void checkAndMarkContractAsCompletedAfterPayment(InsuranceContract contract) {
-        Date today = new Date();
-        Date endDate = contract.getEndDate();
-
-        if (endDate != null && endDate.before(today)) {
-            boolean allPaymentsPaid = contract.getPayments().stream()
-                    .allMatch(p -> p.getStatus() == PaymentStatus.PAID);
-
-            double totalPaid = contract.getTotalPaid();
-            double premium = contract.getPremium();
-            boolean isFullyPaid = Math.abs(totalPaid - premium) < 0.01;
-
-            if (allPaymentsPaid && isFullyPaid) {
-                if (contract.getStatus() != ContractStatus.COMPLETED) {
-                    ContractStatus oldStatus = contract.getStatus();
-                    contract.setStatus(ContractStatus.COMPLETED);
-                    contractRepository.save(contract);
-
-                    log.info("🎉 Contrat {} marqué COMPLETED après paiement", contract.getContractId());
-                    log.info("   - Total payé: {} DT", totalPaid);
-                    log.info("   - Prime totale: {} DT", premium);
-                    log.info("   - Ancien statut: {}", oldStatus);
-
-                    try {
-                        emailService.sendContractCompletedEmail(contract.getClient(), contract);
-                        log.info("📧 Email de contrat complété envoyé à {}", contract.getClient().getEmail());
-                    } catch (Exception e) {
-                        log.error("❌ Erreur envoi email contrat complété: {}", e.getMessage());
-                    }
-                }
-            } else if (Math.abs(totalPaid - premium) < 0.01 && !allPaymentsPaid) {
-                log.warn("⚠️ Contrat {}: total payé ({}) = prime ({}) mais certains paiements ne sont pas PAID",
-                        contract.getContractId(), totalPaid, premium);
-            }
-        }
     }
 
     // ==================== MÉTHODES DE RAPPEL ====================
@@ -676,16 +615,11 @@ public class PaymentService implements IPaymentService {
         return cal.getTime();
     }
 
-    /**
-     * Traiter un paiement manuel (CASH ou BANK_TRANSFER)
-     */
     @Transactional
     public PaymentDTO processManualPayment(Long contractId, double amount, String paymentMethod, String userEmail) {
-        // 1. Récupérer le contrat
         InsuranceContract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new RuntimeException("Contrat non trouvé"));
 
-        // 2. Vérifier les droits
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
 
@@ -693,40 +627,32 @@ public class PaymentService implements IPaymentService {
             throw new AccessDeniedException("Vous ne pouvez payer que vos propres contrats");
         }
 
-        // 3. Vérifier le statut du contrat
         if (contract.getStatus() == ContractStatus.COMPLETED) {
             throw new RuntimeException("Ce contrat est déjà complété");
         }
 
-        // 4. Récupérer la première tranche non payée
         Payment pendingPayment = contract.getPayments().stream()
                 .filter(p -> p.getStatus() == PaymentStatus.PENDING)
                 .min(Comparator.comparing(Payment::getPaymentDate))
                 .orElseThrow(() -> new RuntimeException("Aucune tranche à payer"));
 
-        // 5. Vérifier le montant
         if (Math.abs(amount - pendingPayment.getAmount()) > 0.01) {
             throw new RuntimeException("Le montant ne correspond pas à la tranche due");
         }
 
-        // 6. Marquer le paiement comme payé
         pendingPayment.setStatus(PaymentStatus.PAID);
         pendingPayment.setPaymentMethod(PaymentMethod.valueOf(paymentMethod));
         pendingPayment.setPaymentDate(new Date());
         paymentRepository.save(pendingPayment);
 
-        // 7. Mettre à jour le contrat
         contract.setTotalPaid(contract.getTotalPaid() + amount);
         contract.setRemainingAmount(contract.getRemainingAmount() - amount);
 
-        if (contract.getRemainingAmount() <= 0.01) {
-            contract.setStatus(ContractStatus.COMPLETED);
-            contract.setRemainingAmount(0.0);
-        }
+        // ✅ Vérifier si toutes les tranches sont payées
+        updateContractStatusIfFullyPaid(contract);
 
         contractRepository.save(contract);
 
-        // 8. Envoyer email
         try {
             emailService.sendPaymentConfirmationEmail(contract.getClient(), contract, pendingPayment);
         } catch (Exception e) {
@@ -739,12 +665,6 @@ public class PaymentService implements IPaymentService {
         return PaymentMapper.toDTO(pendingPayment);
     }
 
-
-    // Dans PaymentService.java, ajoutez cette méthode
-
-    /**
-     * Créer un PaymentIntent Stripe pour une compensation
-     */
     public PaymentIntent createCompensationPaymentIntent(Long compensationId, Double amount, String clientEmail) throws StripeException {
         long amountInCents = (long) (amount * 100);
 

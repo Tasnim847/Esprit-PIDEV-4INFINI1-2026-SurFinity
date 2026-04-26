@@ -33,4 +33,7 @@ public class InsuranceContractDTO {
     // 🔥 NOUVEAUX CHAMPS
     private Double totalPaid;
     private Double remainingAmount;
+
+    private RiskClaimDTO riskClaim;  // <-- Ajoutez cette ligne
+
 }

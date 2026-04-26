@@ -38,7 +38,7 @@ public class AgentAssurance extends User {
     private List<InsuranceContract> contracts;
 
     @OneToMany(mappedBy = "agentAssurance")
-    @JsonManagedReference("agentAssurance-clients")
+    @JsonIgnore  // ← Changé : plus de JsonManagedReference
     private List<Client> clients;
 
     @OneToMany(mappedBy = "agentAssurance")

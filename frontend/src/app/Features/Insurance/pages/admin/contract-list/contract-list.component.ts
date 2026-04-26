@@ -6,7 +6,6 @@ import { ToastrService } from 'ngx-toastr';
 import { ContractService } from '../../../services/contract.service';
 import { Router } from '@angular/router';
 
-
 @Component({
   selector: 'app-contract-list',
   standalone: true,
@@ -25,6 +24,7 @@ export class ContractListComponent implements OnInit {
   showRiskModal = false;
   showSimulateModal = false;
   simulateMonths: number = 1;
+  isCheckingDelays = false; // Pour éviter les doubles clics
 
   // Pagination properties
   currentPage: number = 1;
@@ -134,7 +134,6 @@ export class ContractListComponent implements OnInit {
   }
 
   viewRisk(contract: any): void {
-      // Navigation vers la page de détails du risque dans le backoffice
     this.router.navigate(['/backoffice/insurance/contract-risk', contract.contractId]); 
   }
 
@@ -187,13 +186,145 @@ export class ContractListComponent implements OnInit {
     }
   }
 
+
+
+  /**
+    * Vérifie les retards et envoie les emails de rappel
+    * Utilise l'endpoint existant /contrats/check-late-payments
+  */
   runSystemCheck(): void {
+    if (this.isCheckingDelays) {
+      this.toastr.warning('Vérification en cours...');
+      return;
+    }
+
+    this.isCheckingDelays = true;
+    this.toastr.info('🔍 Vérification des retards de paiement en cours...', 'Patientez', { timeOut: 3000 });
+
+    // Appel à l'endpoint existant checkLatePayments
     this.contractService.checkLatePayments().subscribe({
-      next: () => {
-        this.toastr.success('Vérification des retards effectuée');
+      next: (response: any) => {
+        this.isCheckingDelays = false;
+      
+        console.log('Réponse du backend:', response);
+      
+        // Le backend retourne un message comme "Vérification des retards effectuée"
+        const message = typeof response === 'string' ? response : response.message;
+        const remindersSent = response.remindersSent || 0;
+      
+        if (remindersSent > 0) {
+          this.toastr.success(
+            `✅ ${remindersSent} email(s) de rappel envoyé(s) aux clients`, 
+            'Emails envoyés !',
+            { timeOut: 5000 }
+          );
+        } else {
+          this.toastr.success(
+            '✅ Vérification terminée - Les emails ont été envoyés si nécessaire', 
+            'Succès',
+            { timeOut: 4000 }
+          );
+        }
+      
+        // Recharger les contrats pour mettre à jour les statuts
+        setTimeout(() => {
+          this.loadContracts();
+        }, 1000);
+      },
+      error: (err) => {
+        this.isCheckingDelays = false;
+        console.error('Erreur lors de la vérification:', err);
+      
+        let errorMessage = 'Erreur lors de la vérification des retards';
+        if (err.error?.message) {
+          errorMessage = err.error.message;
+        } else if (typeof err.error === 'string') {
+          errorMessage = err.error;
+        }
+      
+        this.toastr.error(errorMessage, 'Erreur');
+      }
+    });
+  }
+
+  /**
+    * Vérification détaillée contrat par contrat
+    * Affiche plus d'informations sur chaque contrat
+  */
+  runDetailedSystemCheck(): void {
+    if (this.isCheckingDelays) {
+      this.toastr.warning('Vérification en cours...');
+      return;
+    }
+
+    this.isCheckingDelays = true;
+    this.toastr.info('🔍 Analyse détaillée des contrats...', 'Vérification', { timeOut: 2000 });
+
+    // Récupérer tous les contrats inactifs/en attente qui peuvent avoir des retards
+    const contractsToCheck = this.filteredContracts.filter(c => 
+      c.status === 'INACTIVE' || c.status === 'ACTIVE'
+    );
+  
+    let totalChecked = 0;
+    let errors = 0;
+
+    if (contractsToCheck.length === 0) {
+      this.isCheckingDelays = false;
+      this.toastr.info('Aucun contrat à vérifier', 'Information');
+      return;
+    }
+
+    // Pour chaque contrat, vérifier les retards
+    contractsToCheck.forEach(contract => {
+      this.contractService.checkContractLatePayments(contract.contractId).subscribe({
+        next: (response: any) => {
+          totalChecked++;
+          console.log(`✅ Contrat #${contract.contractId} vérifié:`, response);
+        
+          if (totalChecked + errors === contractsToCheck.length) {
+            this.isCheckingDelays = false;
+            this.toastr.success(
+              `✅ Vérification terminée: ${totalChecked} contrat(s) analysé(s)`,
+              'Succès',
+              { timeOut: 4000 }
+            );
+            this.loadContracts();
+          }
+        },
+        error: (err) => {
+          errors++;
+          console.error(`❌ Erreur contrat #${contract.contractId}:`, err);
+        
+          if (totalChecked + errors === contractsToCheck.length) {
+            this.isCheckingDelays = false;
+            if (errors > 0) {
+              this.toastr.warning(
+                `Vérification terminée avec ${errors} erreur(s)`,
+                'Partiellement réussi',
+                { timeOut: 4000 }
+              );
+            } else {
+              this.toastr.success('Vérification terminée avec succès', 'Succès');
+            }
+            this.loadContracts();
+          }
+        }
+      });
+    });
+  }
+
+  /**
+    * Vérifie les contrats complétés
+  */
+  runCompletedCheck(): void {
+    this.contractService.checkCompletedContracts().subscribe({
+      next: (response) => {
+        this.toastr.success('Vérification des contrats complétés effectuée');
         this.loadContracts();
       },
-      error: () => this.toastr.error('Erreur lors de la vérification')
+      error: (err) => {
+        this.toastr.error('Erreur lors de la vérification');
+      }
     });
   }
 
@@ -216,6 +347,5 @@ export class ContractListComponent implements OnInit {
 
   goToDashboard(): void {
     this.router.navigate(['/backoffice/insurance/admin-dashboard']);
-    // Ou selon votre route: this.router.navigate(['/admin/dashboard']);
   }
 }

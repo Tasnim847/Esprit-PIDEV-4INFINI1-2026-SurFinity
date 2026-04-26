@@ -45,7 +45,6 @@ public class InsuranceContractController {
             @RequestBody InsuranceContractDTO dto,
             @AuthenticationPrincipal UserDetails currentUser) {
 
-        // Récupérer l'utilisateur connecté
         User user = userRepository.findByEmail(currentUser.getUsername())
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
 
@@ -53,7 +52,6 @@ public class InsuranceContractController {
             throw new RuntimeException("Seul un client peut créer un contrat");
         }
 
-        // Assigner automatiquement le client connecté
         ClientDTO clientDTO = new ClientDTO();
         clientDTO.setId(client.getId());
         clientDTO.setFirstName(client.getFirstName());
@@ -63,7 +61,6 @@ public class InsuranceContractController {
 
         dto.setClient(clientDTO);
 
-        // Appeler le service pour créer le contrat
         return contractService.addContract(dto, currentUser.getUsername());
     }
 
@@ -96,12 +93,248 @@ public class InsuranceContractController {
         return contractService.getAllContracts(currentUser.getUsername());
     }
 
+    @GetMapping("/myContracts")
+    public List<InsuranceContractDTO> getMyContracts(Authentication authentication) {
+        String email = authentication.getName();
+        return contractService.getContractsByClientEmail(email);
+    }
+
     @PutMapping("/activate/{id}")
     public InsuranceContractDTO activateContract(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails currentUser) {
         return contractService.activateContract(id, currentUser.getUsername());
     }
+
+    @PutMapping("/activate-with-notification/{id}")
+    public ResponseEntity<Map<String, Object>> activateContractWithNotification(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails currentUser) {
+
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            InsuranceContractDTO activatedContract = contractService.activateContract(id, currentUser.getUsername());
+            response.put("success", true);
+            response.put("message", "Contrat activé et notification envoyée");
+            response.put("contract", activatedContract);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    @PutMapping("/reject/{id}")
+    public ResponseEntity<?> rejectContract(
+            @PathVariable Long id,
+            @RequestBody(required = false) Map<String, String> rejectionData,
+            @AuthenticationPrincipal UserDetails currentUser) {
+
+        try {
+            String reason = rejectionData != null ?
+                    rejectionData.getOrDefault("reason", "Non spécifiée") :
+                    "Non spécifiée";
+
+            InsuranceContractDTO rejectedContract = contractService.rejectContract(id, currentUser.getUsername(), reason);
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Contrat rejeté avec succès",
+                    "contractId", id,
+                    "status", "CANCELLED",
+                    "reason", reason
+            ));
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/pending")
+    public ResponseEntity<?> getPendingContracts(
+            @AuthenticationPrincipal UserDetails currentUser) {
+
+        try {
+            User user = userRepository.findByEmail(currentUser.getUsername())
+                    .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+            if (!(user instanceof AgentAssurance agent)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Seuls les agents peuvent voir les contrats en attente"));
+            }
+
+            List<InsuranceContractDTO> pendingContracts = contractRepository.findByAgentAssuranceId(agent.getId())
+                    .stream()
+                    .filter(c -> c.getStatus() == ContractStatus.INACTIVE)
+                    .map(InsuranceContractMapper::toDTO)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "agentId", agent.getId(),
+                    "agentName", agent.getFirstName() + " " + agent.getLastName(),
+                    "pendingCount", pendingContracts.size(),
+                    "contracts", pendingContracts
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/rejected")
+    public ResponseEntity<?> getRejectedContracts(
+            @AuthenticationPrincipal UserDetails currentUser) {
+
+        try {
+            User user = userRepository.findByEmail(currentUser.getUsername())
+                    .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+            List<InsuranceContract> rejectedContracts;
+
+            if (user instanceof AgentAssurance agent) {
+                rejectedContracts = contractRepository.findByAgentAssuranceId(agent.getId())
+                        .stream()
+                        .filter(c -> c.getStatus() == ContractStatus.CANCELLED)
+                        .collect(Collectors.toList());
+            } else if (user instanceof Client client) {
+                rejectedContracts = contractRepository.findByClient(client)
+                        .stream()
+                        .filter(c -> c.getStatus() == ContractStatus.CANCELLED)
+                        .collect(Collectors.toList());
+            } else {
+                rejectedContracts = contractRepository.findByStatus(ContractStatus.CANCELLED);
+            }
+
+            List<InsuranceContractDTO> dtos = rejectedContracts.stream()
+                    .map(InsuranceContractMapper::toDTO)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "count", dtos.size(),
+                    "contracts", dtos
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Object>> getContractStats(
+            @AuthenticationPrincipal UserDetails currentUser) {
+
+        List<InsuranceContractDTO> contracts = contractService.getAllContracts(currentUser.getUsername());
+
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("total", contracts.size());
+        stats.put("active", contracts.stream().filter(c -> "ACTIVE".equals(c.getStatus())).count());
+        stats.put("inactive", contracts.stream().filter(c -> "INACTIVE".equals(c.getStatus())).count());
+        stats.put("completed", contracts.stream().filter(c -> "COMPLETED".equals(c.getStatus())).count());
+        stats.put("cancelled", contracts.stream().filter(c -> "CANCELLED".equals(c.getStatus())).count());
+
+        return ResponseEntity.ok(stats);
+    }
+
+    @GetMapping("/{id}/risk")
+    public ResponseEntity<?> getContractRisk(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        try {
+            InsuranceContractDTO contractDTO = contractService.getContractById(id, currentUser.getUsername());
+
+            InsuranceContract contract = contractRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Contrat non trouvé avec l'id: " + id));
+
+            RiskClaim riskClaim = contract.getRiskClaim();
+            if (riskClaim == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "Aucune évaluation de risque trouvée", "contractId", id));
+            }
+
+            RiskClaimDTO riskDTO = RiskClaimMapper.toDTO(riskClaim);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("riskEvaluation", riskDTO);
+            response.put("contractStatus", contract.getStatus());
+            response.put("contractId", contract.getContractId());
+            response.put("contractReference", "CTR-" + contract.getContractId());
+
+            String recommendation;
+            boolean canBeActivated;
+
+            switch (riskClaim.getRiskLevel()) {
+                case "HIGH":
+                    recommendation = "Ce contrat présente un risque trop élevé. Il ne peut pas être activé.";
+                    canBeActivated = false;
+                    break;
+                case "MEDIUM":
+                    recommendation = "Ce contrat présente un risque modéré. Nécessite validation par un agent.";
+                    canBeActivated = true;
+                    break;
+                case "LOW":
+                    recommendation = "Ce contrat présente un risque faible. Peut être activé normalement.";
+                    canBeActivated = true;
+                    break;
+                default:
+                    recommendation = "Niveau de risque non déterminé.";
+                    canBeActivated = false;
+            }
+
+            response.put("recommendation", recommendation);
+            response.put("canBeActivated", canBeActivated);
+
+            return ResponseEntity.ok(response);
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Accès non autorisé", "message", e.getMessage()));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Erreur interne", "message", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/{id}/download/pdf")
+    public ResponseEntity<InputStreamResource> downloadContractPdf(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        try {
+            InsuranceContractDTO contractDTO = contractService.getContractById(id, currentUser.getUsername());
+
+            InsuranceContract contract = contractRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Contrat non trouvé avec l'id: " + id));
+
+            Client client = contract.getClient();
+            AgentAssurance agent = contract.getAgentAssurance();
+            List<Payment> payments = contract.getPayments();
+
+            if (client == null) {
+                throw new RuntimeException("Le contrat n'est pas associé à un client");
+            }
+
+            byte[] pdfContent = pdfGenerationService.generateContractPdf(contract, client, agent, payments);
+
+            String filename = String.format("contrat_%d_%s.pdf", id, new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()));
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .contentLength(pdfContent.length)
+                    .body(new InputStreamResource(new ByteArrayInputStream(pdfContent)));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // ==================== SYSTÈME (Admin only) ====================
 
     @PostMapping("/check-late-payments")
     public String checkAllLatePayments() {
@@ -131,307 +364,5 @@ public class InsuranceContractController {
     public String checkEndOfMonth() {
         contractService.checkEndOfMonthLatePayments();
         return "Vérification de fin de mois effectuée";
-    }
-
-    /**
-     * Télécharger le contrat au format PDF complet
-     * URL: GET /contrats/{id}/download/pdf
-     */
-    @GetMapping("/{id}/download/pdf")
-    public ResponseEntity<InputStreamResource> downloadContractPdf(
-            @PathVariable Long id,
-            @AuthenticationPrincipal UserDetails currentUser) {
-        try {
-            // 1. Vérifier les droits d'accès via le service
-            InsuranceContractDTO contractDTO = contractService.getContractById(id, currentUser.getUsername());
-
-            // 2. Récupérer le contrat complet
-            InsuranceContract contract = contractRepository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Contrat non trouvé avec l'id: " + id));
-
-            // 3. Récupérer les entités associées
-            Client client = contract.getClient();
-            AgentAssurance agent = contract.getAgentAssurance();
-            List<Payment> payments = contract.getPayments();
-
-            if (client == null) {
-                throw new RuntimeException("Le contrat n'est pas associé à un client");
-            }
-
-            // 4. Générer le PDF
-            byte[] pdfContent = pdfGenerationService.generateContractPdf(
-                    contract, client, agent, payments
-            );
-
-            // 5. Préparer le nom du fichier
-            String filename = String.format("contrat_%d_%s.pdf",
-                    id,
-                    new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date())
-            );
-
-            // 6. Retourner le PDF en pièce jointe
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION,
-                            "attachment; filename=\"" + filename + "\"")
-                    .contentType(MediaType.APPLICATION_PDF)
-                    .contentLength(pdfContent.length)
-                    .body(new InputStreamResource(new ByteArrayInputStream(pdfContent)));
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
-
-    /**
-     * Récupérer l'évaluation du risque d'un contrat
-     * URL: GET /contrats/{id}/risk
-     */
-    @GetMapping("/{id}/risk")
-    public ResponseEntity<?> getContractRisk(
-            @PathVariable Long id,
-            @AuthenticationPrincipal UserDetails currentUser) {
-        try {
-            // 1. Vérifier les droits d'accès via le service
-            InsuranceContractDTO contractDTO = contractService.getContractById(id, currentUser.getUsername());
-
-            // 2. Récupérer le contrat complet
-            InsuranceContract contract = contractRepository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Contrat non trouvé avec l'id: " + id));
-
-            // 3. Récupérer le RiskClaim
-            RiskClaim riskClaim = contract.getRiskClaim();
-            if (riskClaim == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(Map.of(
-                                "error", "Aucune évaluation de risque trouvée",
-                                "contractId", id
-                        ));
-            }
-
-            // 4. Convertir en DTO
-            RiskClaimDTO riskDTO = RiskClaimMapper.toDTO(riskClaim);
-
-            // 5. Préparer la réponse avec des informations enrichies
-            Map<String, Object> response = new HashMap<>();
-            response.put("riskEvaluation", riskDTO);
-            response.put("contractStatus", contract.getStatus());
-            response.put("contractId", contract.getContractId());
-            response.put("contractReference", "CTR-" + contract.getContractId());
-
-            // Ajouter des recommandations basées sur le niveau de risque
-            String recommendation;
-            boolean canBeActivated;
-
-            switch (riskClaim.getRiskLevel()) {
-                case "HIGH":
-                    recommendation = "Ce contrat présente un risque trop élevé. " +
-                            "Il ne peut pas être activé et reste bloqué. " +
-                            "Veuillez contacter votre agent d'assurance.";
-                    canBeActivated = false;
-                    break;
-                case "MEDIUM":
-                    recommendation = "Ce contrat présente un risque modéré. " +
-                            "Il peut être activé après vérification par un agent. " +
-                            "L'agent d'assurance examinera votre contrat.";
-                    canBeActivated = true;
-                    break;
-                case "LOW":
-                    recommendation = "Ce contrat présente un risque faible. " +
-                            "Il peut être activé normalement par votre agent d'assurance.";
-                    canBeActivated = true;
-                    break;
-                default:
-                    recommendation = "Niveau de risque non déterminé.";
-                    canBeActivated = false;
-            }
-
-            response.put("recommendation", recommendation);
-            response.put("canBeActivated", canBeActivated);
-
-            // Ajouter un résumé des facteurs de risque
-            long durationInDays = 0;
-            if (contract.getEndDate() != null && contract.getStartDate() != null) {
-                durationInDays = (contract.getEndDate().getTime() - contract.getStartDate().getTime()) / (1000 * 60 * 60 * 24);
-            }
-
-            response.put("riskFactors", Map.of(
-                    "premium", contract.getPremium(),
-                    "deductible", contract.getDeductible(),
-                    "coverageLimit", contract.getCoverageLimit(),
-                    "duration", durationInDays + " jours"
-            ));
-
-            return ResponseEntity.ok(response);
-
-        } catch (AccessDeniedException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of(
-                            "error", "Accès non autorisé",
-                            "message", e.getMessage()
-                    ));
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of(
-                            "error", "Erreur interne",
-                            "message", e.getMessage()
-                    ));
-        }
-    }
-
-
-    @GetMapping("/myContracts")
-    public List<InsuranceContractDTO> getMyContracts(Authentication authentication) {
-
-        String email = authentication.getName(); // email du client connecté
-
-        return contractService.getContractsByClientEmail(email);
-    }
-
-
-
-    /**
-     * Rejeter un contrat (CANCELLED)
-     */
-    @PutMapping("/reject/{id}")
-    public ResponseEntity<?> rejectContract(
-            @PathVariable Long id,
-            @RequestBody(required = false) Map<String, String> rejectionData,
-            @AuthenticationPrincipal UserDetails currentUser) {
-
-        try {
-            String reason = rejectionData != null ?
-                    rejectionData.getOrDefault("reason", "Non spécifiée") :
-                    "Non spécifiée";
-
-            InsuranceContractDTO rejectedContract = contractService.rejectContract(id, currentUser.getUsername(), reason);
-
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Contrat rejeté avec succès",
-                    "contractId", id,
-                    "status", "CANCELLED",
-                    "reason", reason
-            ));
-
-        } catch (AccessDeniedException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    /**
-     * Récupérer tous les contrats en attente pour l'agent connecté
-     */
-    @GetMapping("/pending")
-    public ResponseEntity<?> getPendingContracts(
-            @AuthenticationPrincipal UserDetails currentUser) {
-
-        try {
-            User user = userRepository.findByEmail(currentUser.getUsername())
-                    .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
-
-            if (!(user instanceof AgentAssurance agent)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("error", "Seuls les agents peuvent voir les contrats en attente"));
-            }
-
-            List<InsuranceContractDTO> pendingContracts = contractRepository.findByAgentAssuranceId(agent.getId())
-                    .stream()
-                    .filter(c -> c.getStatus() == ContractStatus.INACTIVE)
-                    .map(InsuranceContractMapper::toDTO)
-                    .collect(Collectors.toList());
-
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "agentId", agent.getId(),
-                    "agentName", agent.getFirstName() + " " + agent.getLastName(),
-                    "pendingCount", pendingContracts.size(),
-                    "contracts", pendingContracts
-            ));
-
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    /**
-     * Voir les contrats rejetés (CANCELLED)
-     */
-    @GetMapping("/rejected")
-    public ResponseEntity<?> getRejectedContracts(
-            @AuthenticationPrincipal UserDetails currentUser) {
-
-        try {
-            User user = userRepository.findByEmail(currentUser.getUsername())
-                    .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
-
-            List<InsuranceContract> rejectedContracts;
-
-            if (user instanceof AgentAssurance agent) {
-                // L'agent voit les rejets de ses clients
-                rejectedContracts = contractRepository.findByAgentAssuranceId(agent.getId())
-                        .stream()
-                        .filter(c -> c.getStatus() == ContractStatus.CANCELLED)
-                        .collect(Collectors.toList());
-            } else if (user instanceof Client client) {
-                // Le client voit ses propres contrats rejetés
-                rejectedContracts = contractRepository.findByClient(client)
-                        .stream()
-                        .filter(c -> c.getStatus() == ContractStatus.CANCELLED)
-                        .collect(Collectors.toList());
-            } else {
-                // Admin voit tout
-                rejectedContracts = contractRepository.findByStatus(ContractStatus.CANCELLED);
-            }
-
-            List<InsuranceContractDTO> dtos = rejectedContracts.stream()
-                    .map(InsuranceContractMapper::toDTO)
-                    .collect(Collectors.toList());
-
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "count", dtos.size(),
-                    "contracts", dtos
-            ));
-
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    // Dans InsuranceContractController.java, ajoutez :
-
-    /**
-     * Activer un contrat et envoyer une notification par email
-     */
-    @PutMapping("/activate-with-notification/{id}")
-    public ResponseEntity<Map<String, Object>> activateContractWithNotification(
-            @PathVariable Long id,
-            @AuthenticationPrincipal UserDetails currentUser) {
-
-        Map<String, Object> response = new HashMap<>();
-
-        try {
-            InsuranceContractDTO activatedContract = contractService.activateContract(id, currentUser.getUsername());
-
-            response.put("success", true);
-            response.put("message", "Contrat activé et notification envoyée");
-            response.put("contract", activatedContract);
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            response.put("success", false);
-            response.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
-        }
     }
 }

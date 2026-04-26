@@ -49,6 +49,8 @@ import { ClientAccountsComponent } from './components/client-accounts/client-acc
 import { TransferByRipComponent } from './components/transfer-by-rip/transfer-by-rip.component';
 import { AgentPendingRequestsComponent } from './components/agent-pending-requests/agent-pending-requests.component';
 import { AgentAccountComponent } from './components/agent-account/agent-account.component';
+import { AgentCashApprovalsComponent } from './Features/Insurance/pages/agent/agent-cash-approvals/agent-cash-approvals.component';
+
 export const routes: Routes = [
 
   // Landing page ouverte par défaut
@@ -168,6 +170,12 @@ export const routes: Routes = [
       { 
         path: 'agent/contracts', 
         component: AgentContractsComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['AGENT_ASSURANCE'] }
+      },
+      {
+        path: 'agent/cash-approvals',
+        component: AgentCashApprovalsComponent,
         canActivate: [roleGuard],
         data: { roles: ['AGENT_ASSURANCE'] }
       },

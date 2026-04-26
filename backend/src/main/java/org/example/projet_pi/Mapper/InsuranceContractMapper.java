@@ -32,10 +32,13 @@ public class InsuranceContractMapper {
                 contract.getPaymentFrequency() != null ? contract.getPaymentFrequency().name() : null
         );
 
-        // ✅ CORRECTION ICI
-        dto.setClient(
-                ClientMapper.toDTO(contract.getClient())
-        );
+        // Client mapping
+        dto.setClient(ClientMapper.toDTO(contract.getClient()));
+
+        // ✅ AJOUTER LE MAPPING DU RISK CLAIM
+        if (contract.getRiskClaim() != null) {
+            dto.setRiskClaim(RiskClaimMapper.toDTO(contract.getRiskClaim()));
+        }
 
         if (contract.getProduct() != null)
             dto.setProductId(contract.getProduct().getProductId());
@@ -97,7 +100,7 @@ public class InsuranceContractMapper {
             );
         }
 
-        // (optionnel mais recommandé)
+        // Client mapping
         if (dto.getClient() != null) {
             org.example.projet_pi.entity.Client client = new org.example.projet_pi.entity.Client();
             client.setId(dto.getClient().getId());

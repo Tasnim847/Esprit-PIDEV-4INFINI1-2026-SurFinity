@@ -3,6 +3,7 @@ package org.example.projet_pi.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import com.fasterxml.jackson.annotation.JsonIgnore;  // ← IMPORT
 
 import java.util.Date;
 
@@ -35,6 +36,7 @@ public class Compensation {
 
     @OneToOne
     @JoinColumn(name = "claim_id")
+    @JsonIgnore  // ← AJOUTER CEÇI
     private Claim claim;
 
     // Dans Compensation.java - AJOUTER CES CHAMPS

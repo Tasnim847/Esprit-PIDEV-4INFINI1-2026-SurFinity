@@ -1,11 +1,28 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, tap } from 'rxjs/operators';
 import { RiskEvaluationDTO } from '../../../shared/dto/risk-evaluation.dto';
 import { RiskFactorDTO } from '../../../shared/dto/risk-factor.dto';
 import { CategoryRiskDTO } from '../../../shared/dto/category-risk.dto';
 import { environment } from '../../../../environments/environment'; 
+
+export interface CashApprovalRequest {
+  id: number;
+  paymentId: number;
+  contractId: number;
+  amount: number;
+  clientEmail: string;
+  clientName: string;
+  clientId: number;
+  agentId: number;
+  requestedAt: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'FAILED';
+  rejectionReason?: string;
+  approvedAt?: string;
+  rejectedAt?: string;
+}
+
 
 @Injectable({
   providedIn: 'root'
@@ -13,8 +30,7 @@ import { environment } from '../../../../environments/environment';
 export class ContractService {
   private apiUrl = 'http://localhost:8081/contrats';
   private agentApiUrl = 'http://localhost:8081/agent';
-  private baseUrl = environment.apiUrl; // MODIFIER: utiliser environment.apiUrl
-
+  private baseUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 
@@ -73,11 +89,6 @@ export class ContractService {
 
   // ========== PAYMENT ENDPOINTS ==========
   
-  /**
-   * Récupère tous les paiements d'un contrat
-   * @param contractId L'ID du contrat
-   * @returns Observable contenant la liste des paiements
-   */
   getPaymentsByContract(contractId: number): Observable<any[]> {
     return this.http.get<any[]>(`${this.baseUrl}/payments/contract/${contractId}`, { headers: this.getHeaders() })
       .pipe(catchError(this.handleError));
@@ -89,46 +100,67 @@ export class ContractService {
    * @returns Observable contenant la réponse du serveur
    */
   makePayment(paymentData: any): Observable<any> {
-    // ✅ Utiliser la valeur envoyée par le composant
     const body = {
       clientEmail: paymentData.clientEmail,
       contractId: paymentData.contractId,
       installmentAmount: paymentData.installmentAmount,
-      paymentType: paymentData.paymentType,  // ← Utiliser la valeur dynamique (CASH ou BANK_TRANSFER)
+      paymentType: paymentData.paymentType,
       remainingAmount: paymentData.remainingAmount || 0
     };
-  
+
     console.log('📤 Envoi de la requête de paiement:', body);
-  
+
     return this.http.post(`${this.baseUrl}/payments/payments`, body, { headers: this.getHeaders() })
       .pipe(catchError(this.handleError));
   }
 
   /**
-   * Récupère le statut de paiement d'un contrat
-   * @param contractId L'ID du contrat
-   * @returns Observable contenant le statut
+   * Traite un paiement CASH après approbation de l'agent
+   * @param paymentData Les données du paiement
+   * @returns Observable contenant la réponse du serveur
    */
-  getPaymentStatus(contractId: number): Observable<any> {
-    return this.http.get(`${this.baseUrl}/payments/status/${contractId}`, { headers: this.getHeaders() })
+  processApprovedCashPayment(paymentData: any): Observable<any> {
+    const body = {
+      clientEmail: paymentData.clientEmail,
+      contractId: paymentData.contractId,
+      installmentAmount: paymentData.installmentAmount,
+      paymentType: 'CASH',
+      remainingAmount: paymentData.remainingAmount || 0
+    };
+
+    console.log('📤 Traitement paiement CASH approuvé:', body);
+
+    return this.http.post(`${this.baseUrl}/payments/process-approved-cash`, body, { headers: this.getHeaders() })
       .pipe(catchError(this.handleError));
   }
 
   /**
-   * Récupère l'historique des paiements d'un contrat
-   * @param contractId L'ID du contrat
-   * @returns Observable contenant l'historique
+   * Demande l'approbation pour un paiement CASH
+   * @param requestData Les données de la demande
+   * @returns Observable contenant la réponse du serveur
    */
+  requestCashApproval(requestData: any): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/cash-requests/request`, requestData, {
+      headers: this.getHeaders()
+    }).pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Vérifie le statut d'une demande CASH
+   * @param paymentId L'ID du paiement
+   * @returns Observable contenant le statut
+   */
+  getCashRequestStatus(paymentId: number): Observable<CashApprovalRequest[]> {
+    return this.http.get<CashApprovalRequest[]>(`${environment.apiUrl}/cash-requests/payment/${paymentId}`, {
+      headers: this.getHeaders()
+    }).pipe(catchError(this.handleError));
+  }
+
   getPaymentHistory(contractId: number): Observable<any[]> {
     return this.http.get<any[]>(`${this.baseUrl}/payments/history/${contractId}`, { headers: this.getHeaders() })
       .pipe(catchError(this.handleError));
   }
 
-  /**
-   * Récupère le solde restant d'un contrat
-   * @param contractId L'ID du contrat
-   * @returns Observable contenant le solde
-   */
   getRemainingBalance(contractId: number): Observable<any> {
     return this.http.get(`${this.baseUrl}/payments/remaining-balance/${contractId}`, { headers: this.getHeaders() })
       .pipe(catchError(this.handleError));
@@ -147,6 +179,7 @@ export class ContractService {
     return this.http.post(`${environment.apiUrl}/payments/confirm-payment/${paymentIntentId}`, {}, { headers: this.getHeaders() })
       .pipe(catchError(this.handleError));
   }
+
   // ========== RISK ENDPOINTS ==========
   
   getContractRisk(id: number): Observable<any> {
@@ -202,29 +235,62 @@ export class ContractService {
 
   // ========== SYSTEM ENDPOINTS (Admin only) ==========
   
-  checkLatePayments(): Observable<string> {
-    return this.http.post<string>(`${this.apiUrl}/check-late-payments`, {}, { headers: this.getHeaders() })
-      .pipe(catchError(this.handleError));
+  checkLatePayments(): Observable<any> {
+    // Cet endpoint retourne un String
+    return this.http.post(`${this.apiUrl}/check-late-payments`, {}, { 
+      headers: this.getHeaders(),
+      responseType: 'text'
+    }).pipe(
+      catchError(this.handleError),
+      map(response => {
+        return {
+          success: true,
+          message: response,
+          remindersSent: this.extractCountFromMessage(response)
+        };
+      })
+    );
   }
 
-  checkContractLatePayments(id: number): Observable<string> {
-    return this.http.post<string>(`${this.apiUrl}/check-late-payments/${id}`, {}, { headers: this.getHeaders() })
-      .pipe(catchError(this.handleError));
+  checkContractLatePayments(id: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/check-late-payments/${id}`, {}, { 
+      headers: this.getHeaders(),
+      responseType: 'text'
+    }).pipe(
+      catchError(this.handleError),
+      map(response => {
+        return {
+          success: true,
+          message: response,
+          contractId: id,
+          remindersSent: this.extractCountFromMessage(response)
+        };
+      })
+    );
   }
 
   simulateLatePayments(id: number, months: number): Observable<string> {
-    return this.http.post<string>(`${this.apiUrl}/simulate-late-payments/${id}/${months}`, {}, { headers: this.getHeaders() })
-      .pipe(catchError(this.handleError));
+    return this.http.post<string>(`${this.apiUrl}/simulate-late-payments/${id}/${months}`, {}, { 
+      headers: this.getHeaders() 
+    }).pipe(catchError(this.handleError));
   }
 
   checkCompletedContracts(): Observable<string> {
-    return this.http.post<string>(`${this.apiUrl}/check-completed`, {}, { headers: this.getHeaders() })
-      .pipe(catchError(this.handleError));
+    return this.http.post<string>(`${this.apiUrl}/check-completed`, {}, { 
+      headers: this.getHeaders() 
+    }).pipe(catchError(this.handleError));
   }
 
   checkEndOfMonth(): Observable<string> {
-    return this.http.post<string>(`${this.apiUrl}/check-end-of-month`, {}, { headers: this.getHeaders() })
-      .pipe(catchError(this.handleError));
+    return this.http.post<string>(`${this.apiUrl}/check-end-of-month`, {}, { 
+      headers: this.getHeaders() 
+    }).pipe(catchError(this.handleError));
+  }
+
+  // Méthode utilitaire pour extraire le nombre d'emails envoyés du message
+  private extractCountFromMessage(message: string): number {
+    const matches = message.match(/\d+/);
+    return matches ? parseInt(matches[0], 10) : 0;
   }
 
   // ========== AGENT RISK EVALUATION ENDPOINT (HTML Parser) ==========
@@ -257,7 +323,7 @@ export class ContractService {
     }
   
     return this.http.get<{ success: boolean; evaluation: RiskEvaluationDTO }>(
-      `http://localhost:8082/api/risk/evaluation/${contractId}`, 
+      `http://localhost:8081/api/risk/evaluation/${contractId}`, 
       { headers: headers }
     ).pipe(
       map(response => response.evaluation),
@@ -511,6 +577,42 @@ export class ContractService {
     
     console.log('Parsed evaluation:', evaluation);
     return evaluation;
+  }
+
+  // ========== CASH REQUESTS METHODS ==========
+
+  // Récupérer les demandes en attente pour un agent
+  getPendingCashRequests(agentId: number): Observable<CashApprovalRequest[]> {
+    console.log('📡 Appel API: getPendingCashRequests pour agentId:', agentId);
+    return this.http.get<CashApprovalRequest[]>(`${environment.apiUrl}/cash-requests/pending/${agentId}`, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(this.handleError),
+      tap(response => console.log('📦 Réponse API:', response))
+    );
+  }
+
+  // Approuver une demande CASH
+  approveCashRequest(requestId: number): Observable<any> {
+    console.log('✅ Appel API: approveCashRequest pour requestId:', requestId);
+    return this.http.post(`${environment.apiUrl}/cash-requests/${requestId}/approve`, {}, {
+      headers: this.getHeaders()
+    }).pipe(catchError(this.handleError));
+  }
+
+  // Rejeter une demande CASH
+  rejectCashRequest(requestId: number, reason: string): Observable<any> {
+    console.log('❌ Appel API: rejectCashRequest pour requestId:', requestId);
+    return this.http.post(`${environment.apiUrl}/cash-requests/${requestId}/reject`, reason, {
+      headers: this.getHeaders()
+    }).pipe(catchError(this.handleError));
+  }
+
+  // Créer une demande CASH (appelé par le client)
+  createCashRequest(requestData: any): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/cash-requests/request`, requestData, {
+      headers: this.getHeaders()
+    }).pipe(catchError(this.handleError));
   }
 
   // ========== UTILITAIRES ==========
