@@ -85,7 +85,6 @@ public class PaymentController {
 
     @PostMapping("/webhook")
     public ResponseEntity<String> handleStripeWebhook(@RequestBody String payload) {
-        // Traiter le webhook Stripe
         return ResponseEntity.ok("Webhook reçu");
     }
 
@@ -94,6 +93,17 @@ public class PaymentController {
     @PostMapping("/payments")
     public ResponseEntity<?> makePayment(@RequestBody PaymentRequestDTO request) {
 
+        // Pour CASH : ne pas traiter le paiement immédiatement
+        if ("CASH".equalsIgnoreCase(request.getPaymentType())) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "PENDING_APPROVAL");
+            response.put("message", "Demande de paiement en espèces envoyée à l'agent");
+            response.put("contractId", request.getContractId());
+            response.put("amount", request.getInstallmentAmount());
+            return ResponseEntity.ok(response);
+        }
+
+        // Pour les autres méthodes (CARD, BANK_TRANSFER) : traitement normal
         Client client = clientRepository.findByEmail(request.getClientEmail())
                 .orElseThrow(() -> new RuntimeException("Client not found"));
 
@@ -129,9 +139,15 @@ public class PaymentController {
         contract.setTotalPaid(contract.getTotalPaid() + amountToPay);
         contract.setRemainingAmount(contract.getRemainingAmount() - amountToPay);
 
-        if (contract.getRemainingAmount() <= 0.01) {
+        // ✅ CORRECTION : Vérifier que TOUTES les tranches sont payées
+        long remainingPendingPayments = contract.getPayments().stream()
+                .filter(p -> p.getStatus() == PaymentStatus.PENDING)
+                .count();
+
+        if (remainingPendingPayments == 0 && contract.getRemainingAmount() <= 0.01) {
             contract.setStatus(ContractStatus.COMPLETED);
             contract.setRemainingAmount(0.0);
+            log.info("🎉 Contrat {} complété - toutes les tranches sont payées", contract.getContractId());
         }
 
         Payment savedTranche = paymentRepository.save(tranche);
@@ -151,6 +167,85 @@ public class PaymentController {
         result.put("remainingAmount", contract.getRemainingAmount());
         result.put("totalPaid", contract.getTotalPaid());
         result.put("status", contract.getStatus().name());
+        result.put("remainingInstallments", remainingPendingPayments);
+
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/process-approved-cash")
+    public ResponseEntity<?> processApprovedCashPayment(@RequestBody PaymentRequestDTO request) {
+        log.info("💰 Traitement paiement CASH approuvé pour le contrat {}", request.getContractId());
+
+        Client client = clientRepository.findByEmail(request.getClientEmail())
+                .orElseThrow(() -> new RuntimeException("Client not found"));
+
+        List<Payment> tranches = paymentRepository
+                .findAllByContract_ContractIdAndStatusOrderByPaymentDateAsc(
+                        request.getContractId(),
+                        PaymentStatus.PENDING
+                );
+
+        if (tranches.isEmpty()) {
+            throw new RuntimeException("No pending payment found");
+        }
+
+        Payment tranche = tranches.get(0);
+
+        InsuranceContract contract = contractRepository.findById(request.getContractId())
+                .orElseThrow(() -> new RuntimeException("Contrat non trouvé"));
+
+        double amountToPay = request.getInstallmentAmount();
+        if (Math.abs(amountToPay - tranche.getAmount()) > 0.01) {
+            throw new RuntimeException("Le montant ne correspond pas à la tranche due");
+        }
+
+        if (amountToPay > contract.getRemainingAmount()) {
+            throw new RuntimeException("Le montant dépasse le reste à payer");
+        }
+
+        tranche.setAmount(amountToPay);
+        tranche.setPaymentDate(new Date());
+        tranche.setPaymentMethod(PaymentMethod.CASH);
+        tranche.setStatus(PaymentStatus.PAID);
+
+        contract.setTotalPaid(contract.getTotalPaid() + amountToPay);
+        contract.setRemainingAmount(contract.getRemainingAmount() - amountToPay);
+
+        // ✅ CORRECTION : Vérifier que TOUTES les tranches sont payées
+        long remainingPendingPayments = contract.getPayments().stream()
+                .filter(p -> p.getStatus() == PaymentStatus.PENDING)
+                .count();
+
+        if (remainingPendingPayments == 0 && contract.getRemainingAmount() <= 0.01) {
+            contract.setStatus(ContractStatus.COMPLETED);
+            contract.setRemainingAmount(0.0);
+            log.info("🎉 Contrat {} complété - toutes les tranches sont payées", contract.getContractId());
+        } else {
+            log.info("📊 Contrat {} - Tranche payée. Reste: {} DT, Tranches restantes: {}",
+                    contract.getContractId(),
+                    contract.getRemainingAmount(),
+                    remainingPendingPayments);
+        }
+
+        Payment savedTranche = paymentRepository.save(tranche);
+        contractRepository.save(contract);
+
+        try {
+            emailService.sendPaymentConfirmationEmail(client, contract, savedTranche);
+            log.info("📧 Email de confirmation envoyé à {}", client.getEmail());
+        } catch (Exception e) {
+            log.error("❌ Erreur envoi email: {}", e.getMessage());
+        }
+
+        PaymentDTO response = PaymentMapper.toDTO(savedTranche);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("payment", response);
+        result.put("remainingAmount", contract.getRemainingAmount());
+        result.put("totalPaid", contract.getTotalPaid());
+        result.put("status", contract.getStatus().name());
+        result.put("remainingInstallments", remainingPendingPayments);
+        result.put("message", "Paiement en espèces effectué avec succès");
 
         return ResponseEntity.ok(result);
     }
@@ -169,11 +264,16 @@ public class PaymentController {
             InsuranceContract contract = contractRepository.findById(contractId)
                     .orElseThrow(() -> new RuntimeException("Contrat non trouvé"));
 
+            long remainingPendingPayments = contract.getPayments().stream()
+                    .filter(p -> p.getStatus() == PaymentStatus.PENDING)
+                    .count();
+
             Map<String, Object> response = new HashMap<>();
             response.put("payment", payment);
             response.put("remainingAmount", contract.getRemainingAmount());
             response.put("totalPaid", contract.getTotalPaid());
             response.put("contractStatus", contract.getStatus().name());
+            response.put("remainingInstallments", remainingPendingPayments);
             response.put("message", "Paiement effectué avec succès");
 
             return ResponseEntity.ok(response);
@@ -299,8 +399,6 @@ public class PaymentController {
                     .body(Map.of("error", e.getMessage()));
         }
     }
-
-    // Ajoutez cet endpoint dans PaymentController.java
 
     @PostMapping("/confirm-payment/{paymentIntentId}")
     public ResponseEntity<Map<String, Object>> confirmPayment(

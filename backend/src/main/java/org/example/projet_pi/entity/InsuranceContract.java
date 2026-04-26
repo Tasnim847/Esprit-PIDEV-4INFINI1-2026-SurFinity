@@ -1,6 +1,7 @@
 package org.example.projet_pi.entity;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;  // ← IMPORT
 import lombok.Getter;
 import lombok.Setter;
 
@@ -33,54 +34,86 @@ public class InsuranceContract {
     private ContractStatus status;
 
     @OneToOne(mappedBy = "contract", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore  // ← AJOUTER CEÇI (optionnel, mais bonne pratique)
     private RiskClaim riskClaim;
 
     @Enumerated(EnumType.STRING)
     private PaymentFrequency paymentFrequency;
 
     @ManyToOne
+    @JsonIgnore  // ← AJOUTER CEÇI
     private Client client;
 
     @ManyToOne
+    @JsonIgnore  // ← AJOUTER CEÇI
     private InsuranceProduct product;
 
     @ManyToOne
+    @JsonIgnore  // ← AJOUTER CEÇI
     private AgentAssurance agentAssurance;
 
     @OneToMany(mappedBy = "contract", cascade = CascadeType.ALL)
+    @JsonIgnore  // ← AJOUTER CEÇI
     private List<Claim> claims;
 
     @OneToMany(mappedBy = "contract", cascade = CascadeType.ALL)
+    @JsonIgnore  // ← AJOUTER CEÇI
     private List<Payment> payments;
 
     // ============================================================
-    // 🔥 CALCUL DES ÉCHÉANCES SELON LA FRÉQUENCE
-    // ============================================================
+// 🔥 CALCUL DES ÉCHÉANCES SELON LA FRÉQUENCE
+// ============================================================
     public double calculateInstallmentAmount() {
-        if (paymentFrequency == null) return premium;
+        if (paymentFrequency == null || premium == null || premium == 0) return 0;
 
-        double numberOfPayments = 0;
+        // Calculer la durée en années
+        if (startDate == null || endDate == null) return premium;
+
+        long durationInMillis = endDate.getTime() - startDate.getTime();
+        long durationInYears = durationInMillis / (1000L * 60 * 60 * 24 * 365);
+
+        if (durationInYears < 1) durationInYears = 1;
+
+        double premiumPerYear = premium / durationInYears;
+        double installmentAmount = 0;
 
         switch (paymentFrequency) {
             case MONTHLY:
-                numberOfPayments = 12;
+                installmentAmount = premiumPerYear / 12;
                 break;
             case SEMI_ANNUAL:
-                numberOfPayments = 2;
+                installmentAmount = premiumPerYear / 2;
                 break;
             case ANNUAL:
-                // Calculer le nombre de paiements = durée en années
-                if (contractDurationYears != null && contractDurationYears > 0) {
-                    numberOfPayments = contractDurationYears;
-                } else {
-                    numberOfPayments = 1; // par défaut
-                }
+                installmentAmount = premiumPerYear;
                 break;
             default:
-                numberOfPayments = 1;
+                installmentAmount = premium;
         }
 
-        return premium / numberOfPayments;
+        return Math.round(installmentAmount * 100.0) / 100.0;
+    }
+    /**
+     * Calcule le nombre total de paiements pour le contrat
+     */
+    public int getTotalNumberOfPayments() {
+        if (paymentFrequency == null || startDate == null || endDate == null) return 1;
+
+        long durationInMillis = endDate.getTime() - startDate.getTime();
+        long durationInYears = durationInMillis / (1000L * 60 * 60 * 24 * 365);
+
+        if (durationInYears < 1) durationInYears = 1;
+
+        switch (paymentFrequency) {
+            case MONTHLY:
+                return (int) (durationInYears * 12);
+            case SEMI_ANNUAL:
+                return (int) (durationInYears * 2);
+            case ANNUAL:
+                return (int) durationInYears;
+            default:
+                return 1;
+        }
     }
 
     // 🔥 INITIALISATION

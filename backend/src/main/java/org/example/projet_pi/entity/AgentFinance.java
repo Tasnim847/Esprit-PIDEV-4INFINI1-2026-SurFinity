@@ -12,7 +12,6 @@ public class AgentFinance extends User {
 
 
     @OneToMany(mappedBy = "agentFinance")
-    @JsonManagedReference("agentFinance-clients")
     @JsonIgnore
     private List<Client> clients;
 

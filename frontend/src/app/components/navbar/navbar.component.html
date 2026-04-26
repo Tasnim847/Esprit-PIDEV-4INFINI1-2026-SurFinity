@@ -32,18 +32,18 @@
         </li>
 
         <!-- Account - différent selon le rôle -->
-<li class="nav-item" *ngIf="isAccountVisible()">
-  <a class="nav-link" 
-     [routerLink]="userRole === 'AGENT_FINANCE' ? '/public/agent/account' : '/public/client/dashboard'" 
-     routerLinkActive="active">
-    Account
-  </a>
-</li>
+        <li class="nav-item" *ngIf="isAccountVisible()">
+          <a class="nav-link" 
+            [routerLink]="userRole === 'AGENT_FINANCE' ? '/public/agent/account' : '/public/client/dashboard'" 
+            routerLinkActive="active">
+            Account
+          </a>
+        </li>
 
         <!-- Complaint - visible pour CLIENT, AGENT_ASSURANCE et AGENT_FINANCE -->
-<li class="nav-item" *ngIf="isComplaintVisible()">
-  <a class="nav-link" [routerLink]="getComplaintLink()" routerLinkActive="active">Complaint</a>
-</li>
+        <li class="nav-item" *ngIf="isComplaintVisible()">
+          <a class="nav-link" [routerLink]="getComplaintLink()" routerLinkActive="active">Complaint</a>
+        </li>
 
         <!-- News - visible pour CLIENT et AGENT_ASSURANCE seulement -->
         <li class="nav-item" *ngIf="isNewsVisible()">
@@ -61,6 +61,12 @@
             [routerLink]="getClaimsLink()" 
             routerLinkActive="active">
             Claims
+          </a>
+        </li>
+        
+        <li class="nav-item" *ngIf="isCashApprovalsVisible()">
+          <a class="nav-link" routerLink="/public/agent/cash-approvals" routerLinkActive="active">
+            Cash Approvals
           </a>
         </li>
 

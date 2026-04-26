@@ -40,4 +40,5 @@ export type { Repayment } from './models/repayment.model';
 export type { RiskClaim } from './models/risk-claim.model';
 export type { Transaction } from './models/transaction.model';
 export type { ClientStat } from './models/client-stat.model';
+export type { CashApprovalRequest } from './models/cash-approvalRequest.model';
 export type { User } from './models/user.model';

@@ -76,8 +76,16 @@
                        [class.selected-card]="selectedPayments.has(payment.paymentId)"
                        [class.paid-card]="payment.status === 'PAID'"
                        [class.disabled-card]="payment.status === 'PAID'"
+                       [class.recently-rejected]="recentlyRejectedPaymentId === payment.paymentId"
                        [style.animation-delay]="i * 0.05 + 's'"
                        (click)="payment.status === 'PENDING' && togglePayment(payment.paymentId, payment.amount, payment.status)">
+                    
+                    <!-- Indicateur visuel pour paiement refusé -->
+                    <div class="rejected-badge" *ngIf="recentlyRejectedPaymentId === payment.paymentId">
+                      <span class="badge bg-warning text-dark">
+                        ⚠️ Refusé - Vous pouvez le reselectionner
+                      </span>
+                    </div>
                     
                     <!-- Card Header -->
                     <div class="card-header bg-white border-0 pt-3 px-3">

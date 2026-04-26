@@ -34,11 +34,11 @@ public class Client extends User {
 
     // Relations existantes
     @ManyToOne
-    @JsonBackReference("agentAssurance-clients")
+    @JsonIgnore  // ← Changé : plus de JsonManagedReference
     private AgentAssurance agentAssurance;
 
     @ManyToOne
-    @JsonBackReference("agentFinance-clients")
+    @JsonIgnore  // ← Changé : plus de JsonManagedReference
     private AgentFinance agentFinance;
 
     @OneToMany(mappedBy = "client", cascade = CascadeType.ALL)
@@ -48,6 +48,7 @@ public class Client extends User {
     private List<Credit> credits = new ArrayList<>();
 
     @OneToMany(mappedBy = "client", cascade = CascadeType.ALL)
+    @JsonIgnore  // ← Changé : plus de JsonManagedReference
     private List<InsuranceContract> contracts = new ArrayList<>();
 
     @OneToMany(mappedBy = "client", cascade = CascadeType.ALL)
@@ -55,9 +56,11 @@ public class Client extends User {
     private List<Complaint> complaints = new ArrayList<>();
 
     @OneToMany(mappedBy = "client", cascade = CascadeType.ALL)
+    @JsonIgnore  // ← Changé : plus de JsonManagedReference
     private List<Document> documents = new ArrayList<>();
 
     @OneToMany(mappedBy = "client", cascade = CascadeType.ALL)
+    @JsonIgnore  // ← Changé : plus de JsonManagedReference
     private List<Claim> claims = new ArrayList<>();
 
     // ============================================================

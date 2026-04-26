@@ -70,8 +70,8 @@ public class InsuranceContractService implements IInsuranceContractService {
         System.out.println("💡 Coverage Limit avancé fixé à : " + coverageLimit);
 
         // 5️⃣ Ajuster la prime automatiquement selon le coverageLimit
-        double basePremium = dto.getPremium() != null ? dto.getPremium() : coverageLimit * 0.02; // 2% du coverage
-        double finalPremium = basePremium * 1.10; // +10% frais/ajustement
+        double basePremium = dto.getPremium() != null ? dto.getPremium() : coverageLimit * 0.02;
+        double finalPremium = basePremium * 1.10;
         contract.setPremium(finalPremium);
         contract.setTotalPaid(0.0);
         contract.setRemainingAmount(finalPremium);
@@ -80,7 +80,7 @@ public class InsuranceContractService implements IInsuranceContractService {
         contract.setDeductible(finalPremium * 0.10);
 
         // 7️⃣ Calcul du risque
-        RiskClaim riskClaim = calculateRisk(contract); // ta méthode existante
+        RiskClaim riskClaim = calculateRisk(contract);
         riskClaim.setContract(contract);
         contract.setRiskClaim(riskClaim);
 
@@ -91,9 +91,9 @@ public class InsuranceContractService implements IInsuranceContractService {
             contract.setStatus(ContractStatus.INACTIVE);
         }
 
-        // 9️⃣ Génération des paiements planifiés selon le montant final et la fréquence
+        // 9️⃣ Génération des paiements planifiés
         contract.setPayments(new ArrayList<>());
-        generateScheduledPayments(contract); // ta méthode existante
+        generateScheduledPayments(contract);
 
         // 🔟 Sauvegarde finale
         contract = contractRepository.save(contract);
@@ -113,16 +113,13 @@ public class InsuranceContractService implements IInsuranceContractService {
         int clientAge = contract.getClient().getAge();
         boolean hasClaimsHistory = contract.getClient().getClaims() != null && !contract.getClient().getClaims().isEmpty();
 
-        // Facteurs pondérés
         double factorProduct = 1.5;
         double factorIncome = 0.3;
         double factorAge = clientAge > 50 ? 1.2 : 1.0;
         double factorClaims = hasClaimsHistory ? 0.8 : 1.0;
 
-        // Calcul du coverage limit
         double coverageLimit = (baseLimit * factorProduct + clientIncome * factorIncome) * factorAge * factorClaims;
 
-        // Plafond et plancher
         double minLimit = baseLimit;
         double maxLimit = baseLimit * 10;
         coverageLimit = Math.max(Math.min(coverageLimit, maxLimit), minLimit);
@@ -131,12 +128,15 @@ public class InsuranceContractService implements IInsuranceContractService {
         return coverageLimit;
     }
 
+    // ============================================================
+    // 🔥 ACTIVATION CONTRAT
+    // ============================================================
+
     @Override
     @Transactional
     public InsuranceContractDTO activateContract(Long contractId, String agentEmail) {
         log.info("🔧 Tentative d'activation du contrat {} par l'agent {}", contractId, agentEmail);
 
-        // 1. Vérifier que c'est bien un agent
         User user = userRepository.findByEmail(agentEmail)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
 
@@ -147,7 +147,6 @@ public class InsuranceContractService implements IInsuranceContractService {
         AgentAssurance agent = (AgentAssurance) user;
         log.info("✅ Agent authentifié: {} {}", agent.getFirstName(), agent.getLastName());
 
-        // 2. Récupérer le contrat
         InsuranceContract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new RuntimeException("Contrat non trouvé"));
 
@@ -155,30 +154,25 @@ public class InsuranceContractService implements IInsuranceContractService {
                 contract.getContractId(), contract.getStatus(),
                 contract.getClient().getEmail());
 
-        // 3. Vérifier que le contrat appartient bien à un client de cet agent
         if (!contract.getClient().getAgentAssurance().getId().equals(agent.getId())) {
             log.error("❌ Contrat {} n'appartient pas à l'agent {}", contractId, agent.getId());
             throw new AccessDeniedException("Ce contrat n'appartient pas à un de vos clients");
         }
 
-        // 4. Vérifier que le contrat est INACTIVE
         if (contract.getStatus() != ContractStatus.INACTIVE) {
             log.error("❌ Contrat {} n'est pas INACTIVE (statut: {})", contractId, contract.getStatus());
             throw new RuntimeException("Seuls les contrats INACTIVE peuvent être activés");
         }
 
-        // 5. Vérifier le niveau de risque
         if (contract.getRiskClaim() != null && "HIGH".equals(contract.getRiskClaim().getRiskLevel())) {
             log.error("❌ Contrat {} a un risque HIGH, activation impossible", contractId);
             throw new RuntimeException("Impossible d'activer un contrat à risque HIGH");
         }
 
-        // 6. Activer le contrat
         contract.setStatus(ContractStatus.ACTIVE);
         contract = contractRepository.save(contract);
         log.info("✅ Contrat {} activé avec succès", contractId);
 
-        // 7. Envoyer un email de confirmation au client
         Client client = contract.getClient();
         try {
             emailService.sendContractAcceptedEmail(client, contract);
@@ -186,45 +180,40 @@ public class InsuranceContractService implements IInsuranceContractService {
                     client.getEmail(), contract.getContractId());
         } catch (Exception e) {
             log.error("❌ Erreur lors de l'envoi de l'email de confirmation: {}", e.getMessage());
-            // Ne pas bloquer l'activation même si l'email échoue
         }
 
         return InsuranceContractMapper.toDTO(contract);
     }
 
-    // 🔥 NOUVELLE MÉTHODE : Activer et envoyer email en une seule opération
     @Transactional
     public InsuranceContractDTO activateAndNotify(Long contractId, String agentEmail) {
         InsuranceContractDTO activatedContract = activateContract(contractId, agentEmail);
-        // L'email est déjà envoyé dans activateContract
         return activatedContract;
     }
 
+    // ============================================================
+    // 🔥 GET CONTRACTS
+    // ============================================================
+
     @Override
     public List<InsuranceContractDTO> getAllContracts(String userEmail) {
-
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
 
-        // ================= CLIENT =================
         if (user instanceof Client client) {
-
             return contractRepository.findByClient(client)
                     .stream()
                     .map(InsuranceContractMapper::toDTO)
                     .collect(Collectors.toList());
         }
 
-        // ================= AGENT =================
         if (user instanceof AgentAssurance agent) {
-
             return contractRepository.findByAgentAssuranceId(agent.getId())
                     .stream()
                     .map(InsuranceContractMapper::toDTO)
                     .collect(Collectors.toList());
         }
 
-        // ================= ADMIN =================
         return contractRepository.findAll()
                 .stream()
                 .map(InsuranceContractMapper::toDTO)
@@ -239,23 +228,33 @@ public class InsuranceContractService implements IInsuranceContractService {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
 
-        // Vérification des droits d'accès
         if (user instanceof Client) {
-            // Un client ne voit que ses propres contrats
             if (!contract.getClient().getId().equals(user.getId())) {
                 throw new AccessDeniedException("Vous n'avez pas accès à ce contrat");
             }
         } else if (user instanceof AgentAssurance) {
-            // Un agent ne voit que les contrats de ses clients
             AgentAssurance agent = (AgentAssurance) user;
             if (!contract.getClient().getAgentAssurance().getId().equals(agent.getId())) {
                 throw new AccessDeniedException("Ce contrat n'appartient pas à un de vos clients");
             }
         }
-        // Admin peut tout voir
 
         return InsuranceContractMapper.toDTO(contract);
     }
+
+    public List<InsuranceContractDTO> getContractsByClientEmail(String email) {
+        Client client = clientRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Client not found"));
+
+        return contractRepository.findByClient(client)
+                .stream()
+                .map(InsuranceContractMapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    // ============================================================
+    // 🔥 UPDATE CONTRACT
+    // ============================================================
 
     @Override
     @Transactional
@@ -264,15 +263,12 @@ public class InsuranceContractService implements IInsuranceContractService {
             throw new IllegalArgumentException("L'id du contrat ne peut pas être null");
         }
 
-        // 1️⃣ Récupérer le contrat
         InsuranceContract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new RuntimeException("Contrat non trouvé avec id: " + contractId));
 
-        // 2️⃣ Récupérer l'utilisateur
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
 
-        // 3️⃣ Vérification d'autorisation
         if (user instanceof Client clientUser) {
             if (contract.getClient() == null || !contract.getClient().getId().equals(clientUser.getId())) {
                 throw new AccessDeniedException("Vous ne pouvez modifier que vos propres contrats");
@@ -281,30 +277,26 @@ public class InsuranceContractService implements IInsuranceContractService {
             throw new AccessDeniedException("Modification non autorisée");
         }
 
-        // 4️⃣ Mise à jour des champs de base (uniquement si non null)
+        // Mise à jour des champs de base
         if (dto.getStartDate() != null) contract.setStartDate(dto.getStartDate());
         if (dto.getEndDate() != null) contract.setEndDate(dto.getEndDate());
         if (dto.getPremium() != null && dto.getPremium() > 0) contract.setPremium(dto.getPremium());
         if (dto.getDeductible() != null && dto.getDeductible() > 0) contract.setDeductible(dto.getDeductible());
         if (dto.getCoverageLimit() != null && dto.getCoverageLimit() > 0) contract.setCoverageLimit(dto.getCoverageLimit());
 
-        // 5️⃣ Mise à jour du montant restant
         contract.setRemainingAmount(contract.getPremium() - contract.getTotalPaid());
 
-        // 6️⃣ Mise à jour du statut automatique
         if (contract.getRemainingAmount() <= 0) {
             contract.setStatus(ContractStatus.COMPLETED);
         } else if (dto.getStatus() != null) {
             contract.setStatus(Enum.valueOf(ContractStatus.class, dto.getStatus()));
         }
 
-        // 7️⃣ Mise à jour de la fréquence de paiement
-        // 7️⃣ Mise à jour de la fréquence de paiement
+        // Gestion de la fréquence de paiement
         if (dto.getPaymentFrequency() != null) {
             PaymentFrequency newFrequency = Enum.valueOf(PaymentFrequency.class, dto.getPaymentFrequency());
 
             if (contract.getPaymentFrequency() != newFrequency) {
-                // Compter les paiements déjà payés
                 long paidCount = contract.getPayments().stream()
                         .filter(p -> p.getStatus() == PaymentStatus.PAID)
                         .count();
@@ -314,23 +306,15 @@ public class InsuranceContractService implements IInsuranceContractService {
                             "Impossible de changer la fréquence après que des paiements aient été effectués");
                 }
 
-                // Supprimer tous les paiements existants
-                contract.getPayments().clear();
-                paymentRepository.deleteByContract_ContractId(contract.getContractId()); // si tu as un repository
-
-                // Appliquer la nouvelle fréquence
                 contract.setPaymentFrequency(newFrequency);
-
-                // Recalculer remainingAmount
                 double totalPaid = contract.getTotalPaid();
                 contract.setRemainingAmount(Math.max(contract.getPremium() - totalPaid, 0));
 
-                // Générer de nouveaux paiements selon la nouvelle fréquence
-                regenerateScheduledPayments(contract);
+                regenerateScheduledPaymentsForContract(contract);
             }
         }
 
-        // 8️⃣ Mise à jour des relations (client, agent, produit)
+        // Mise à jour des relations
         if (dto.getClient() != null && dto.getClient().getId() != null) {
             Client client = clientRepository.findById(dto.getClient().getId())
                     .orElseThrow(() -> new RuntimeException("Client non trouvé"));
@@ -349,7 +333,7 @@ public class InsuranceContractService implements IInsuranceContractService {
             contract.setProduct(product);
         }
 
-        // 9️⃣ Recalcul du risque
+        // Recalcul du risque
         RiskClaim existingRisk = contract.getRiskClaim();
         if (existingRisk == null) {
             existingRisk = calculateRisk(contract);
@@ -362,16 +346,18 @@ public class InsuranceContractService implements IInsuranceContractService {
             existingRisk.setEvaluationNote(updatedRisk.getEvaluationNote());
         }
 
-        // 🔟 Annuler automatiquement si risque HIGH
         if ("HIGH".equals(contract.getRiskClaim().getRiskLevel())) {
             contract.setStatus(ContractStatus.CANCELLED);
         }
 
-        // 1️⃣1️⃣ Sauvegarde finale
         contract = contractRepository.save(contract);
 
         return InsuranceContractMapper.toDTO(contract);
     }
+
+    // ============================================================
+    // 🔥 DELETE CONTRACT
+    // ============================================================
 
     @Override
     @Transactional
@@ -382,7 +368,6 @@ public class InsuranceContractService implements IInsuranceContractService {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
 
-        // Vérification: seul le propriétaire ou admin peut supprimer
         if (user instanceof Client) {
             if (!contract.getClient().getId().equals(user.getId())) {
                 throw new AccessDeniedException("Vous ne pouvez supprimer que vos propres contrats");
@@ -395,11 +380,62 @@ public class InsuranceContractService implements IInsuranceContractService {
     }
 
     // ============================================================
+    // 🔥 REJET CONTRAT
+    // ============================================================
+
+    @Override
+    @Transactional
+    public InsuranceContractDTO rejectContract(Long contractId, String agentEmail, String rejectionReason) {
+        User user = userRepository.findByEmail(agentEmail)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+        if (!(user instanceof AgentAssurance)) {
+            throw new AccessDeniedException("Seuls les agents d'assurance peuvent rejeter des contrats");
+        }
+
+        AgentAssurance agent = (AgentAssurance) user;
+
+        InsuranceContract contract = contractRepository.findById(contractId)
+                .orElseThrow(() -> new RuntimeException("Contrat non trouvé"));
+
+        if (!contract.getClient().getAgentAssurance().getId().equals(agent.getId())) {
+            throw new AccessDeniedException("Ce contrat n'appartient pas à un de vos clients");
+        }
+
+        if (contract.getStatus() != ContractStatus.INACTIVE) {
+            throw new RuntimeException("Seuls les contrats INACTIVE peuvent être rejetés");
+        }
+
+        contract.setStatus(ContractStatus.CANCELLED);
+        contract = contractRepository.save(contract);
+
+        Client client = contract.getClient();
+        try {
+            emailService.sendContractRejectedEmail(client, contract, rejectionReason);
+            log.info("✅ Email de rejet envoyé à {} pour le contrat {}",
+                    client.getEmail(), contract.getContractId());
+        } catch (Exception e) {
+            log.error("❌ Erreur lors de l'envoi de l'email de rejet: {}", e.getMessage());
+        }
+
+        log.info("❌ Contrat {} rejeté par l'agent {} - Raison: {}",
+                contractId, agentEmail, rejectionReason);
+
+        return InsuranceContractMapper.toDTO(contract);
+    }
+
+    // ============================================================
     // 🔥 GÉNÉRATION DES PAIEMENTS
     // ============================================================
 
+    /**
+     * Génère les paiements planifiés pour un contrat selon sa fréquence
+     */
     private void generateScheduledPayments(InsuranceContract contract) {
-        if (contract.getPaymentFrequency() == null) return;
+        if (contract.getPaymentFrequency() == null) {
+            log.warn("Fréquence de paiement non définie pour le contrat {}", contract.getContractId());
+            return;
+        }
 
         Date start = contract.getStartDate();
         Date end = contract.getEndDate();
@@ -413,89 +449,129 @@ public class InsuranceContractService implements IInsuranceContractService {
         long durationInMillis = end.getTime() - start.getTime();
         long durationInYears = durationInMillis / (1000L * 60 * 60 * 24 * 365);
 
-        // Éviter la division par zéro
-        if (durationInYears < 1) {
-            durationInYears = 1;
-        }
+        if (durationInYears < 1) durationInYears = 1;
 
         contract.setContractDurationYears((int) durationInYears);
 
-        double installment = contract.calculateInstallmentAmount();
+        double installmentAmount = contract.calculateInstallmentAmount();
+        int totalPayments = getTotalNumberOfPayments(contract);
 
-        // Arrondir à 2 décimales
-        installment = Math.round(installment * 100.0) / 100.0;
+        log.info("📊 Génération de {} paiements de {} DT pour le contrat {} (durée: {} ans, fréquence: {})",
+                totalPayments, installmentAmount, contract.getContractId(), durationInYears, contract.getPaymentFrequency());
+
+        if (contract.getPayments() == null) {
+            contract.setPayments(new ArrayList<>());
+        }
 
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(start);
 
-        int paymentCount = 0;
-        int maxPayments = getMaxPayments(contract.getPaymentFrequency(), (int) durationInYears);
+        double totalGenerated = 0;
 
-        log.info("📊 Génération de {} paiements de {} DT pour le contrat {} (durée: {} ans, fréquence: {})",
-                maxPayments, installment, contract.getContractId(), durationInYears, contract.getPaymentFrequency());
-
-        while (paymentCount < maxPayments) {
+        for (int i = 0; i < totalPayments; i++) {
             Payment payment = new Payment();
             payment.setContract(contract);
 
-            // Pour le dernier paiement, ajuster pour éviter les erreurs d'arrondi
-            if (paymentCount == maxPayments - 1) {
-                double totalSoFar = installment * paymentCount;
-                payment.setAmount(Math.max(0, contract.getPremium() - totalSoFar));
-            } else {
-                payment.setAmount(installment);
+            double amount = installmentAmount;
+            if (i == totalPayments - 1) {
+                amount = contract.getPremium() - totalGenerated;
+                amount = Math.round(amount * 100.0) / 100.0;
             }
 
+            payment.setAmount(amount);
             payment.setPaymentDate(calendar.getTime());
             payment.setStatus(PaymentStatus.PENDING);
             payment.setPaymentMethod(PaymentMethod.BANK_TRANSFER);
 
             contract.getPayments().add(payment);
-            paymentCount++;
+            totalGenerated += amount;
 
             switch (contract.getPaymentFrequency()) {
-                case MONTHLY -> calendar.add(Calendar.MONTH, 1);
-                case SEMI_ANNUAL -> calendar.add(Calendar.MONTH, 6);
-                case ANNUAL -> calendar.add(Calendar.YEAR, 1);
+                case MONTHLY:
+                    calendar.add(Calendar.MONTH, 1);
+                    break;
+                case SEMI_ANNUAL:
+                    calendar.add(Calendar.MONTH, 6);
+                    break;
+                case ANNUAL:
+                    calendar.add(Calendar.YEAR, 1);
+                    break;
             }
         }
 
-        log.info("✅ {} paiements générés pour le contrat {}", contract.getPayments().size(), contract.getContractId());
+        log.info("✅ {} paiements générés pour le contrat {} (total: {} DT)",
+                contract.getPayments().size(), contract.getContractId(), totalGenerated);
     }
 
-    private int getMaxPayments(PaymentFrequency frequency, int durationYears) {
-        switch (frequency) {
-            case MONTHLY: return durationYears * 12;
-            case SEMI_ANNUAL: return durationYears * 2;
-            case ANNUAL: return durationYears;
-            default: return 1;
+    /**
+     * Calcule le nombre total de paiements pour un contrat
+     */
+    private int getTotalNumberOfPayments(InsuranceContract contract) {
+        if (contract.getPaymentFrequency() == null || contract.getStartDate() == null || contract.getEndDate() == null) {
+            return 1;
+        }
+
+        long durationInMillis = contract.getEndDate().getTime() - contract.getStartDate().getTime();
+        long durationInYears = durationInMillis / (1000L * 60 * 60 * 24 * 365);
+
+        if (durationInYears < 1) durationInYears = 1;
+
+        switch (contract.getPaymentFrequency()) {
+            case MONTHLY:
+                return (int) (durationInYears * 12);
+            case SEMI_ANNUAL:
+                return (int) (durationInYears * 2);
+            case ANNUAL:
+                return (int) durationInYears;
+            default:
+                return 1;
         }
     }
 
-    private void regenerateScheduledPayments(InsuranceContract contract) {
-        if (contract.getPayments() == null) {
-            contract.setPayments(new ArrayList<>());
-            return;
+    /**
+     * Régénère les paiements pour un contrat après changement de fréquence
+     */
+    @Transactional
+    public void regenerateScheduledPaymentsForContract(InsuranceContract contract) {
+        if (contract == null) {
+            throw new RuntimeException("Contrat non trouvé");
         }
 
-        // Supprimer uniquement les paiements en attente
-        List<Payment> toRemove = contract.getPayments().stream()
+        log.info("🔄 Regénération des paiements pour le contrat {} (nouvelle fréquence: {})",
+                contract.getContractId(), contract.getPaymentFrequency());
+
+        long paidCount = contract.getPayments().stream()
+                .filter(p -> p.getStatus() == PaymentStatus.PAID)
+                .count();
+
+        if (paidCount > 0) {
+            throw new RuntimeException("Impossible de régénérer les paiements: des paiements ont déjà été effectués");
+        }
+
+        List<Payment> paymentsToDelete = contract.getPayments().stream()
                 .filter(p -> p.getStatus() == PaymentStatus.PENDING)
-                .toList();
+                .collect(Collectors.toList());
 
-        contract.getPayments().removeAll(toRemove);
+        if (!paymentsToDelete.isEmpty()) {
+            contract.getPayments().removeAll(paymentsToDelete);
+            paymentRepository.deleteAll(paymentsToDelete);
+            log.info("🗑️ {} anciens paiements supprimés pour le contrat {}", paymentsToDelete.size(), contract.getContractId());
+        }
 
-        // Supprimer aussi de la base de données
-        if (!toRemove.isEmpty()) {
-            paymentRepository.deleteAll(toRemove);
+        if (contract.getStartDate() == null || contract.getEndDate() == null) {
+            throw new RuntimeException("Les dates de début et fin du contrat doivent être définies");
         }
 
         generateScheduledPayments(contract);
+        contractRepository.save(contract);
+
+        log.info("✅ {} nouveaux paiements générés pour le contrat {}",
+                contract.getPayments().size(), contract.getContractId());
     }
 
     // ============================================================
-// 🔥 CALCUL DU RISQUE - VERSION PROFESSIONNELLE AVEC SCORING CLIENT
-// ============================================================
+    // 🔥 CALCUL DU RISQUE
+    // ============================================================
 
     private RiskClaim calculateRisk(InsuranceContract contract) {
         RiskClaim riskClaim = new RiskClaim();
@@ -504,10 +580,6 @@ public class InsuranceContractService implements IInsuranceContractService {
         double score = 0;
         StringBuilder evaluation = new StringBuilder();
         List<String> riskFactors = new ArrayList<>();
-
-        // ============================================================
-        // 1. SCORING CLIENT (30% du poids total)
-        // ============================================================
 
         Client client = contract.getClient();
         ClientScoreResult clientScore = clientScoringService.calculateClientScore(client.getId());
@@ -519,12 +591,10 @@ public class InsuranceContractService implements IInsuranceContractService {
         evaluation.append(String.format("Classe de risque: %s\n", clientScore.getRiskClass()));
         evaluation.append("\nDétails par composante:\n");
 
-        // Afficher les scores par composante
         clientScore.getComponentScores().forEach((key, value) -> {
             evaluation.append(String.format("- %s: %.2f\n", key, value));
         });
 
-        // Ajouter les recommandations si existantes
         if (!clientScore.getRecommendations().isEmpty()) {
             evaluation.append("\nRecommandations client:\n");
             clientScore.getRecommendations().forEach((key, value) -> {
@@ -532,7 +602,6 @@ public class InsuranceContractService implements IInsuranceContractService {
             });
         }
 
-        // Intégration du score client dans le risque global
         double clientRiskContribution;
         if (clientScore.getRiskLevel().equals("TRES_ELEVE")) {
             clientRiskContribution = 40;
@@ -554,25 +623,19 @@ public class InsuranceContractService implements IInsuranceContractService {
         score += clientRiskContribution;
         evaluation.append(String.format("\nContribution client au risque: +%.0f points\n\n", clientRiskContribution));
 
-        // ============================================================
-        // 2. ANALYSE DU PRODUIT (20% du poids)
-        // ============================================================
-
+        // Analyse du produit
         evaluation.append("📦 **ANALYSE DU PRODUIT**\n");
         evaluation.append("=====================\n");
 
         InsuranceProduct product = contract.getProduct();
         if (product != null) {
-            ProductType productType = product.getProductType(); // enum
-
-            // Pour l'affichage
+            ProductType productType = product.getProductType();
             evaluation.append(String.format("Type de produit: %s\n", productType.name()));
 
-            // Comparaison avec l'enum
             if (productType == ProductType.LIFE) {
                 score += 20;
                 riskFactors.add("Produit d'assurance vie - risque élevé");
-                evaluation.append("⚠️ Produit vie: +20 points (risque actuariel élevé)\n");
+                evaluation.append("⚠️ Produit vie: +20 points\n");
             } else if (productType == ProductType.HEALTH) {
                 score += 15;
                 riskFactors.add("Produit santé - risque modéré");
@@ -585,21 +648,16 @@ public class InsuranceContractService implements IInsuranceContractService {
                 score += 8;
                 evaluation.append("🏠 Produit habitation: +8 points\n");
             } else if (productType == ProductType.OTHER) {
-                score += 5; // ou selon ta logique
+                score += 5;
                 evaluation.append("📦 Produit autre: +5 points\n");
             }
         }
-
         evaluation.append("\n");
 
-        // ============================================================
-        // 3. ANALYSE FINANCIÈRE DU CONTRAT (30% du poids)
-        // ============================================================
-
+        // Analyse financière
         evaluation.append("💰 **ANALYSE FINANCIÈRE**\n");
         evaluation.append("======================\n");
 
-        // Ratio prime/revenus
         if (client.getAnnualIncome() != null && client.getAnnualIncome() > 0) {
             double premiumToIncomeRatio = (contract.getPremium() / client.getAnnualIncome()) * 100;
             evaluation.append(String.format("Ratio prime/revenus: %.2f%%\n", premiumToIncomeRatio));
@@ -607,20 +665,19 @@ public class InsuranceContractService implements IInsuranceContractService {
             if (premiumToIncomeRatio > 30) {
                 score += 25;
                 riskFactors.add("Prime excessive (>30% des revenus)");
-                evaluation.append("⚠️ Prime très élevée par rapport aux revenus: +25 points\n");
+                evaluation.append("⚠️ Prime très élevée: +25 points\n");
             } else if (premiumToIncomeRatio > 20) {
                 score += 15;
                 riskFactors.add("Prime élevée (20-30% des revenus)");
-                evaluation.append("⚠️ Prime élevée par rapport aux revenus: +15 points\n");
+                evaluation.append("⚠️ Prime élevée: +15 points\n");
             } else if (premiumToIncomeRatio > 10) {
                 score += 8;
-                evaluation.append("📊 Prime modérée par rapport aux revenus: +8 points\n");
+                evaluation.append("📊 Prime modérée: +8 points\n");
             } else {
-                evaluation.append("✅ Prime adaptée aux revenus: +0 points\n");
+                evaluation.append("✅ Prime adaptée: +0 points\n");
             }
         }
 
-        // Analyse de la franchise
         evaluation.append(String.format("\nFranchise: %.2f DT\n", contract.getDeductible()));
         if (contract.getDeductible() < 200) {
             score += 20;
@@ -630,10 +687,9 @@ public class InsuranceContractService implements IInsuranceContractService {
             score += 10;
             evaluation.append("📊 Franchise standard: +10 points\n");
         } else {
-            evaluation.append("✅ Franchise élevée (sécurisante): +5 points\n");
+            evaluation.append("✅ Franchise élevée: +5 points\n");
         }
 
-        // Analyse du plafond
         evaluation.append(String.format("\nPlafond de couverture: %.2f DT\n", contract.getCoverageLimit()));
         if (contract.getCoverageLimit() > 200000) {
             score += 25;
@@ -648,13 +704,9 @@ public class InsuranceContractService implements IInsuranceContractService {
         } else {
             evaluation.append("✅ Plafond standard: +5 points\n");
         }
-
         evaluation.append("\n");
 
-        // ============================================================
-        // 4. ANALYSE TEMPORELLE (20% du poids)
-        // ============================================================
-
+        // Analyse temporelle
         evaluation.append("⏱️ **ANALYSE TEMPORELLE**\n");
         evaluation.append("=====================\n");
 
@@ -678,7 +730,6 @@ public class InsuranceContractService implements IInsuranceContractService {
                 evaluation.append("✅ Durée courte: +5 points\n");
             }
 
-            // Vérifier si le client est âgé par rapport à la durée
             int clientAge = client.getAge();
             int ageAtEnd = clientAge + (int) durationInYears;
 
@@ -688,17 +739,12 @@ public class InsuranceContractService implements IInsuranceContractService {
                 evaluation.append(String.format("⚠️ Client âgé de %d ans en fin de contrat: +15 points\n", ageAtEnd));
             }
         }
-
         evaluation.append("\n");
 
-        // ============================================================
-        // 5. BONUS/MALUS SPÉCIFIQUES
-        // ============================================================
-
+        // Bonus/Malus
         evaluation.append("🎯 **BONUS/MALUS**\n");
         evaluation.append("===============\n");
 
-        // Malus pour cumul de contrats
         int existingContracts = client.getContracts() != null ? client.getContracts().size() : 0;
         if (existingContracts > 3) {
             score += 10;
@@ -706,13 +752,11 @@ public class InsuranceContractService implements IInsuranceContractService {
             evaluation.append("⚠️ Cumul de contrats: +10 points\n");
         }
 
-        // Bonus pour client fidèle
         if (client.getClientTenureInDays() > 365 * 5) {
-            score -= 5; // Bonus = réduction du score de risque
+            score -= 5;
             evaluation.append("✅ Client fidèle (>5 ans): -5 points (bonus)\n");
         }
 
-        // Malus pour sinistres antérieurs
         List<Claim> clientClaims = claimRepository.findByClientId(client.getId());
         if (clientClaims != null && !clientClaims.isEmpty()) {
             long approvedClaims = clientClaims.stream()
@@ -724,60 +768,44 @@ public class InsuranceContractService implements IInsuranceContractService {
                 evaluation.append("⚠️ Sinistres répétés: +15 points\n");
             }
         }
-
         evaluation.append("\n");
 
-        // ============================================================
-        // 6. SCORE FINAL ET NIVEAU DE RISQUE
-        // ============================================================
-
-        // Normalisation du score (max 100)
-        double finalScore = Math.min(100, score);
+        // Score final
+        double finalScore = Math.min(100, Math.max(0, score));
         riskClaim.setRiskScore(finalScore);
 
         evaluation.append("📋 **RÉSULTAT FINAL**\n");
         evaluation.append("=================\n");
         evaluation.append(String.format("Score total: %.2f/100\n", finalScore));
 
-        // Facteurs de risque
         if (!riskFactors.isEmpty()) {
             evaluation.append("\n🔴 Facteurs de risque identifiés:\n");
             riskFactors.forEach(factor -> evaluation.append("- ").append(factor).append("\n"));
         }
 
-        // Recommandations du scoring client
         if (!clientScore.getRecommendations().isEmpty()) {
             evaluation.append("\n💡 Recommandations du scoring client:\n");
             clientScore.getRecommendations().values()
                     .forEach(rec -> evaluation.append("- ").append(rec).append("\n"));
         }
 
-        // Déterminer le niveau de risque final
         String riskLevel;
         String recommendation;
-        boolean autoReject;
 
         if (finalScore >= 80) {
             riskLevel = "HIGH";
-            autoReject = true;
-            recommendation = "🔴 RISQUE TRÈS ÉLEVÉ - Contrat automatiquement rejeté. " +
-                    "Score trop élevé et/ou client à risque.";
+            recommendation = "🔴 RISQUE TRÈS ÉLEVÉ - Contrat automatiquement rejeté.";
             evaluation.insert(0, "🔴 **RISQUE ÉLEVÉ - REJET AUTO**\n\n");
         } else if (finalScore >= 60) {
             riskLevel = "MEDIUM";
-            autoReject = false;
-            recommendation = "🟡 RISQUE MOYEN - Nécessite validation par un agent. " +
-                    "Vérifier les points d'attention identifiés.";
+            recommendation = "🟡 RISQUE MOYEN - Nécessite validation par un agent.";
             evaluation.insert(0, "🟡 **RISQUE MOYEN - REVISION NÉCESSAIRE**\n\n");
         } else if (finalScore >= 40) {
             riskLevel = "LOW";
-            autoReject = false;
-            recommendation = "🟢 RISQUE FAIBLE - Peut être accepté. " +
-                    "Surveillance standard recommandée.";
+            recommendation = "🟢 RISQUE FAIBLE - Peut être accepté.";
             evaluation.insert(0, "🟢 **RISQUE FAIBLE - ACCEPTABLE**\n\n");
         } else {
             riskLevel = "VERY_LOW";
-            autoReject = false;
             recommendation = "✅ RISQUE TRÈS FAIBLE - Acceptation automatique recommandée.";
             evaluation.insert(0, "✅ **RISQUE TRÈS FAIBLE - FAVORABLE**\n\n");
         }
@@ -787,21 +815,14 @@ public class InsuranceContractService implements IInsuranceContractService {
         riskClaim.setRiskLevel(riskLevel);
         riskClaim.setEvaluationNote(evaluation.toString());
 
-        // Log pour le suivi
-        log.info("📊 Calcul de risque pour contrat {}: score={}, niveau={}, autoReject={}",
-                contract.getContractId(), finalScore, riskLevel, autoReject);
-
-        // Si autoReject est true, on notifie
-        if (autoReject) {
-            log.warn("🚨 Contrat {} automatiquement rejeté - Score: {}, Niveau: {}",
-                    contract.getContractId(), finalScore, riskLevel);
-        }
+        log.info("📊 Calcul de risque pour contrat {}: score={}, niveau={}",
+                contract.getContractId(), finalScore, riskLevel);
 
         return riskClaim;
     }
 
     // ============================================================
-    // 🔥 VÉRIFICATION DES RETARDS DE PAIEMENT
+    // 🔥 VÉRIFICATION DES RETARDS
     // ============================================================
 
     @Override
@@ -817,29 +838,20 @@ public class InsuranceContractService implements IInsuranceContractService {
         int totalLatePayments = 0;
 
         for (InsuranceContract contract : activeContracts) {
-            // Marquer les nouveaux retards
             checkAndMarkLatePaymentsByFrequency(contract);
-
-            // Compter les retards avant annulation
             int beforeLateCount = countLatePayments(contract);
-
-            // Vérifier si le contrat doit être annulé (≥ 4 retards)
             ContractStatus beforeStatus = contract.getStatus();
             checkAndCancelContractForLatePayments(contract);
             ContractStatus afterStatus = contract.getStatus();
-
-            // Compter les retards après traitement
             int afterLateCount = countLatePayments(contract);
 
             if (beforeStatus != afterStatus && afterStatus == ContractStatus.CANCELLED) {
                 contractsCancelled++;
                 log.warn("🚨 Contrat {} annulé (avait {} retards)", contract.getContractId(), afterLateCount);
             }
-
             totalLatePayments += afterLateCount;
         }
 
-        // Vérifier aussi les contrats INACTIVE
         List<InsuranceContract> inactiveContracts = contractRepository.findByStatus(ContractStatus.INACTIVE);
         for (InsuranceContract contract : inactiveContracts) {
             checkAndMarkLatePaymentsByFrequency(contract);
@@ -849,9 +861,6 @@ public class InsuranceContractService implements IInsuranceContractService {
                 contractsCancelled, totalLatePayments);
     }
 
-    /**
-     * Compter le nombre de paiements en retard pour un contrat
-     */
     private int countLatePayments(InsuranceContract contract) {
         if (contract.getPayments() == null) return 0;
         return (int) contract.getPayments().stream()
@@ -881,7 +890,6 @@ public class InsuranceContractService implements IInsuranceContractService {
     public void checkContractLatePayments(Long contractId) {
         InsuranceContract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new RuntimeException("Contrat non trouvé"));
-
         System.out.println("🔍 Vérification manuelle du contrat " + contractId);
         checkAndMarkLatePaymentsByFrequency(contract);
         checkAndCancelContractForLatePayments(contract);
@@ -900,7 +908,6 @@ public class InsuranceContractService implements IInsuranceContractService {
                 payment.setPaymentDate(cal.getTime());
             }
         }
-
         contractRepository.save(contract);
         System.out.println("⏱️ Simulation: " + monthsToAdd + " mois de retard - contrat " + contractId);
     }
@@ -920,6 +927,37 @@ public class InsuranceContractService implements IInsuranceContractService {
         for (InsuranceContract contract : inactiveContracts) {
             checkAndMarkContractAsCompleted(contract);
         }
+    }
+
+    @Scheduled(cron = "0 */05 * * * ?")
+    @Transactional
+    public void updateContractsPaymentStatus() {
+        System.out.println("🔄 Vérification automatique des paiements - " + new Date());
+
+        List<InsuranceContract> contracts = contractRepository.findAll();
+
+        for (InsuranceContract contract : contracts) {
+            if (contract.getPayments() == null || contract.getPayments().isEmpty())
+                continue;
+
+            double totalPaid = 0.0;
+            for (Payment payment : contract.getPayments()) {
+                if (payment.getStatus() == PaymentStatus.PAID) {
+                    totalPaid += payment.getAmount();
+                }
+            }
+
+            contract.setTotalPaid(totalPaid);
+            contract.setRemainingAmount(contract.getPremium() - totalPaid);
+
+            if (contract.getRemainingAmount() <= 0) {
+                contract.setStatus(ContractStatus.COMPLETED);
+                contract.setRemainingAmount(0.0);
+            }
+
+            contractRepository.save(contract);
+        }
+        System.out.println("✅ Mise à jour terminée");
     }
 
     // ============================================================
@@ -997,7 +1035,6 @@ public class InsuranceContractService implements IInsuranceContractService {
         int pendingPaymentCount = 0;
         boolean paymentsUpdated = false;
 
-        // Compter les paiements en retard et en attente
         for (Payment payment : contract.getPayments()) {
             if (payment.getStatus() == PaymentStatus.LATE) {
                 latePaymentCount++;
@@ -1006,15 +1043,12 @@ public class InsuranceContractService implements IInsuranceContractService {
             }
         }
 
-        // 🚨 NOUVEAU SEUIL: 4 paiements en retard pour annulation
         if (latePaymentCount >= 4) {
             log.warn("🚨 CONTRAT {} ANNULÉ - {} paiements en retard (seuil: 4)",
                     contract.getContractId(), latePaymentCount);
 
-            // Changer le statut du contrat
             contract.setStatus(ContractStatus.CANCELLED);
 
-            // Marquer tous les paiements en attente comme FAILED
             for (Payment payment : contract.getPayments()) {
                 if (payment.getStatus() == PaymentStatus.PENDING || payment.getStatus() == PaymentStatus.LATE) {
                     payment.setStatus(PaymentStatus.FAILED);
@@ -1022,7 +1056,6 @@ public class InsuranceContractService implements IInsuranceContractService {
                 }
             }
 
-            // 📧 Envoyer un email d'annulation au client
             Client client = contract.getClient();
             if (client != null && client.getEmail() != null) {
                 try {
@@ -1036,9 +1069,7 @@ public class InsuranceContractService implements IInsuranceContractService {
 
             log.info("📊 Statistiques - Contrat {}: {} paiements en retard, {} paiements en attente marqués FAILED",
                     contract.getContractId(), latePaymentCount, pendingPaymentCount);
-
         } else if (latePaymentCount > 0) {
-            // Simple information si des retards existent mais pas encore 4
             log.info("ℹ️ Contrat {}: {} paiements en retard (seuil non atteint)",
                     contract.getContractId(), latePaymentCount);
         }
@@ -1082,103 +1113,5 @@ public class InsuranceContractService implements IInsuranceContractService {
             contractRepository.save(contract);
             System.out.println("🎉 CONTRAT " + contract.getContractId() + " MARQUÉ COMPLETED");
         }
-    }
-
-    public List<InsuranceContractDTO> getContractsByClientEmail(String email) {
-
-        Client client = clientRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Client not found"));
-
-        return contractRepository.findByClient(client)
-                .stream()
-                .map(InsuranceContractMapper::toDTO)
-                .toList();
-    }
-
-    @Override
-    @Transactional
-    public InsuranceContractDTO rejectContract(Long contractId, String agentEmail, String rejectionReason) {
-        // 1. Vérifier que c'est bien un agent
-        User user = userRepository.findByEmail(agentEmail)
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
-
-        if (!(user instanceof AgentAssurance)) {
-            throw new AccessDeniedException("Seuls les agents d'assurance peuvent rejeter des contrats");
-        }
-
-        AgentAssurance agent = (AgentAssurance) user;
-
-        // 2. Récupérer le contrat
-        InsuranceContract contract = contractRepository.findById(contractId)
-                .orElseThrow(() -> new RuntimeException("Contrat non trouvé"));
-
-        // 3. Vérifier que le contrat appartient bien à un client de cet agent
-        if (!contract.getClient().getAgentAssurance().getId().equals(agent.getId())) {
-            throw new AccessDeniedException("Ce contrat n'appartient pas à un de vos clients");
-        }
-
-        // 4. Vérifier que le contrat est INACTIVE
-        if (contract.getStatus() != ContractStatus.INACTIVE) {
-            throw new RuntimeException("Seuls les contrats INACTIVE peuvent être rejetés");
-        }
-
-        // 5. Rejeter le contrat en utilisant CANCELLED
-        contract.setStatus(ContractStatus.CANCELLED);
-        contract = contractRepository.save(contract);
-
-        // 📧 6. Envoyer un email de notification au client
-        Client client = contract.getClient();
-        try {
-            emailService.sendContractRejectedEmail(client, contract, rejectionReason);
-            log.info("✅ Email de rejet envoyé à {} pour le contrat {}",
-                    client.getEmail(), contract.getContractId());
-        } catch (Exception e) {
-            log.error("❌ Erreur lors de l'envoi de l'email de rejet: {}", e.getMessage());
-            // Ne pas bloquer le rejet même si l'email échoue
-        }
-
-        // Log pour traçabilité
-        log.info("❌ Contrat {} rejeté par l'agent {} - Raison: {}",
-                contractId, agentEmail, rejectionReason);
-
-        return InsuranceContractMapper.toDTO(contract);
-    }
-
-    @Scheduled(cron = "0 */05 * * * ?")
-    @Transactional
-    public void updateContractsPaymentStatus() {
-
-        System.out.println("🔄 Vérification automatique des paiements - " + new Date());
-
-        List<InsuranceContract> contracts = contractRepository.findAll();
-
-        for (InsuranceContract contract : contracts) {
-
-            if (contract.getPayments() == null || contract.getPayments().isEmpty())
-                continue;
-
-            double totalPaid = 0.0;
-
-            // 🔎 Calculer la somme des paiements PAYÉS
-            for (Payment payment : contract.getPayments()) {
-                if (payment.getStatus() == PaymentStatus.PAID) {
-                    totalPaid += payment.getAmount();
-                }
-            }
-
-            // 🔄 Mettre à jour les montants
-            contract.setTotalPaid(totalPaid);
-            contract.setRemainingAmount(contract.getPremium() - totalPaid);
-
-            // 🔥 Mise à jour automatique du statut
-            if (contract.getRemainingAmount() <= 0) {
-                contract.setStatus(ContractStatus.COMPLETED);
-                contract.setRemainingAmount(0.0);
-            }
-
-            contractRepository.save(contract);
-        }
-
-        System.out.println("✅ Mise à jour terminée");
     }
 }

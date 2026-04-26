@@ -96,7 +96,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.auth.getMe().subscribe({
         next: (user) => {
           if (user.photo) {
-            this.profilePhoto = `http://localhost:8083/uploads/${user.photo}`;
+            this.profilePhoto = `http://localhost:8081/uploads/${user.photo}`;
             localStorage.setItem('profilePhoto', this.profilePhoto);
           }
         },
@@ -138,6 +138,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
   isClaimsVisible(): boolean {
     return this.userRole === 'CLIENT' || this.userRole === 'AGENT_ASSURANCE';
   }
+  
+  // ✅ Nouvelle méthode pour Cash Approvals (visible uniquement pour AGENT_ASSURANCE)
+  isCashApprovalsVisible(): boolean {
+    return this.userRole === 'AGENT_ASSURANCE';
+  }
 
   // Ajoutez cette méthode dans la classe NavbarComponent
   getClaimsLink(): string {
@@ -152,7 +157,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   isCompensationVisible(): boolean {
     return this.userRole === 'CLIENT' || this.userRole === 'AGENT_ASSURANCE';
   }
-
+  
   logout(event: Event) {
     event.stopPropagation();
     this.auth.logout();
