@@ -1,0 +1,267 @@
+<div class="client-dashboard">
+  <div class="container-fluid px-4 py-4">
+    
+    <!-- Header -->
+    <div class="dashboard-header mb-4">
+      <h1 class="display-6 fw-bold gradient-text">🏦 My Banking Space</h1>
+      <p class="text-muted">Manage your accounts, transactions and requests</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="nav-tabs-custom mb-4">
+      <button [class.active]="activeTab === 'accounts'" (click)="activeTab = 'accounts'">
+        💳 My Accounts
+      </button>
+      <button [class.active]="activeTab === 'transactions'" (click)="activeTab = 'transactions'">
+        📊 Transactions
+      </button>
+      <button [class.active]="activeTab === 'requests'" (click)="activeTab = 'requests'">
+        📋 My Requests
+      </button>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- ACCOUNTS TAB -->
+    <!-- ============================================ -->
+    <div *ngIf="activeTab === 'accounts'">
+      <!-- Total Balance -->
+      <div class="total-balance-card mb-4">
+        <div class="row align-items-center">
+          <div class="col-md-6">
+            <p class="text-muted mb-1">💰 Total Balance</p>
+            <h2 class="display-4 fw-bold text-white">{{ getTotalBalance() | currency:'TND':'symbol':'1.2-2' }}</h2>
+          </div>
+          <div class="col-md-6 text-md-end">
+            <button class="btn-action" (click)="showTransferModal = true">
+              <i class="fas fa-paper-plane me-2"></i> Make a Transfer
+            </button>
+            <button class="btn-action ms-2" (click)="showRequestModal = true">
+              <i class="fas fa-plus-circle me-2"></i> New Account
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Accounts List -->
+      <div class="row">
+        <div class="col-12">
+          <div class="section-card">
+            <h3 class="section-title">💳 My Accounts</h3>
+            <div class="accounts-grid">
+              <div class="account-card" *ngFor="let account of accounts">
+                <div class="account-header">
+                  <div class="account-icon">
+                    <i class="fas" [class.fa-wallet]="account.type === 'CURRENT'" [class.fa-piggy-bank]="account.type === 'SAVINGS'"></i>
+                  </div>
+                  <div class="account-info">
+                    <h4>{{ account.type === 'CURRENT' ? 'Current Account' : 'Savings Account' }}</h4>
+                    <span class="status-badge" [class.active]="account.status === 'ACTIVE'">{{ account.status }}</span>
+                  </div>
+                </div>
+                <div class="account-rip">
+                  <span class="rip-label">RIP</span>
+                  <div class="rip-value">
+                    <code>{{ account.rip }}</code>
+                    <button class="btn-copy" (click)="copyRip(account.rip)">
+                      <i class="fas fa-copy"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="account-balance">
+                  <span class="balance-label">Balance</span>
+                  <span class="balance-value">{{ account.balance | currency:'TND':'symbol':'1.2-2' }}</span>
+                </div>
+                <button class="btn-details" (click)="activeTab = 'transactions'; loadTransactions(account.accountId)">
+                  View Transactions <i class="fas fa-arrow-right ms-2"></i>
+                </button>
+              </div>
+              <div class="empty-state" *ngIf="accounts.length === 0">
+                <i class="fas fa-credit-card fa-4x mb-3"></i>
+                <h4>No Accounts</h4>
+                <p>You don't have any accounts yet. Make a request!</p>
+                <button class="btn-primary" (click)="showRequestModal = true">+ Request an Account</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- TRANSACTIONS TAB -->
+    <!-- ============================================ -->
+    <div *ngIf="activeTab === 'transactions'">
+      <div class="row">
+        <div class="col-12">
+          <div class="section-card">
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+              <h3 class="section-title mb-0">📊 Transaction History</h3>
+              <div class="d-flex gap-2">
+                <select class="form-select-sm" [(ngModel)]="selectedAccountId" (change)="loadTransactions(selectedAccountId!)">
+                  <option [value]="null">-- Choose an account --</option>
+                  <option *ngFor="let acc of accounts" [value]="acc.accountId">
+                    {{ acc.type === 'CURRENT' ? 'Current Account' : 'Savings Account' }}
+                  </option>
+                </select>
+                <button class="btn-outline" (click)="downloadStatement()">
+                  <i class="fas fa-download me-1"></i> PDF
+                </button>
+              </div>
+            </div>
+
+            <div class="transactions-list">
+              <div class="transaction-item" *ngFor="let tx of transactions">
+                <div class="transaction-date">{{ tx.date | date:'dd/MM/yyyy HH:mm' }}</div>
+                <div class="transaction-details">
+                  <span class="transaction-type" [class]="tx.type">
+                    {{ tx.type === 'DEPOSIT' ? 'Deposit' : 'Withdrawal' }}
+                  </span>
+                  <span class="transaction-desc">{{ tx.description || '-' }}</span>
+                </div>
+                <div class="transaction-amount" [class.credit]="tx.type === 'DEPOSIT'" [class.debit]="tx.type === 'WITHDRAW'">
+                  {{ tx.type === 'DEPOSIT' ? '+' : '-' }} {{ tx.amount | currency:'TND' }}
+                </div>
+              </div>
+              <div class="empty-transactions" *ngIf="transactions.length === 0">
+                <i class="fas fa-history fa-3x mb-3"></i>
+                <p>No transactions yet</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MY REQUESTS TAB -->
+    <!-- ============================================ -->
+    <div *ngIf="activeTab === 'requests'">
+      <div class="row">
+        <div class="col-12">
+          <div class="section-card">
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+              <h3 class="section-title mb-0">📋 My Account Requests</h3>
+              <button class="btn-primary" (click)="showRequestModal = true">
+                <i class="fas fa-plus me-2"></i> New Request
+              </button>
+            </div>
+            <div class="table-responsive">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let req of myRequests">
+                    <td>{{ req.requestedType === 'CURRENT' ? 'Current Account' : 'Savings Account' }}</td>
+                    <td>
+                      <span class="status-badge" 
+                            [class.pending]="req.status === 'PENDING'"
+                            [class.approved]="req.status === 'APPROVED'"
+                            [class.rejected]="req.status === 'REJECTED'">
+                        {{ req.status === 'PENDING' ? 'Pending' : req.status === 'APPROVED' ? 'Approved' : 'Rejected' }}
+                      </span>
+                    </td>
+                    <td>{{ req.requestDate | date:'dd/MM/yyyy' }}</td>
+                    <td>{{ req.rejectionReason || '-' }}</td>
+                  </tr>
+                  <tr *ngIf="myRequests.length === 0">
+                    <td colspan="4" class="text-center py-4 text-muted">No requests made</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- ACCOUNT REQUEST MODAL -->
+    <!-- ============================================ -->
+    <div class="modal-overlay" *ngIf="showRequestModal" (click)="showRequestModal = false">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>📝 New Account Request</h3>
+          <button class="modal-close" (click)="showRequestModal = false">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Account Type</label>
+            <select class="form-control" [(ngModel)]="newRequestType">
+              <option value="CURRENT">Current Account</option>
+              <option value="SAVINGS">Savings Account</option>
+            </select>
+          </div>
+          <div class="info-box">
+            <i class="fas fa-info-circle"></i>
+            <span>Once approved, you will receive a unique RIP for your account.</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" (click)="showRequestModal = false">Cancel</button>
+          <button class="btn-confirm" (click)="submitRequest()">Submit Request</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- TRANSFER MODAL (21 DIGITS) -->
+    <!-- ============================================ -->
+    <div class="modal-overlay" *ngIf="showTransferModal" (click)="showTransferModal = false">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>🔄 Make a Transfer</h3>
+          <button class="modal-close" (click)="showTransferModal = false">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Source Account</label>
+            <select class="form-control" [(ngModel)]="transferData.sourceRip">
+              <option value="">-- Select an account --</option>
+              <option *ngFor="let acc of accounts" [value]="acc.rip">
+                {{ acc.type === 'CURRENT' ? 'Current Account' : 'Savings Account' }} - Balance: {{ acc.balance | currency:'TND' }}
+              </option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label>Destination RIP (21 digits)</label>
+            <input 
+              type="text" 
+              class="form-control" 
+              [(ngModel)]="transferData.targetRip" 
+              maxlength="21" 
+              placeholder="Ex: 100003053814053105923">
+            <small class="text-muted">RIP must be exactly 21 digits</small>
+          </div>
+          
+          <div class="form-group">
+            <label>Amount (TND)</label>
+            <input type="number" class="form-control" [(ngModel)]="transferData.amount" min="0.01" step="0.01" placeholder="0.00">
+          </div>
+          
+          <div class="form-group">
+            <label>Description</label>
+            <input type="text" class="form-control" [(ngModel)]="transferData.description" placeholder="Transfer reason">
+          </div>
+          
+          <div *ngIf="message" class="alert-message" [class.success]="messageType === 'success'" [class.error]="messageType === 'error'">
+            {{ message }}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" (click)="showTransferModal = false">Cancel</button>
+          <button class="btn-confirm" (click)="submitTransfer()" [disabled]="!transferData.sourceRip || !transferData.targetRip || transferData.amount <= 0">
+            Confirm Transfer
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

@@ -1,0 +1,63 @@
+<div class="transfer-card">
+  <div class="card-header">
+    <h3 class="mb-0">🔄 Make a Transfer</h3>
+    <p class="text-muted small mb-0">Money transfer via bank RIP</p>
+  </div>
+  
+  <div class="card-body">
+    <div class="form-group">
+      <label>💰 My Account (source)</label>
+      <select class="form-control" [(ngModel)]="transferData.sourceRip">
+        <option value="">-- Select an account --</option>
+        <option *ngFor="let account of accounts" [value]="account.rip">
+          {{ account.type === 'CURRENT' ? 'Current Account' : 'Savings Account' }} - Balance: {{ account.balance | currency:'TND' }}
+        </option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>🎯 Destination RIP (21 digits)</label>
+      <input 
+        type="text" 
+        class="form-control" 
+        [(ngModel)]="transferData.targetRip" 
+        maxlength="21"
+        placeholder="Ex: 100003053814053105923"
+        [class.is-invalid]="transferData.targetRip.length > 0 && transferData.targetRip.length !== 21">
+      <small class="text-muted">RIP must be exactly 21 digits</small>
+    </div>
+
+    <div class="form-group">
+      <label>💵 Amount (TND)</label>
+      <input 
+        type="number" 
+        class="form-control" 
+        [(ngModel)]="transferData.amount" 
+        min="0.01" 
+        step="0.01"
+        placeholder="0.00">
+    </div>
+
+    <div class="form-group">
+      <label>📝 Description (optional)</label>
+      <input 
+        type="text" 
+        class="form-control" 
+        [(ngModel)]="transferData.description" 
+        placeholder="Transfer reason">
+    </div>
+
+    <div *ngIf="message" class="alert-message" [class.success]="messageType === 'success'" [class.error]="messageType === 'error'">
+      <i [class.fa-check-circle]="messageType === 'success'" [class.fa-exclamation-circle]="messageType === 'error'" class="fas me-2"></i>
+      {{ message }}
+    </div>
+
+    <button 
+      class="btn-transfer" 
+      (click)="submitTransfer()" 
+      [disabled]="!isValid() || isLoading">
+      <i class="fas fa-paper-plane me-2"></i>
+      {{ isLoading ? 'Processing...' : 'Confirm Transfer' }}
+    </button>
+  </div>
+</div>

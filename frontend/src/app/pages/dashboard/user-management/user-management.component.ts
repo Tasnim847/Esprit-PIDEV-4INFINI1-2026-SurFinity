@@ -167,29 +167,38 @@ export class UserManagementComponent implements OnInit {
     });
   }
 
-  deleteUser(id: number) {
-    if (confirm('Are you sure you want to delete this user?')) {
-      this.loading = true;
-      const methods: any = {
-        'clients':          () => this.adminService.deleteClient(id),
-        'agents-assurance': () => this.adminService.deleteAgentAssurance(id),
-        'agents-finance':   () => this.adminService.deleteAgentFinance(id),
-        'admins':           () => this.adminService.deleteAdmin(id)
-      };
-
-      methods[this.type]().subscribe({
-        next: () => {
-          this.loadUsers();
-          this.loading = false;
-        },
-        error: (err: any) => {
-          console.error('❌ Error deleting user', err);
-          this.loading = false;
-          alert(`Error: ${err.message || 'Delete failed'}`);
-        }
-      });
+  // user-management.component.ts
+deleteUser(id: number) {
+    if (confirm('Are you sure you want to disable this user? The user will not be able to access the system.')) {
+        this.loading = true;
+        
+        const methods: any = {
+            'clients': () => this.adminService.deleteClient(id),
+            'agents-assurance': () => this.adminService.deleteAgentAssurance(id),
+            'agents-finance': () => this.adminService.deleteAgentFinance(id),
+            'admins': () => this.adminService.deleteAdmin(id)
+        };
+        
+        methods[this.type]().subscribe({
+            next: () => {
+                this.loadUsers();
+                this.loading = false;
+                alert('User disabled successfully'); // ✅ Message plus clair
+            },
+            error: (err: any) => {
+                console.error('Error disabling user', err);
+                
+                if (err.status === 500) {
+                    alert('Cannot disable user: They may have active records in the system. Please archive their records first.');
+                } else {
+                    alert(`Error: ${err.message || 'Operation failed'}`);
+                }
+                
+                this.loading = false;
+            }
+        });
     }
-  }
+}
 
   retry() {
     this.loadUsers();

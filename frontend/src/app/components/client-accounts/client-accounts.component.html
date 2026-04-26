@@ -1,0 +1,138 @@
+<div class="client-accounts-container">
+  <div class="section-header">
+    <h2>💳 My Bank Accounts</h2>
+    <p class="text-muted">View your accounts and their details</p>
+  </div>
+
+  <div *ngIf="isLoading" class="loading-spinner">
+    <div class="spinner"></div>
+    <p>Loading your accounts...</p>
+  </div>
+
+  <div *ngIf="!isLoading && accounts.length === 0" class="empty-state">
+    <i class="fas fa-credit-card fa-4x mb-3"></i>
+    <h4>No Active Accounts</h4>
+    <p>You don't have any accounts yet. Make a request from your dashboard.</p>
+  </div>
+
+  <div *ngIf="!isLoading && accounts.length > 0" class="accounts-grid">
+    <div class="account-card" *ngFor="let account of accounts" (click)="showAccountDetails(account)">
+      <div class="account-header">
+        <div class="account-icon">
+          <i [class]="'fas fa-2x ' + getAccountIcon(account.type)"></i>
+        </div>
+        <div class="account-info">
+          <h3>{{ getAccountLabel(account.type) }}</h3>
+          <span class="account-status" [class.active]="account.status === 'ACTIVE'">
+            {{ account.status }}
+          </span>
+        </div>
+      </div>
+      
+      <div class="account-balance">
+        <span class="balance-label">Balance</span>
+        <span class="balance-value">{{ account.balance | currency:'TND':'symbol':'1.2-2' }}</span>
+      </div>
+      
+      <div class="account-rip">
+        <span class="rip-label">RIP</span>
+        <div class="rip-value">
+          <code>{{ account.rip }}</code>
+          <button class="btn-copy" (click)="$event.stopPropagation(); copyRip(account.rip)" title="Copy RIP">
+            <i class="fas fa-copy"></i>
+          </button>
+        </div>
+      </div>
+      
+      <div class="account-limits">
+        <div class="limit-item">
+          <span>Daily Limit</span>
+          <strong>{{ account.dailyLimit | currency:'TND' }}</strong>
+        </div>
+        <div class="limit-item">
+          <span>Monthly Limit</span>
+          <strong>{{ account.monthlyLimit | currency:'TND' }}</strong>
+        </div>
+      </div>
+      
+      <button class="btn-details" (click)="$event.stopPropagation(); showAccountDetails(account)">
+        View Details <i class="fas fa-arrow-right ms-2"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Account Details Modal -->
+  <div class="modal-overlay" *ngIf="selectedAccount" (click)="closeModal()">
+    <div class="modal-content modal-large" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h3>{{ getAccountLabel(selectedAccount.type) }}</h3>
+          <p class="text-muted mb-0">Account #{{ selectedAccount.accountId }}</p>
+        </div>
+        <button class="modal-close" (click)="closeModal()">&times;</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="account-summary">
+          <div class="summary-card">
+            <div class="summary-label">Current Balance</div>
+            <div class="summary-value">{{ selectedAccount.balance | currency:'TND':'symbol':'1.2-2' }}</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">RIP</div>
+            <div class="summary-rip">
+              <code>{{ selectedAccount.rip }}</code>
+              <button class="btn-copy" (click)="copyRip(selectedAccount.rip)">
+                <i class="fas fa-copy"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="limits-section">
+          <h4>📊 Withdrawal Limits</h4>
+          <div class="limits-grid">
+            <div class="limit-item">
+              <span>Daily Limit</span>
+              <strong>{{ selectedAccount.dailyLimit | currency:'TND' }}</strong>
+            </div>
+            <div class="limit-item">
+              <span>Monthly Limit</span>
+              <strong>{{ selectedAccount.monthlyLimit | currency:'TND' }}</strong>
+            </div>
+            <div class="limit-item">
+              <span>Daily Transfer Limit</span>
+              <strong>{{ selectedAccount.dailyTransferLimit | currency:'TND' }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="history-section">
+          <h4>📜 Transaction History</h4>
+          <div class="transactions-list" *ngIf="transactionHistory.length > 0; else noTransactions">
+            <div class="transaction-item" *ngFor="let tx of transactionHistory">
+              <div class="transaction-date">{{ tx.date | date:'dd/MM/yyyy HH:mm' }}</div>
+              <div class="transaction-details">
+                <span class="transaction-type" [class]="tx.type">{{ tx.type === 'DEPOSIT' ? 'Deposit' : 'Withdrawal' }}</span>
+                <span class="transaction-desc">{{ tx.description || '-' }}</span>
+              </div>
+              <div class="transaction-amount" [class.credit]="tx.type === 'DEPOSIT'" [class.debit]="tx.type === 'WITHDRAW'">
+                {{ tx.type === 'DEPOSIT' ? '+' : '-' }} {{ tx.amount | currency:'TND' }}
+              </div>
+            </div>
+          </div>
+          <ng-template #noTransactions>
+            <div class="no-transactions">
+              <i class="fas fa-history fa-2x mb-2"></i>
+              <p>No transactions yet</p>
+            </div>
+          </ng-template>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button class="btn-close-modal" (click)="closeModal()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -31,10 +31,14 @@
           <a class="nav-link" routerLink="/public/insurance" routerLinkActive="active">Insurance</a>
         </li>
 
-        <!-- Account - visible pour CLIENT et AGENT_ASSURANCE seulement -->
-        <li class="nav-item" *ngIf="isAccountVisible()">
-          <a class="nav-link" routerLink="/public/account" routerLinkActive="active">Account</a>
-        </li>
+        <!-- Account - différent selon le rôle -->
+<li class="nav-item" *ngIf="isAccountVisible()">
+  <a class="nav-link" 
+     [routerLink]="userRole === 'AGENT_FINANCE' ? '/public/agent/account' : '/public/client/dashboard'" 
+     routerLinkActive="active">
+    Account
+  </a>
+</li>
 
         <!-- Complaint - visible pour CLIENT, AGENT_ASSURANCE et AGENT_FINANCE -->
 <li class="nav-item" *ngIf="isComplaintVisible()">

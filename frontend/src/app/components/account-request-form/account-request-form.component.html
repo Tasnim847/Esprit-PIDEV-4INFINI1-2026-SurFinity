@@ -1,0 +1,110 @@
+<div class="modal-overlay" (click)="closeModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    
+    <!-- Header -->
+    <div class="modal-header">
+      <div class="header-icon">
+        <i class="fas fa-file-alt"></i>
+      </div>
+      <div class="header-text">
+        <h2>Account Opening Request</h2>
+        <p>Fill out the form below to submit your request</p>
+      </div>
+      <button class="modal-close" (click)="closeModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="modal-body">
+      
+      <!-- Confirmation Message -->
+      <div *ngIf="showConfirmation" class="confirmation-card">
+        <div class="confirmation-icon">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <h3>Request Sent!</h3>
+        <p>Your request has been successfully registered. A financial agent will review it within 48 hours.</p>
+        <p class="small">You can track your request status in "My Requests".</p>
+      </div>
+
+      <!-- Form -->
+      <div *ngIf="!showConfirmation" class="form-container">
+        
+        <!-- Account Type -->
+        <div class="form-group">
+          <label class="form-label">
+            <i class="fas fa-tag me-2"></i>
+            Account Type
+          </label>
+          <div class="account-types">
+            <div class="account-type-option" 
+                 [class.selected]="requestType === 'CURRENT'"
+                 (click)="requestType = 'CURRENT'">
+              <i class="fas fa-wallet fa-2x"></i>
+              <div class="option-info">
+                <h4>Current Account</h4>
+                <p>Daily transactions, debit card, checkbook</p>
+              </div>
+              <div class="radio-indicator" *ngIf="requestType === 'CURRENT'">
+                <i class="fas fa-check-circle"></i>
+              </div>
+            </div>
+            
+            <div class="account-type-option" 
+                 [class.selected]="requestType === 'SAVINGS'"
+                 (click)="requestType = 'SAVINGS'">
+              <i class="fas fa-piggy-bank fa-2x"></i>
+              <div class="option-info">
+                <h4>Savings Account</h4>
+                <p>Interest-bearing, ideal for saving and planning your projects</p>
+              </div>
+              <div class="radio-indicator" *ngIf="requestType === 'SAVINGS'">
+                <i class="fas fa-check-circle"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Additional Information -->
+        <div class="info-box">
+          <i class="fas fa-info-circle"></i>
+          <div class="info-content">
+            <strong>Good to know:</strong>
+            <ul>
+              <li>Once approved, your account will be assigned a unique RIP</li>
+              <li>You will receive an email notification</li>
+              <li>Average processing time: 24-48 hours</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Error Message -->
+        <div *ngIf="message && messageType === 'error'" class="error-message">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          {{ message }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="modal-footer" *ngIf="!showConfirmation">
+      <button class="btn-cancel" (click)="closeModal()">
+        <i class="fas fa-times me-2"></i>
+        Cancel
+      </button>
+      <button class="btn-submit" (click)="submitRequest()" [disabled]="isLoading">
+        <i class="fas" [class.fa-spinner]="isLoading" [class.fa-paper-plane]="!isLoading" [class.fa-spin]="isLoading"></i>
+        {{ isLoading ? 'Sending...' : 'Submit Request' }}
+      </button>
+    </div>
+
+    <div class="modal-footer" *ngIf="showConfirmation">
+      <button class="btn-close-modal" (click)="closeModal()">
+        <i class="fas fa-check me-2"></i>
+        Close
+      </button>
+    </div>
+
+  </div>
+</div>

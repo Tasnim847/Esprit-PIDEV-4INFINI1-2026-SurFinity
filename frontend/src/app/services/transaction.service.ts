@@ -85,4 +85,17 @@ getAccountStatement(accountId: number): Observable<Blob> {
     responseType: 'blob'
   });
 }
+// Ajoutez cette méthode à votre TransactionService existant
+
+transferByRip(sourceRip: string, targetRip: string, amount: number, description: string): Observable<string> {
+  const body = {
+    sourceRip: sourceRip,
+    targetRip: targetRip,
+    amount: amount,
+    description: description
+  };
+  return this.http.post(`${this.baseUrl}/transfer/by-rip`, body, {
+    responseType: 'text'
+  });
+}
 }

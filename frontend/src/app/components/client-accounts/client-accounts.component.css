@@ -1,0 +1,454 @@
+.client-accounts-container {
+  padding: 20px;
+}
+
+.section-header {
+  margin-bottom: 1.5rem;
+}
+
+.section-header h2 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  background: linear-gradient(135deg, #1a5ac3 0%, #36c165 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.accounts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 1.5rem;
+}
+
+.account-card {
+  background: white;
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.account-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(26, 90, 195, 0.12);
+}
+
+.account-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.account-icon {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, #1a5ac3 0%, #36c165 100%);
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.account-info h3 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.1rem;
+}
+
+.account-status {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  background: #e9ecef;
+  color: #6c757d;
+}
+
+.account-status.active {
+  background: #d4edda;
+  color: #155724;
+}
+
+.account-balance {
+  text-align: center;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 15px;
+  margin-bottom: 1rem;
+}
+
+.balance-label {
+  display: block;
+  font-size: 0.8rem;
+  color: #6c757d;
+  margin-bottom: 0.25rem;
+}
+
+.balance-value {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #1a5ac3;
+}
+
+.account-rip {
+  margin-bottom: 1rem;
+}
+
+.rip-label {
+  display: block;
+  font-size: 0.7rem;
+  color: #6c757d;
+  margin-bottom: 0.25rem;
+}
+
+.rip-value {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #e9ecef;
+  padding: 0.5rem;
+  border-radius: 10px;
+}
+
+.rip-value code {
+  font-size: 0.75rem;
+  font-family: monospace;
+  word-break: break-all;
+}
+
+.btn-copy {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #1a5ac3;
+  transition: color 0.3s;
+}
+
+.btn-copy:hover {
+  color: #36c165;
+}
+
+.account-limits {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  font-size: 0.8rem;
+}
+
+.limit-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.btn-details {
+  width: 100%;
+  padding: 0.75rem;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: 500;
+}
+
+.btn-details:hover {
+  background: linear-gradient(135deg, #1a5ac3 0%, #36c165 100%);
+  color: white;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  text-align: center;
+  padding: 3rem;
+  background: white;
+  border-radius: 20px;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #e9ecef;
+  border-top-color: #1a5ac3;
+  border-radius: 50%;
+  margin: 0 auto 1rem;
+  animation: spin 1s linear infinite;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  background: white;
+  border-radius: 20px;
+  color: #6c757d;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 700px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e9ecef;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 20px 20px 0 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  cursor: pointer;
+  color: #6c757d;
+  transition: color 0.3s;
+}
+
+.modal-close:hover {
+  color: #dc3545;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.account-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card {
+  background: linear-gradient(135deg, #1a5ac3 0%, #36c165 100%);
+  padding: 1rem;
+  border-radius: 15px;
+  color: white;
+}
+
+.summary-label {
+  font-size: 0.8rem;
+  opacity: 0.9;
+  margin-bottom: 0.5rem;
+}
+
+.summary-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.summary-rip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background: rgba(255,255,255,0.2);
+  padding: 0.5rem;
+  border-radius: 10px;
+}
+
+.summary-rip code {
+  font-size: 0.7rem;
+  color: white;
+}
+
+.summary-rip .btn-copy {
+  color: white;
+}
+
+.limits-section {
+  margin-bottom: 1.5rem;
+}
+
+.limits-section h4 {
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+.limits-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.limits-grid .limit-item {
+  background: #f8f9fa;
+  padding: 0.75rem;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.history-section h4 {
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+.transactions-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.transaction-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  border-bottom: 1px solid #e9ecef;
+  transition: background 0.3s;
+}
+
+.transaction-item:hover {
+  background: #f8f9fa;
+}
+
+.transaction-date {
+  font-size: 0.7rem;
+  color: #6c757d;
+  min-width: 90px;
+}
+
+.transaction-details {
+  flex: 1;
+  margin: 0 1rem;
+}
+
+.transaction-type {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-right: 0.5rem;
+}
+
+.transaction-type.DEPOSIT {
+  background: #d4edda;
+  color: #155724;
+}
+
+.transaction-type.WITHDRAW {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.transaction-desc {
+  font-size: 0.8rem;
+  color: #495057;
+}
+
+.transaction-amount {
+  font-weight: bold;
+  font-size: 0.9rem;
+  min-width: 100px;
+  text-align: right;
+}
+
+.transaction-amount.credit {
+  color: #28a745;
+}
+
+.transaction-amount.debit {
+  color: #dc3545;
+}
+
+.no-transactions {
+  text-align: center;
+  padding: 2rem;
+  color: #6c757d;
+}
+
+.modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e9ecef;
+  text-align: right;
+}
+
+.btn-close-modal {
+  padding: 0.6rem 1.5rem;
+  background: linear-gradient(135deg, #1a5ac3 0%, #36c165 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-close-modal:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 10px rgba(26, 90, 195, 0.3);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .accounts-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .account-summary {
+    grid-template-columns: 1fr;
+  }
+  
+  .limits-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .transaction-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .transaction-amount {
+    text-align: left;
+  }
+}

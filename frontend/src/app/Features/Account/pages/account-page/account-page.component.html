@@ -10,17 +10,26 @@
     <thead>
       <tr>
         <th>ID</th>
+        <th>RIP</th>
         <th>Type</th>
         <th>Balance</th>
         <th>Status</th>
         <th>Daily Limit</th>
         <th>Monthly Limit</th>
+        <th>Transfer Limit</th>
+        <th>Created At</th>
         <th>Actions</th>
       </tr>
     </thead>
     <tbody>
       <tr *ngFor="let account of accounts">
         <td>{{ account.accountId }}</td>
+        <td>
+          <code class="rip-code">{{ account.rip }}</code>
+          <button class="btn-copy" (click)="copyRip(account.rip)" title="Copy RIP">
+            <i class="fas fa-copy"></i>
+          </button>
+        </td>
         <td>{{ account.type }}</td>
         <td>{{ account.balance | currency:'TND' }}</td>
         <td>
@@ -28,16 +37,19 @@
             {{ account.status }}
           </span>
         </td>
-        <td>{{ account.dailyLimit }}</td>
-        <td>{{ account.monthlyLimit }}</td>
+        <td>{{ account.dailyLimit | currency:'TND' }}</td>
+        <td>{{ account.monthlyLimit | currency:'TND' }}</td>
+        <td>{{ account.dailyTransferLimit | currency:'TND' }}</td>
+        <td>{{ account.createdAt | date:'dd/MM/yyyy' }}</td>
         <td class="actions">
-          <button class="btn-edit"   (click)="openEditForm(account)">✏️ Edit</button>
+          <button class="btn-edit" (click)="openEditForm(account)">✏️ Edit</button>
           <button class="btn-limits" (click)="setLimits(account)">⚙️ Limits</button>
+          <button class="btn-transfer-limit" (click)="setTransferLimit(account)">🔄 Transfer Limit</button>
           <button class="btn-delete" (click)="deleteAccount(account.accountId)">🗑️ Delete</button>
         </td>
       </tr>
       <tr *ngIf="accounts.length === 0">
-        <td colspan="7" style="text-align:center; padding:20px">
+        <td colspan="10" style="text-align:center; padding:20px">
           No accounts found
         </td>
       </tr>
@@ -72,13 +84,19 @@
     </div>
 
     <div class="form-group">
-      <label>Daily Limit</label>
+      <label>Daily Withdrawal Limit</label>
       <input type="number" [(ngModel)]="formData.dailyLimit" min="0" />
     </div>
 
     <div class="form-group">
-      <label>Monthly Limit</label>
+      <label>Monthly Withdrawal Limit</label>
       <input type="number" [(ngModel)]="formData.monthlyLimit" min="0" />
+    </div>
+
+    <div class="form-group">
+      <label>Daily Transfer Limit</label>
+      <input type="number" [(ngModel)]="formData.dailyTransferLimit" min="0" />
+      <small class="text-muted">Maximum amount per day for transfers</small>
     </div>
 
     <div class="form-actions">

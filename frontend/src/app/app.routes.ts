@@ -41,7 +41,14 @@ import { ComplaintKpiComponent } from './Features/Complaint/pages/complaint-kpi/
 import { TransactionPageComponent } from './Features/Transaction/pages/transaction-page/transaction-page.component';
 import { MyComplaintsComponent } from './Features/Complaint/pages/my-complaints/my-complaints.component';
 import { AgentComplaintsComponent } from './Features/Complaint/pages/agent-complaints/agent-complaints.component';
-
+import { ClientDashboardComponent } from './components/client-dashboard/client-dashboard.component';
+// ============================================
+// 🆕 IMPORTS DES NOUVEAUX COMPOSANTS
+// ============================================
+import { ClientAccountsComponent } from './components/client-accounts/client-accounts.component';
+import { TransferByRipComponent } from './components/transfer-by-rip/transfer-by-rip.component';
+import { AgentPendingRequestsComponent } from './components/agent-pending-requests/agent-pending-requests.component';
+import { AgentAccountComponent } from './components/agent-account/agent-account.component';
 export const routes: Routes = [
 
   // Landing page ouverte par défaut
@@ -98,6 +105,43 @@ export const routes: Routes = [
       { path: 'product-detail/:id', component: ProductDetailComponent },
       { path: 'profile', component: ProfileComponent },
       
+
+      // 🆕 ROUTES CLIENT - NOUVELLES FONCTIONNALITÉS
+
+
+      {
+        path: 'client/dashboard',
+        component: ClientDashboardComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['CLIENT'] }
+      },
+      {
+        path: 'client/accounts',
+        component: ClientAccountsComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['CLIENT'] }
+      },
+      {
+        path: 'agent/account',
+        component: AgentAccountComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['AGENT_FINANCE'] }
+      },
+      {
+        path: 'client/transfer',
+        component: TransferByRipComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['CLIENT'] }
+      },
+      
+      // 🆕 ROUTES AGENT_FINANCE
+      {
+        path: 'agent/pending-requests',
+        component: AgentPendingRequestsComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['AGENT_FINANCE'] }
+      },
+      
       // Insurance routes (Client)
       { 
         path: 'insurance/add-contract', 
@@ -153,15 +197,13 @@ export const routes: Routes = [
         data: { roles: ['CLIENT'] }
       },
       
-      // ⭐ ROUTE POUR LES CLIENTS - Mes réclamations
+      // Routes pour les réclamations
       {
         path: 'my-complaints',
         component: MyComplaintsComponent,
         canActivate: [roleGuard],
         data: { roles: ['CLIENT'] }
       },
-      
-      // ⭐ ROUTE POUR LES AGENTS - Leurs réclamations (dans le même layout)
       {
         path: 'agent/complaints',
         component: AgentComplaintsComponent,

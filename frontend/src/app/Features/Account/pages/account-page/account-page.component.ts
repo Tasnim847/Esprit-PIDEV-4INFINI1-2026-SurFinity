@@ -19,7 +19,7 @@ export class AccountPageComponent implements OnInit {
   isFormVisible = false;
   isEditMode = false;
 
-  // ✅ expose l'enum au template HTML
+  // expose l'enum au template HTML
   AccountType = AccountType;
 
   formData: Partial<Account> = {
@@ -27,7 +27,8 @@ export class AccountPageComponent implements OnInit {
     type: AccountType.SAVINGS,
     status: 'ACTIVE',
     dailyLimit: 0,
-    monthlyLimit: 0
+    monthlyLimit: 0,
+    dailyTransferLimit: 0  // 🆕 Ajout
   };
 
   constructor(private accountService: AccountService) {}
@@ -39,7 +40,7 @@ export class AccountPageComponent implements OnInit {
   loadAccounts(): void {
     this.accountService.getAllAccounts().subscribe({
       next: (data) => this.accounts = data,
-      error: (err) => console.error('Erreur chargement comptes', err)
+      error: (err) => console.error('Error loading accounts', err)
     });
   }
 
@@ -50,7 +51,8 @@ export class AccountPageComponent implements OnInit {
       type: AccountType.SAVINGS,
       status: 'ACTIVE',
       dailyLimit: 0,
-      monthlyLimit: 0
+      monthlyLimit: 0,
+      dailyTransferLimit: 0
     };
     this.isFormVisible = true;
   }
@@ -72,7 +74,7 @@ export class AccountPageComponent implements OnInit {
           this.loadAccounts();
           this.isFormVisible = false;
         },
-        error: (err) => console.error('Erreur modification', err)
+        error: (err) => console.error('Error updating account', err)
       });
     } else {
       this.accountService.createAccount(this.formData as Account).subscribe({
@@ -80,34 +82,65 @@ export class AccountPageComponent implements OnInit {
           this.loadAccounts();
           this.isFormVisible = false;
         },
-        error: (err) => console.error('Erreur création', err)
+        error: (err) => console.error('Error creating account', err)
       });
     }
   }
 
-  deleteAccount(accountId: number): void {
-    if (confirm('Confirmer la suppression ?')) {
-      this.accountService.deleteAccount(accountId).subscribe({
-        next: () => this.loadAccounts(),
-        error: (err) => console.error('Erreur suppression', err)
-      });
-    }
+ deleteAccount(accountId: number): void {
+  if (confirm('Are you sure you want to delete this account?')) {
+    this.accountService.deleteAccount(accountId).subscribe({
+      next: (response) => {
+        console.log('Delete response:', response);
+        this.loadAccounts(); // Recharger la liste
+        alert('Account deleted successfully!');
+      },
+      error: (err) => {
+        console.error('Error deleting account:', err);
+        // Afficher un message d'erreur plus précis
+        if (err.status === 404) {
+          alert('Account not found!');
+        } else if (err.status === 403) {
+          alert('You do not have permission to delete this account!');
+        } else {
+          alert('Error deleting account: ' + (err.error?.message || err.message));
+        }
+      }
+    });
   }
+}
 
   setLimits(account: Account): void {
     const daily = parseFloat(
-      prompt('Daily limit ?', String(account.dailyLimit)) || '0'
+      prompt('Daily withdrawal limit ?', String(account.dailyLimit || 0)) || '0'
     );
     const monthly = parseFloat(
-      prompt('Monthly limit ?', String(account.monthlyLimit)) || '0'
+      prompt('Monthly withdrawal limit ?', String(account.monthlyLimit || 0)) || '0'
     );
     this.accountService.setLimits(account.accountId, daily, monthly).subscribe({
       next: () => this.loadAccounts(),
-      error: (err) => console.error('Erreur limites', err)
+      error: (err) => console.error('Error setting limits', err)
+    });
+  }
+
+  // 🆕 Méthode pour définir la limite de virement
+  setTransferLimit(account: Account): void {
+    const dailyTransfer = parseFloat(
+      prompt('Daily transfer limit ?', String(account.dailyTransferLimit || 0)) || '0'
+    );
+    this.accountService.setTransferLimit(account.accountId, dailyTransfer).subscribe({
+      next: () => this.loadAccounts(),
+      error: (err) => console.error('Error setting transfer limit', err)
     });
   }
 
   cancelForm(): void {
     this.isFormVisible = false;
+  }
+
+  // 🆕 Copier le RIP
+  copyRip(rip: string): void {
+    navigator.clipboard.writeText(rip);
+    alert('RIP copied to clipboard!');
   }
 }
